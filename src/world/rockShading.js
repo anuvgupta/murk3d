@@ -31,13 +31,13 @@ export const ROCK_GLSL = /* glsl */ `
     // Cracks: iso-lines of a noise field, but only inside broken zones so
     // they don't read as a contour map drawn over the whole face.
     float crackN = tri( p, w, 0.07, 2 );
-    float zone = smoothstep( 0.42, 0.62, tri( p, w, 0.018, 3 ) );
-    float cracks = ( 1.0 - smoothstep( 0.0, 0.02 + 0.03 * ( 1.0 - detail ), abs( crackN - 0.5 ) ) ) * detail * zone;
+    float zone = smoothstep( 0.5, 0.7, tri( p, w, 0.018, 3 ) );
+    float cracks = ( 1.0 - smoothstep( 0.0, 0.015 + 0.03 * ( 1.0 - detail ), abs( crackN - 0.5 ) ) ) * detail * zone;
     float grain = mix( 0.5, tri( p, w, 0.45, 3 ), detail );
     float lumps = tri( p, w, 0.16, 1 );
     // Macro relief: buttresses and gullies tens of metres across.
     float macro = tri( vec3( p.x, p.y * 0.35, p.z ), w, 0.022, 0 );
-    return clamp( strata * 0.1 + lumps * 0.34 + grain * 0.28 + macro * 0.42 - cracks * 0.45 + 0.02, 0.0, 1.0 );
+    return clamp( strata * 0.1 + lumps * 0.34 + grain * 0.28 + macro * 0.42 - cracks * 0.28 + 0.02, 0.0, 1.0 );
   }
 
   vec3 rockAlbedo( vec3 p, vec3 n, vec3 w, float h ) {
