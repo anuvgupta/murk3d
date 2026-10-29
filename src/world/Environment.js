@@ -17,6 +17,12 @@ function finishSkyFragment(fragment) {
   return fragment.replace(
     'gl_FragColor = vec4( texColor, 1.0 );',
     `texColor = texColor / ( 1.0 + texColor * 0.9 );
+    {
+      // Golden hour: the whole horizon warms, not just the sun's side.
+      float g = ( 1.0 - smoothstep( 0.02, 0.45, vSunDirection.y ) ) * smoothstep( -0.16, 0.0, vSunDirection.y );
+      float hz = 1.0 - smoothstep( 0.0, 0.28, direction.y );
+      texColor = mix( texColor, texColor * vec3( 1.2, 0.92, 0.78 ) + vec3( 0.16, 0.07, 0.03 ), g * hz * 0.75 );
+    }
     texColor = clamp( texColor, vec3( 0.0 ), vec3( 1.5 ) );
     // Night sky is deep navy, never pure black.
     texColor = max( texColor, vec3( 0.006, 0.009, 0.02 ) );
@@ -31,7 +37,7 @@ const PALETTE = {
   sunLow: C(0xff7a2e),
   moon: C(0x9bb2e6),
   fogDay: C(0xd4dde6),
-  fogGolden: C(0xd9a070),
+  fogGolden: C(0xe2a383),
   fogNight: C(0x0b0f19),
   hemiSkyDay: C(0xd3d8d6),
   hemiSkyGolden: C(0xf0b08a),
@@ -203,9 +209,11 @@ export class Environment {
     const elev = sunDir.y;
     if (this.sky.material.uniforms.time) this.sky.material.uniforms.time.value = this.skyTime || 0;
 
-    const day = smoothstep(-0.1, 0.12, elev);
-    const golden = (1 - smoothstep(0.03, 0.4, elev)) * smoothstep(-0.12, 0.0, elev);
-    this.nightFactor = 1 - smoothstep(-0.12, 0.05, elev);
+    // A long twilight: the light fails slowly after the sun has set.
+    const day = smoothstep(-0.2, 0.1, elev);
+    // Golden hour runs from a fair way up the sky down to the horizon.
+    const golden = (1 - smoothstep(0.02, 0.45, elev)) * smoothstep(-0.14, 0.0, elev);
+    this.nightFactor = 1 - smoothstep(-0.2, 0.02, elev);
 
     // Sky scattering: hazier and redder as the sun nears the horizon.
     const u = this.sky.material.uniforms;
@@ -216,11 +224,11 @@ export class Environment {
 
     // Direct light: the sun by day, a dim cool moon by night. Their intensities
     // both pass through ~0 around the horizon, hiding the swap in direction.
-    const sunI = 4.4 * smoothstep(-0.03, 0.14, elev);
+    const sunI = 4.4 * smoothstep(-0.03, 0.14, elev) * (0.72 + 0.28 * smoothstep(0.1, 0.5, elev));
     const moonI = 1.6 * smoothstep(-0.03, -0.14, elev);
     if (sunI > 0.0001 || moonI <= 0.0001) {
       this.lightDir.copy(sunDir);
-      this.sun.color.copy(PALETTE.sunLow).lerp(PALETTE.sunHigh, smoothstep(0.0, 0.5, elev));
+      this.sun.color.copy(PALETTE.sunLow).lerp(PALETTE.sunHigh, smoothstep(0.04, 0.6, elev));
       this.sun.intensity = sunI;
     } else {
       this.lightDir.copy(sunDir).negate();
@@ -264,15 +272,15 @@ export class Environment {
     a.glow = 0.35 + 0.9 * low;
     a.disc = 9.0;
     // Haze: pale blue-white by day, warm amber-rose at low sun, deep blue at night.
-    a.fogColor.copy(PALETTE.fogNight).lerp(this._tmpColor.copy(PALETTE.fogDay).lerp(PALETTE.fogGolden, golden * 0.6), day);
+    a.fogColor.copy(PALETTE.fogNight).lerp(this._tmpColor.copy(PALETTE.fogDay).lerp(PALETTE.fogGolden, golden * 0.85), day);
     a.fogSunColor.copy(PALETTE.fogNight).lerp(this._tmpColor.setRGB(0.86, 0.84, 0.78).lerp(this._tmpColor2.setRGB(0.82, 0.58, 0.4), low), day);
     a.fogDensity = 0.0012 + 0.001 * low * day + 0.0003 * (1 - day);
     a.fogHeight = this.focusHeight - 6;
     a.fogFalloff = 0.025;
     // Mist lies in the valley at dawn and dusk and thins through the day.
-    a.groundMist = 0.1 + 0.35 * low * day + 0.2 * (1 - day);
+    a.groundMist = 0.08 + 0.22 * low * day + 0.15 * (1 - day);
     a.mistFill = 0;
-    a.saturation = 1.1 + 0.05 * day;
+    a.saturation = 1.12 + 0.06 * day + 0.1 * golden;
     a.lift.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
     a.vignette = 0.22;
     // By night the pass draws the moon instead: a small pale disc, faint halo.
