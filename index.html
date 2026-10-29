@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Murk</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=EB+Garamond:ital@0;1&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <div id="hud" class="hidden">
+      <div id="compass"><div id="compass-strip"></div><div id="compass-needle"></div></div>
+      <div id="crosshair"></div>
+      <div id="time-label"></div>
+      <div id="help">
+        <span><b>WASD</b> move</span>
+        <span><b>Shift</b> sprint</span>
+        <span><b>Space</b> jump</span>
+        <span><b>[ ]</b> change time</span>
+        <span><b>T</b> pause time</span>
+        <span><b>Esc</b> menu</span>
+      </div>
+    </div>
+
+    <div id="menu">
+      <div class="menu-inner">
+        <h1>Murk</h1>
+        <p class="subtitle">A tale of the Vale</p>
+        <button id="play">Click to begin</button>
+        <p class="hint" id="loading">Shaping the land&hellip;</p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
