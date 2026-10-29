@@ -543,3 +543,6 @@ screenshot-checked.
   (Game.adaptQuality: resolution → grass reach → bloom → remembered
   lower preset after ~3 s under 28 fps); #10 closed. AP (rock rumple)
   running, AS (meadow sweeps) and AT (cliff/rift/boulders) queued.
+- 00:50 AP: rift arcade good; cliff slabs unchanged (diff 5/255) because
+  radial rumple bows faces but not the ruled long edges → post-stretch
+  lateral wobble (11% of extent) + slabs 0.8–1.2 thick. Verify AU.
