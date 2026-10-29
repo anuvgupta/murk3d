@@ -43,13 +43,20 @@ export function createTerrainMaterial({ noise, mask }) {
         `#include <color_fragment>
         float wet;
         vec3 wn = normalize( vWNormal );
-        vec3 ground = groundColor( vWPos, wn, wet );
+        // Smoothed vertex normals blur a two-cell-wide cliff toward the flat
+        // ground above and below it, so steep faces would read as meadow.
+        // Classify ground by the true face normal (screen-space derivatives)
+        // while lighting keeps the smooth one.
+        vec3 faceN = normalize( cross( dFdx( vWPos ), dFdy( vWPos ) ) );
+        if ( faceN.y < 0.0 ) faceN = -faceN;
+        vec3 wnClass = normalize( mix( wn, faceN, 0.75 ) );
+        vec3 ground = groundColor( vWPos, wnClass, wet );
         // Cliffs and steep ground get the detailed rock shading.
-        vec3 tw = triWeights( wn );
+        vec3 tw = triWeights( wnClass );
         float detail = 1.0 - smoothstep( 12.0, 70.0, length( vViewPosition ) );
         rockDetail = detail;
         rockHOut = rockHeight( vWPos, tw, detail );
-        rockAmtOut = smoothstep( 0.42, 0.58, 1.0 - wn.y + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.1 );
+        rockAmtOut = smoothstep( 0.42, 0.58, 1.0 - wnClass.y + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.1 );
         ground = mix( ground, rockAlbedo( vWPos, wn, tw, rockHOut ), rockAmtOut );
         diffuseColor.rgb *= ground;`
       )
