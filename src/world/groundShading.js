@@ -29,9 +29,8 @@ const lin = (hex) => {
   return `vec3( ${c.r.toFixed(4)}, ${c.g.toFixed(4)}, ${c.b.toFixed(4)} )`;
 };
 
-export const GROUND_GLSL = /* glsl */ `
-  uniform sampler2D uNoise;
-  uniform sampler2D uMask;
+// The realms' tint/snow lookup, shared by the ground, grass and rock shaders.
+export const REALM_GLSL = /* glsl */ `
   // The realms: (x, z, radius, snow) and (tint rgb, grass density).
   uniform vec4 uRegions[ 10 ];
   uniform vec4 uRegionTint[ 10 ];
@@ -50,6 +49,12 @@ export const GROUND_GLSL = /* glsl */ `
     }
     return best;
   }
+`;
+
+export const GROUND_GLSL = /* glsl */ `
+  uniform sampler2D uNoise;
+  uniform sampler2D uMask;
+  ${REALM_GLSL}
 
   vec2 maskUv( vec2 p ) {
     return ( p + ${WORLD_HALF.toFixed(1)} ) / ${WORLD_SIZE.toFixed(1)};

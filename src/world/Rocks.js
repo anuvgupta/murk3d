@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createNoise3D, fbm3, mulberry32 } from '../util/noise.js';
 import { ROCK_GLSL } from './rockShading.js';
+import { REALM_GLSL, regionUniforms } from './groundShading.js';
 import { HILL, HOUSES, PLAZA, RIVER, LAKE, LAKES, CASTLES, PLATES, RUINS, GLADE, nearestRoad } from './plan.js';
 import { REGIONS, regionWeight } from './regions.js';
 
@@ -66,6 +67,7 @@ export function createRockMaterial(noise) {
   const material = new THREE.MeshStandardMaterial({ roughness: 0.92, metalness: 0 });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uNoise = { value: noise };
+    Object.assign(shader.uniforms, regionUniforms());
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNormal;`)
       .replace(
@@ -86,7 +88,8 @@ export function createRockMaterial(noise) {
         varying vec3 vWPos;
         varying vec3 vWNormal;
         float rockH;
-        ${ROCK_GLSL}`
+        ${ROCK_GLSL}
+        ${REALM_GLSL}`
       )
       .replace(
         '#include <color_fragment>',
@@ -95,7 +98,14 @@ export function createRockMaterial(noise) {
         vec3 tw = triWeights( wn );
         float detail = 1.0 - smoothstep( 12.0, 70.0, length( vViewPosition ) );
         rockH = rockHeight( vWPos, tw, detail );
-        diffuseColor.rgb *= rockAlbedo( vWPos, wn, tw, rockH );`
+        diffuseColor.rgb *= rockAlbedo( vWPos, wn, tw, rockH );
+        {
+          // Realm tint, and snow settling on the upper faces.
+          float snow;
+          vec4 realm = realmAt( vWPos.xz, snow );
+          diffuseColor.rgb *= mix( vec3( 1.0 ), realm.rgb, 0.5 );
+          diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.9, 0.92, 0.97 ), clamp( snow, 0.0, 1.0 ) * smoothstep( 0.25, 0.75, wn.y + rockH * 0.3 ) );
+        }`
       )
       .replace(
         '#include <normal_fragment_maps>',

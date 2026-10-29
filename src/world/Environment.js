@@ -265,7 +265,7 @@ export class Environment {
     a.vignette = 0.22;
     if (rw > 0) {
       const P = realm.region.palette;
-      const k = rw * (0.35 + 0.5 * day);
+      const k = rw * (0.12 + 0.7 * day);
       a.fogColor.lerp(this._tmpColor.setRGB(P.fog[0], P.fog[1], P.fog[2]), k);
       a.fogSunColor.lerp(this._tmpColor.setRGB(P.fog[0] * 1.05, P.fog[1] * 1.02, P.fog[2] * 0.95), k * 0.6);
       a.fogDensity *= THREE.MathUtils.lerp(1, P.fogDensity, rw);
