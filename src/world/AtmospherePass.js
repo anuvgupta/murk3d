@@ -214,7 +214,8 @@ const compositeShader = {
       vec2 v = ( vUv - 0.5 ) * vec2( uAspect, 1.0 );
       color *= 1.0 - uVignette * smoothstep( 0.45, 1.1, length( v ) );
 
-      gl_FragColor = vec4( color, src.a );
+      if ( any( isnan( color ) ) || any( isinf( color ) ) ) color = vec3( 0.0 );
+      gl_FragColor = vec4( max( color, vec3( 0.0 ) ), src.a );
     }
   `,
 };

@@ -7,6 +7,21 @@ import { applyCloudStyle, readCloudStyle } from './clouds.js';
 
 const SHADOW_EXTENT = 70; // half-size of the sun's shadow frustum, metres
 const LATITUDE_TILT = 0.6; // radians; noon sun sits ~56° up in the south (+z)
+const SUNRISE = 5.5; // hours; the sun is up for 14 hours, so evenings linger
+const DAY_LENGTH = 14;
+
+// The sky's final output: soft-clip the in-scatter so a low sun grades into
+// a glow rather than a white-out, and cap it so bloom never runs away. Goes
+// on after the cloud style is spliced in (the splice replaces the tail).
+function finishSkyFragment(fragment) {
+  return fragment.replace(
+    'gl_FragColor = vec4( texColor, 1.0 );',
+    `texColor = texColor / ( 1.0 + texColor * 0.9 );
+    texColor = clamp( texColor, vec3( 0.0 ), vec3( 1.5 ) );
+    if ( any( isnan( texColor ) ) || any( isinf( texColor ) ) ) texColor = vec3( 0.5, 0.6, 0.7 );
+    gl_FragColor = vec4( texColor, 1.0 );`
+  );
+}
 
 const C = (hex) => new THREE.Color(hex);
 const PALETTE = {
@@ -72,17 +87,10 @@ export class Environment {
         'vec3 sundiscColor = ( 760.0 * sundisc ) * min( vSunE * Fex, 80.0 );',
         'vec3 sundiscColor = ( 520.0 * sundisc ) * min( vSunE * Fex, 80.0 );'
       )
-      .replace(
-        'gl_FragColor = vec4( texColor, 1.0 );',
-        `// Soft-clip the in-scatter so a low sun grades into a glow rather than a
-        // white-out, and cap it so bloom never runs away.
-        texColor = texColor / ( 1.0 + texColor * 0.9 );
-        texColor = min( texColor, vec3( 1.5 ) );
-        gl_FragColor = vec4( texColor, 1.0 );`
-      );
+      ;
     this.cloudStyle = readCloudStyle();
     this.baseSkyFragment = this.sky.material.fragmentShader;
-    this.sky.material.fragmentShader = applyCloudStyle(this.baseSkyFragment, this.cloudStyle);
+    this.sky.material.fragmentShader = finishSkyFragment(applyCloudStyle(this.baseSkyFragment, this.cloudStyle));
     this.sky.material.needsUpdate = true;
     scene.add(this.sky);
     const u = this.sky.material.uniforms;
@@ -139,7 +147,7 @@ export class Environment {
 
   setCloudStyle(style) {
     this.cloudStyle = style;
-    this.sky.material.fragmentShader = applyCloudStyle(this.baseSkyFragment, style);
+    this.sky.material.fragmentShader = finishSkyFragment(applyCloudStyle(this.baseSkyFragment, style));
     this.sky.material.needsUpdate = true;
     this.lastEnvSunDir.set(0, -5, 0); // re-render the light probe
   }
@@ -149,8 +157,8 @@ export class Environment {
   }
 
   computeSunDirection(hours, target) {
-    // 06:00 rises due east (+x), 18:00 sets due west (-x).
-    const theta = ((hours - 6) / 12) * Math.PI;
+    // Rises due east (+x) at SUNRISE, sets due west (-x) DAY_LENGTH hours later.
+    const theta = ((hours - SUNRISE) / DAY_LENGTH) * Math.PI;
     return target
       .set(Math.cos(theta), Math.sin(theta) * Math.cos(LATITUDE_TILT), Math.sin(theta) * Math.sin(LATITUDE_TILT))
       .normalize();

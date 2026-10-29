@@ -77,7 +77,7 @@ const STYLES = {
       // Two decks: broken cumulus below, a thinner higher layer above.
       for ( int layer = 0; layer < 2; layer++ ) {
         float elev = layer == 0 ? 0.45 : 0.22;
-        vec2 uv = direction.xz / ( direction.y * elev ) * cloudScale * 1000.0;
+        vec2 uv = direction.xz / ( max( direction.y, 0.02 ) * elev ) * cloudScale * 1000.0;
         uv += time * cloudSpeed * ( layer == 0 ? 900.0 : 1500.0 ) + float( layer ) * 37.0;
         float evolve = time * cloudSpeed * 300.0;
         float region = noise( uv * 0.12 + 5.0 ) * 0.5 + 0.5;
@@ -110,7 +110,7 @@ const STYLES = {
       vec3 sunCol = vSunE * Fex * 0.22 * 0.04;
       vec3 skyAmb = Lin * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
       float horizonFade = smoothstep( 0.0, 0.06, direction.y );
-      vec2 uv = direction.xz / ( direction.y * 0.5 ) * cloudScale * 700.0;
+      vec2 uv = direction.xz / ( max( direction.y, 0.02 ) * 0.5 ) * cloudScale * 700.0;
       uv += time * cloudSpeed * 500.0;
       float evolve = time * cloudSpeed * 120.0;
       // Towers: big round lobes stacked into masses.
@@ -151,7 +151,7 @@ const STYLES = {
       float evolve = time * cloudSpeed * 200.0;
       vec2 toSun = vSunDirection.xz * 0.06;
       // Soft banks, brushed: low-contrast masses with feathered edges.
-      vec2 uvLo = direction.xz / ( direction.y * 0.5 ) * cloudScale * 1000.0;
+      vec2 uvLo = direction.xz / ( max( direction.y, 0.02 ) * 0.5 ) * cloudScale * 1000.0;
       uvLo += time * cloudSpeed * 800.0;
       float region = noise( uvLo * 0.12 ) * 0.5 + 0.5;
       float cov = clamp( cloudCoverage + ( region - 0.5 ) * 0.6, 0.0, 1.0 );
@@ -171,7 +171,7 @@ const STYLES = {
       texColor -= L0 * 0.04 * aBank;
       texColor = mix( texColor, mix( texColor, bankColor, Fex ), aBank );
       // High cirrus: short brush strokes across the wind, sparse.
-      vec2 uvHi = direction.xz / ( direction.y * 0.18 ) * cloudScale * 1000.0;
+      vec2 uvHi = direction.xz / ( max( direction.y, 0.02 ) * 0.18 ) * cloudScale * 1000.0;
       uvHi += time * cloudSpeed * 2000.0;
       vec2 st = vec2( uvHi.x * 0.7, uvHi.y * 1.8 );
       float streak = fbm( st * 1.2, evolve ) * 0.5 + 0.5;
