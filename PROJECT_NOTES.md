@@ -424,3 +424,7 @@ screenshot-checked.
   under grass mask 0.72→0.84 and grass sheen 0.08→0.05 to kill the
   near/far grass band. Pending verify (Z). Still open: milky horizon at
   noon (Preetham), wading render (Y).
+- 18:40 Wading render verified (teal murk, surface seen from below). Added
+  swimming: Player floats with feet 1.25 m under the surface in deep
+  water (waterLevelAt from Water.levelAt), 45% speed. Village-from-hill
+  17:30 frame has good depth and birch/purple accents.
