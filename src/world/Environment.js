@@ -18,6 +18,8 @@ function finishSkyFragment(fragment) {
     'gl_FragColor = vec4( texColor, 1.0 );',
     `texColor = texColor / ( 1.0 + texColor * 0.9 );
     texColor = clamp( texColor, vec3( 0.0 ), vec3( 1.5 ) );
+    // Night sky is deep navy, never pure black.
+    texColor = max( texColor, vec3( 0.006, 0.009, 0.02 ) );
     if ( any( isnan( texColor ) ) || any( isinf( texColor ) ) ) texColor = vec3( 0.5, 0.6, 0.7 );
     gl_FragColor = vec4( texColor, 1.0 );`
   );
@@ -273,6 +275,15 @@ export class Environment {
     a.saturation = 1.1 + 0.05 * day;
     a.lift.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
     a.vignette = 0.22;
+    // By night the pass draws the moon instead: a small pale disc, faint halo.
+    if (moonI > 0.0001 && sunI <= 0.0001) {
+      a.sunDir.copy(this.lightDir);
+      a.sunVisible = smoothstep(-0.05, -0.16, elev);
+      a.sunColor.setRGB(0.8, 0.86, 0.98);
+      a.disc = 3.5;
+      a.glow = 0.18;
+      a.shaft = 0.03;
+    }
     if (rw > 0) {
       const P = realm.region.palette;
       const k = rw * (0.12 + 0.7 * day);
