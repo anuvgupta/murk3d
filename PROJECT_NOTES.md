@@ -517,3 +517,6 @@ screenshot-checked.
   stone with ember seams. Moonlit lake good. Lakes at eye level still a
   flat band → lake normal strength 0.3→0.5. AO: Shelves, smithy,
   alchemist, alpine falls, jungle, river town under final lighting.
+- 23:00 Container restarted mid-render (AN3/AN4 + AO batch lost; repo,
+  dist, scratchpad scripts and 373 renders survived). Preview server
+  relaunched; AN3/AN4 + AO re-queued as batch35.
