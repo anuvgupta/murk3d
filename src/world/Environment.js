@@ -16,7 +16,12 @@ const DAY_LENGTH = 14;
 function finishSkyFragment(fragment) {
   return fragment.replace(
     'gl_FragColor = vec4( texColor, 1.0 );',
-    `texColor = texColor / ( 1.0 + texColor * 0.45 );
+    `{
+      // Hue-preserving soft clip: compress luminance, keep the colour ratio,
+      // so a bright noon sky stays blue instead of bleaching to white.
+      float l = dot( texColor, vec3( 0.2126, 0.7152, 0.0722 ) );
+      texColor *= ( l / ( 1.0 + l * 0.7 ) ) / max( l, 1e-4 );
+    }
     {
       // By day the sky deepens to a saturated blue away from the horizon.
       float dayF = smoothstep( 0.1, 0.4, vSunDirection.y );
@@ -29,7 +34,7 @@ function finishSkyFragment(fragment) {
       float hz = 1.0 - smoothstep( 0.0, 0.28, direction.y );
       texColor = mix( texColor, texColor * vec3( 1.2, 0.92, 0.78 ) + vec3( 0.16, 0.07, 0.03 ), g * hz * 0.75 );
     }
-    texColor = clamp( texColor, vec3( 0.0 ), vec3( 2.0 ) );
+    texColor = clamp( texColor, vec3( 0.0 ), vec3( 1.6 ) );
     // Night sky is deep navy, never pure black.
     texColor = max( texColor, vec3( 0.006, 0.009, 0.02 ) );
     if ( any( isnan( texColor ) ) || any( isinf( texColor ) ) ) texColor = vec3( 0.5, 0.6, 0.7 );
