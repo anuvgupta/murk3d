@@ -38,6 +38,7 @@ export class Game {
     this.timer = new THREE.Timer();
     this.timer.connect(document);
     this.elapsed = 0;
+    this._bufferSize = new THREE.Vector2();
     this.running = false;
 
     window.addEventListener('resize', () => this.onResize());
@@ -113,6 +114,7 @@ export class Game {
     this.environment.update(dt, this.player.position);
     this.renderer.toneMappingExposure = this.environment.exposure;
     this.grass.update(this.elapsed, this.camera, this.player.position);
+    this.house.setViewport(this.renderer.getDrawingBufferSize(this._bufferSize).y, this.camera.fov);
     this.house.update(dt, this.elapsed, this.environment.nightFactor, this.environment.lightLevel);
     this.hud.update(this.player.yaw, this.environment.timeLabel());
 

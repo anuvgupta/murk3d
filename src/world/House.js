@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import {
   stoneTextures,
   plasterTextures,
@@ -90,16 +91,49 @@ export class House {
     this.buildDoor();
     this.buildWindows();
     this.buildProps();
+    this.buildLantern();
+    this.mergeByMaterial();
+    this.buildSmoke();
+  }
 
+  // The cottage is assembled from ~200 primitives. Bake them into one mesh
+  // per material so it costs a handful of draw calls instead of one per beam.
+  mergeByMaterial() {
+    this.group.updateMatrixWorld(true);
+    const toGroup = this.group.matrixWorld.clone().invert();
+    const meshes = [];
     this.group.traverse((o) => {
-      if (o.isMesh) {
-        o.castShadow = true;
-        o.receiveShadow = true;
-      }
+      if (o.isMesh) meshes.push(o);
     });
 
-    this.buildLantern();
-    this.buildSmoke();
+    const buckets = new Map();
+    const sources = new Set();
+    const matrix = new THREE.Matrix4();
+    for (const mesh of meshes) {
+      matrix.multiplyMatrices(toGroup, mesh.matrixWorld);
+      const geometry = mesh.geometry.clone().applyMatrix4(matrix);
+      if (!buckets.has(mesh.material)) buckets.set(mesh.material, []);
+      buckets.get(mesh.material).push(geometry);
+      sources.add(mesh.geometry);
+      mesh.removeFromParent();
+    }
+    for (const g of sources) g.dispose();
+
+    // Drop the now-empty helper groups used for positioning.
+    const empty = [];
+    this.group.traverse((o) => {
+      if (o !== this.group && o.isGroup && o.children.length === 0) empty.push(o);
+    });
+    for (const o of empty) o.removeFromParent();
+
+    for (const [material, geometries] of buckets) {
+      const merged = mergeGeometries(geometries);
+      for (const g of geometries) g.dispose();
+      const mesh = new THREE.Mesh(merged, material);
+      mesh.castShadow = material !== this.flame.material;
+      mesh.receiveShadow = true;
+      this.group.add(mesh);
+    }
   }
 
   box(w, h, d, mat, x, y, z, { metres = 1, alongLongest = false, parent = this.group } = {}) {
@@ -465,14 +499,67 @@ export class House {
     lantern.add(this.lanternLight);
   }
 
+  // Chimney smoke as a single point cloud: one draw call for every puff.
   buildSmoke() {
-    const tex = smokeTexture();
-    for (let i = 0; i < 28; i++) {
-      const mat = new THREE.SpriteMaterial({ map: tex, color: 0xbab3aa, transparent: true, opacity: 0, depthWrite: false });
-      const s = new THREE.Sprite(mat);
-      s.visible = false;
-      this.group.add(s);
-      this.smoke.push({ sprite: s, age: Infinity, life: 1, drift: new THREE.Vector3() });
+    const count = 28;
+    const geometry = new THREE.BufferGeometry();
+    this.smokeAttrs = {
+      position: new THREE.BufferAttribute(new Float32Array(count * 3), 3),
+      size: new THREE.BufferAttribute(new Float32Array(count), 1),
+      opacity: new THREE.BufferAttribute(new Float32Array(count), 1),
+      spin: new THREE.BufferAttribute(new Float32Array(count), 1),
+    };
+    for (const [name, attr] of Object.entries(this.smokeAttrs)) {
+      attr.setUsage(THREE.DynamicDrawUsage);
+      geometry.setAttribute(name, attr);
+    }
+
+    this.smokeMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        map: { value: smokeTexture() },
+        color: { value: new THREE.Color(0xbab3aa) },
+        // Converts a world-space size into pixels at distance 1.
+        pixelScale: { value: 1 },
+      },
+      vertexShader: /* glsl */ `
+        attribute float size;
+        attribute float opacity;
+        attribute float spin;
+        uniform float pixelScale;
+        varying float vOpacity;
+        varying float vSpin;
+        void main() {
+          vOpacity = opacity;
+          vSpin = spin;
+          vec4 mvPosition = modelViewMatrix * vec4( position, 1.0 );
+          gl_PointSize = size * pixelScale / -mvPosition.z;
+          gl_Position = projectionMatrix * mvPosition;
+        }
+      `,
+      fragmentShader: /* glsl */ `
+        uniform sampler2D map;
+        uniform vec3 color;
+        varying float vOpacity;
+        varying float vSpin;
+        void main() {
+          vec2 uv = gl_PointCoord - 0.5;
+          float c = cos( vSpin );
+          float s = sin( vSpin );
+          uv = mat2( c, -s, s, c ) * uv + 0.5;
+          vec4 tex = texture2D( map, uv );
+          gl_FragColor = vec4( color, tex.a * vOpacity );
+          #include <colorspace_fragment>
+        }
+      `,
+      transparent: true,
+      depthWrite: false,
+    });
+
+    this.smokePoints = new THREE.Points(geometry, this.smokeMaterial);
+    this.smokePoints.frustumCulled = false;
+    this.group.add(this.smokePoints);
+    for (let i = 0; i < count; i++) {
+      this.smoke.push({ position: new THREE.Vector3(), drift: new THREE.Vector3(), age: Infinity, life: 1, spin: 0 });
     }
   }
 
@@ -491,29 +578,36 @@ export class House {
       if (p) {
         p.age = 0;
         p.life = 5 + Math.random() * 3;
-        p.sprite.position.copy(this.chimneyTop);
+        p.position.copy(this.chimneyTop);
         p.drift.set(0.35 + Math.random() * 0.25, 0.9 + Math.random() * 0.4, 0.1 + (Math.random() - 0.5) * 0.3);
         // Wind is defined in world space; undo the cottage's rotation.
         p.drift.applyAxisAngle(new THREE.Vector3(0, 1, 0), -this.group.rotation.y);
-        p.sprite.material.rotation = Math.random() * Math.PI * 2;
-        p.sprite.visible = true;
+        p.spin = Math.random() * Math.PI * 2;
       }
     }
+
+    const { position, size, opacity, spin } = this.smokeAttrs;
+    this.smoke.forEach((p, i) => {
+      if (p.age < p.life) {
+        p.age += dt;
+        p.position.addScaledVector(p.drift, dt);
+        p.drift.y *= 1 - dt * 0.12;
+      }
+      const t = Math.min(1, p.age / p.life);
+      position.setXYZ(i, p.position.x, p.position.y, p.position.z);
+      size.setX(i, 0.7 + t * 4.5);
+      opacity.setX(i, p.age < p.life ? Math.min(1, t * 6) * (1 - t) * 0.55 : 0);
+      spin.setX(i, p.spin);
+    });
+    for (const attr of Object.values(this.smokeAttrs)) attr.needsUpdate = true;
+
     const tint = 0.25 + lightLevel * 0.75;
-    for (const p of this.smoke) {
-      if (p.age >= p.life) {
-        p.sprite.visible = false;
-        continue;
-      }
-      p.age += dt;
-      const t = p.age / p.life;
-      p.sprite.position.addScaledVector(p.drift, dt);
-      p.drift.y *= 1 - dt * 0.12;
-      const scale = 0.7 + t * 4.5;
-      p.sprite.scale.set(scale, scale, scale);
-      p.sprite.material.opacity = Math.min(1, t * 6) * (1 - t) * 0.55;
-      p.sprite.material.color.setRGB(0.73 * tint, 0.7 * tint, 0.67 * tint);
-    }
+    this.smokeMaterial.uniforms.color.value.setRGB(0.73 * tint, 0.7 * tint, 0.67 * tint);
+  }
+
+  // Call when the viewport or camera FOV changes so smoke puffs keep their size.
+  setViewport(heightPx, fovDeg) {
+    this.smokeMaterial.uniforms.pixelScale.value = heightPx / (2 * Math.tan(THREE.MathUtils.degToRad(fovDeg) / 2));
   }
 
   // Colliders in world space as oriented boxes on the ground plane.
