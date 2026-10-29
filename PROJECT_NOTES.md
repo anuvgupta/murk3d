@@ -511,3 +511,9 @@ screenshot-checked.
   0xd2cec4 / ruinDark 0xcfc9bc with env 1.3–1.4 (Ayleid-pale). Overlook
   cliff slabs had razor-straight facet edges → post-cut fbm rumple 5%.
   Verify AN (tower, overlook cliff, chapel, temple).
+- 22:40 AM: karst lake from the air = vivid turquoise with depth
+  gradient (keeper, matches ref 1); green ledges on the spires are right
+  for karst (Guilin towers are vegetated). Glade gates now textured black
+  stone with ember seams. Moonlit lake good. Lakes at eye level still a
+  flat band → lake normal strength 0.3→0.5. AO: Shelves, smithy,
+  alchemist, alpine falls, jungle, river town under final lighting.
