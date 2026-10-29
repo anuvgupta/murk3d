@@ -263,7 +263,7 @@ export class Water {
             vec3 n3 = texture( uWaterNormals, vWPos.xz * 0.55 - uWindDir * t * 0.8 ).xyz * 2.0 - 1.0;
             vec2 slope = n1.xy * 0.55 + n2.xy * 0.35 + n3.xy * ( 0.08 + 0.45 * gust );
             // Lakes lie flatter than running water.
-            slope *= isRiver ? 1.0 : 0.3 + 0.25 * uWindStrength;
+            slope *= isRiver ? 1.0 : 0.5 + 0.3 * uWindStrength;
             slope *= mix( 1.0, 0.25, waterFoam );
             vec3 worldN = normalize( vec3( 0.0, 1.0, 0.0 )
               + vec3( across.x, 0.0, across.y ) * slope.x
