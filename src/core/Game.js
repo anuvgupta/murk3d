@@ -33,7 +33,7 @@ import { SPAWN } from '../world/plan.js';
 import { Input } from '../player/Input.js';
 import { Player } from '../player/Player.js';
 import { HUD } from '../ui/HUD.js';
-import { settings } from './settings.js';
+import { settings, QUALITY, PRESET_ORDER, rememberQuality } from './settings.js';
 import { Feedback } from '../ui/Feedback.js';
 import { MapScreen } from '../ui/MapScreen.js';
 
@@ -53,6 +53,8 @@ export class Game {
     this.renderer = renderer;
     renderer.info.autoReset = false;
     this.perf = { el: document.getElementById('perf'), frames: 0, time: 0, fps: 0, ms: 0, show: false };
+    // Adaptive quality: after a few slow seconds, step the cost down (and remember).
+    this.adapt = { slow: 0, step: 0, settleUntil: 4 };
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 20000);
@@ -291,6 +293,40 @@ export class Game {
     input.endFrame();
   }
 
+  // Step rendering cost down while the frame rate stays under ~28 fps:
+  // resolution first, then grass reach, then bloom; past that, reload on a
+  // lower preset next time. Only counts while playing (the menu doesn't move).
+  adaptQuality(fps) {
+    if (!this.active) return;
+    const a = this.adapt;
+    if (this.elapsed < a.settleUntil) return;
+    if (fps >= 28) {
+      a.slow = Math.max(0, a.slow - 1);
+      return;
+    }
+    if (++a.slow < 6) return; // ~3 s of slow frames
+    a.slow = 0;
+    a.step++;
+    a.settleUntil = this.elapsed + 4;
+    if (a.step === 1) {
+      this.renderer.setPixelRatio(Math.max(0.85, this.renderer.getPixelRatio() * 0.8));
+      this.onResize();
+      this.hud.toast('Lowering resolution for a smoother frame rate');
+    } else if (a.step === 2) {
+      this.grass.radiusScale = 0.7;
+      this.hud.toast('Shortening grass distance');
+    } else if (a.step === 3) {
+      for (const pass of this.composer.passes) if (pass.strength !== undefined) pass.enabled = false;
+      this.hud.toast('Bloom off');
+    } else if (a.step === 4) {
+      const i = PRESET_ORDER.indexOf(QUALITY);
+      if (i >= 0 && i < PRESET_ORDER.length - 1) {
+        rememberQuality(PRESET_ORDER[i + 1]);
+        this.hud.toast(`Next visit will start on the ${PRESET_ORDER[i + 1]} preset`);
+      }
+    }
+  }
+
   updatePerf(dt, renderMs) {
     const p = this.perf;
     p.frames++;
@@ -302,6 +338,7 @@ export class Game {
     p.frames = 0;
     p.time = 0;
     p.ms = 0;
+    this.adaptQuality(p.fps);
     if (!p.show) return;
     const r = this.renderer.info.render;
     const m = this.renderer.info.memory;

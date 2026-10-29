@@ -6,6 +6,21 @@ const PRESETS = {
   high: { pixelRatio: 1.5, shadowMapSize: 4096, grassDensity: 420, grassFullDetail: 11, grassDrawDistance: 135, bloom: true },
 };
 
-const requested = new URLSearchParams(window.location.search).get('quality');
+// A preset the adaptive stepper settled on last time is remembered.
+let saved = null;
+try {
+  saved = localStorage.getItem('murk.quality');
+} catch (e) {
+  saved = null;
+}
+const requested = new URLSearchParams(window.location.search).get('quality') || saved;
 export const QUALITY = PRESETS[requested] ? requested : 'high';
+export const PRESET_ORDER = ['high', 'medium', 'low'];
+export function rememberQuality(name) {
+  try {
+    localStorage.setItem('murk.quality', name);
+  } catch (e) {
+    /* private mode */
+  }
+}
 export const settings = PRESETS[QUALITY];

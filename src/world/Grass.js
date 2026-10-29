@@ -60,6 +60,7 @@ export class Grass {
     const density = settings.grassDensity; // blades per m² at full density
     this.radius = settings.grassDrawDistance;
     this.fullRadius = settings.grassFullDetail;
+    this.radiusScale = 1; // the adaptive stepper shrinks this on slow machines
     const tufts = Math.round((TILE * TILE * density) / BLADES_PER_TUFT);
     this.perTile = tufts * BLADES_PER_TUFT;
 
@@ -171,7 +172,7 @@ export class Grass {
       const nx = Math.max(x0 - cam.x, 0, cam.x - (x0 + TILE));
       const nz = Math.max(z0 - cam.z, 0, cam.z - (z0 + TILE));
       const d = Math.hypot(nx, nz);
-      if (d > this.radius) {
+      if (d > this.radius * this.radiusScale) {
         mesh.visible = false;
         continue;
       }
