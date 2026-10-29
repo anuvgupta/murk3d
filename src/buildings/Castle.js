@@ -45,7 +45,7 @@ export class Castle {
 
     const kit = new Kit();
     this.baseY = castle.plateauTop;
-    kit.frame({ x: plateau.x, y: this.baseY, z: plateau.z }, () => {
+    kit.frame({ x: this.plateau.x, y: this.baseY, z: this.plateau.z }, () => {
       this.buildWards(kit);
       this.buildKeep(kit);
       this.buildBridge(kit);

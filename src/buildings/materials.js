@@ -65,7 +65,7 @@ export function createBuildingMaterials(noiseTexture) {
     banner: new THREE.MeshStandardMaterial({ color: 0x1e3a7a, roughness: 0.95, side: THREE.DoubleSide }),
     // Ruins: weathered grey ashlar and rubble, moss and turf.
     ruin: std(ashlar, 2.8, 0.92, { color: 0xb3b0a5 }),
-    ruinDark: std(rubble, 3.2, 0.95, { color: 0x8f8c84 }),
+    ruinDark: std(rubble, 3.2, 0.95, { color: 0xa9a59b }),
     moss: new THREE.MeshStandardMaterial({ color: 0x55703a, roughness: 1 }),
     turf: new THREE.MeshStandardMaterial({ color: 0x5e7d38, roughness: 1 }),
     // Portal gates: black glassy stone and the ember seams in it.

@@ -5,6 +5,7 @@ import { BARRELS, crate, well } from './props.js';
 import { Bridge } from './Bridge.js';
 import { Smoke } from './Smoke.js';
 import { createItemMaterials, displayTable, weaponRack, CHESTS } from './items.js';
+import { createFurnitureMaterials, smithy, alchemyStall, armoury, tavernTable } from './furniture.js';
 import { windmillSails, waterWheel } from './landmarks.js';
 import { HOUSES, PLAZA, WELL, LAKES } from '../world/plan.js';
 import { REGIONS } from '../world/regions.js';
@@ -90,6 +91,21 @@ export class Village {
       this.colliders.push({ cx: PLAZA.x - PLAZA.radius + 1.4, cz: PLAZA.z + 2.8, hx: r.hz, hz: r.hx, rot: Math.PI / 2 });
     });
     this.landmarks.push({ name: 'market stall', x: PLAZA.x - PLAZA.radius + 2, z: PLAZA.z, r: 3 });
+    // The alchemist and the armourer on the plaza's east edge; the smith's
+    // yard south-west of the village; the tavern's tables in its yard.
+    const fm = (this.furnitureMaterials = createFurnitureMaterials(m, im));
+    const place = (x, z, ry, build, name) => {
+      let info;
+      kit.frame({ x, y: terrain.heightAt(x, z), z, ry }, () => {
+        info = build();
+      });
+      for (const c of info.colliders || [{ cx: 0, cz: 0, hx: info.hx, hz: info.hz }]) this.colliders.push(worldBox({ ...c, rot: 0 }, x, z, ry));
+      this.landmarks.push({ name, x, z, r: Math.max(info.hx, info.hz) + 0.5 });
+    };
+    place(PLAZA.x + PLAZA.radius - 2.6, PLAZA.z + 2.4, -Math.PI / 2, () => alchemyStall(kit, m, im, fm), 'alchemist');
+    place(PLAZA.x + PLAZA.radius - 1.2, PLAZA.z - 3.4, -Math.PI / 2, () => armoury(kit, m, im, fm), 'armoury');
+    place(-40, 40, Math.atan2(PLAZA.x + 40, PLAZA.z - 40), () => smithy(kit, m, im, fm), 'smithy');
+    place(74, -30, 0.3, () => tavernTable(kit, m, im, fm), 'tavern tables');
     const chestSpots = [
       { x: 4.5, z: 14.5, ry: 0.4, kind: 0 },    // south edge of the plaza
       { x: -86, z: -88, ry: 2.2, kind: 1 },    // the overlook

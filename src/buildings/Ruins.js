@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Kit } from './Kit.js';
 import { CHESTS } from './items.js';
+import { createFurnitureMaterials, rowboat } from './furniture.js';
 import { RUINS, ISLETS, PITS, LAKE, CREVASSE } from '../world/plan.js';
 import { mulberry32 } from '../util/noise.js';
 
@@ -221,6 +222,9 @@ export class Ruins {
       // Jetty from the front edge out over the lake.
       const deckY = Math.max(0.6, LAKE.level - y + 0.55);
       kit.frame({ x: 1.5, z: D / 2 }, () => jetty(kit, m, 16, 2.0, deckY, LAKE.level - y, random));
+      // A rowing boat moored beside the jetty.
+      const fm = createFurnitureMaterials(m, items);
+      kit.frame({ x: -1.4, y: LAKE.level - y + 0.02, z: D / 2 + 11, ry: 0.25, rz: 0.03 }, () => rowboat(kit, m, items, fm));
       this.decks.push(this.worldRect(site, ry, 1.5, D / 2 + 8, 1.0, 8.2, y + deckY + 0.03));
       this.decks.push(this.worldRect(site, ry, 0, 0, W / 2 + 0.4, D / 2 + 0.4, y + 0.66));
     });
