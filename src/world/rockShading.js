@@ -37,15 +37,16 @@ export const ROCK_GLSL = /* glsl */ `
     float lumps = tri( p, w, 0.16, 1 );
     // Macro relief: buttresses and gullies tens of metres across.
     float macro = tri( vec3( p.x, p.y * 0.35, p.z ), w, 0.022, 0 );
-    return clamp( strata * 0.1 + lumps * 0.34 + grain * 0.2 + macro * 0.42 - cracks * 0.45 + 0.05, 0.0, 1.0 );
+    return clamp( strata * 0.1 + lumps * 0.34 + grain * 0.28 + macro * 0.42 - cracks * 0.45 + 0.02, 0.0, 1.0 );
   }
 
   vec3 rockAlbedo( vec3 p, vec3 n, vec3 w, float h ) {
     float broad = tri( p, w, 0.015, 0 );
     float band = sin( p.y * 0.9 + broad * 7.0 ) * 0.5 + 0.5;
-    vec3 c = mix( ${lin(0x7d7872)}, ${lin(0xb3aa9c)}, smoothstep( 0.2, 0.8, broad ) );
+    vec3 c = mix( ${lin(0x6f6a64)}, ${lin(0xb3aa9c)}, smoothstep( 0.2, 0.8, broad ) );
     c = mix( c, c * ${lin(0xd2b08f)} * 1.25, band * 0.35 );
-    c *= 0.8 + 0.4 * h;
+    // Cavities: hollows and cracks sit in shadow; ridges catch the light.
+    c *= 0.5 + 0.75 * h;
     // Mid-scale variation and gullies streaking down the slope, visible from afar.
     float meso = tri( p, w, 0.05, 2 );
     float gully = tri( vec3( p.x, p.y * 0.22, p.z ), w, 0.045, 3 );
