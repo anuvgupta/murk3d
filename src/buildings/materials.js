@@ -70,7 +70,7 @@ export function createBuildingMaterials(noiseTexture) {
     moss: new THREE.MeshStandardMaterial({ color: 0x55703a, roughness: 1 }),
     turf: new THREE.MeshStandardMaterial({ color: 0x5e7d38, roughness: 1 }),
     // Portal gates: black glassy stone and the ember seams in it.
-    obsidian: std(rubble, 2.5, 0.45, { color: 0x15110f, metalness: 0.15 }),
+    obsidian: std(rubble, 3.0, 0.4, { color: 0x3a3230, metalness: 0.2 }),
     ember: new THREE.MeshStandardMaterial({ color: 0x2a0800, emissive: 0xff5a14, emissiveIntensity: 1.6, roughness: 0.6 }),
   };
   m.lamp.userData.noShadow = true;

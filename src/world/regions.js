@@ -24,7 +24,7 @@ export const REGIONS = [
     floor: 6,
     rim: 115, // taller than the spires, so their tips don't show over the Vale's mountains
     palette: { ground: [0.92, 1.0, 0.86], grass: [0.95, 1.04, 0.86], fog: [0.72, 0.84, 0.84], fogDensity: 1.3, saturation: 1.12 },
-    lake: { r: 54, depth: 7, level: 1.5, tint: [0.6, 1.9, 1.7] },
+    lake: { r: 54, depth: 7, level: 1.5, tint: [0.55, 1.5, 1.35] },
     spires: { count: 40, rMin: 5, rMax: 14, hMin: 34, hMax: 96, seed: 11 },
     arches: [{ dx: 75, dz: -39, r: 13, tube: 3.6, ry: 1.1 }],
     rocks: 24,
@@ -127,7 +127,7 @@ export const REGIONS = [
     floor: 3,
     night: true,
     palette: { ground: [0.7, 0.9, 0.95], grass: [0.6, 0.9, 0.95], fog: [0.25, 0.5, 0.55], fogDensity: 1.6, saturation: 1.1 },
-    lake: { r: 40, depth: 3, level: 0.5, dx: 20, dz: -10, tint: [0.7, 1.6, 1.8] },
+    lake: { r: 40, depth: 3, level: 0.5, dx: 20, dz: -10, tint: [0.6, 1.4, 1.5] },
     ruins: ['chapel', 'arcade', 'stones'],
     crystals: { colour: 0x58e0d8, count: 40 },
     flora: [{ species: 'duskwood', density: 2.5, spacing: 8 }, { species: 'dead', density: 1.0, spacing: 10 }],
