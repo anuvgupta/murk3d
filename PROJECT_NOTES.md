@@ -484,3 +484,7 @@ screenshot-checked.
   windows over navy hills (good); castle at 19:00 in warm side light is
   a keeper frame. Realms haven't been re-rendered since the lighting
   overhaul → batch AI (karst, moonlit, tundra, canyon, floating isles).
+- 20:55 AH: monoliths read as brick (ashlar courses) → procedural rock
+  material (createRockMaterial) for standing stones/lintels/altar.
+  AH2/AH3 cameras were mis-aimed; AJ re-shoots stones (dusk, noon),
+  chapel, watchtower.
