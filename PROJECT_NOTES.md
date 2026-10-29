@@ -342,3 +342,13 @@ screenshot-checked.
   Oblivion-style gates; each realm has a gate home. Menu lists realms.
 - Verified by render: castle bridge/arches, drowned temple + jetty, crypt
   interior, the Rift arcade. Pending: realm renders, plate lips up close.
+- furniture.js: item/furniture library (bucket, ingots, gems, bottles/
+  potions, books, candles, food, mugs, bench/stool/chair/table/bed/
+  bookshelf/cupboard, anvil/hammer/tongs/forge/bellows/grindstone, cauldron,
+  mortar, scales, herbs, staffs, shields, bow+quiver, rowboat). Composed as
+  the smithy (-40,40), alchemist + armoury on the plaza's east edge, tavern
+  tables (74,-30), rowboat at the temple jetty.
+- Falls.js waterfalls (alpine valley, overgrown cliffs); Arches.js natural
+  rock arches (Vale (-122,206), karst, cliffs, two spanning the canyon).
+- Offline terrain probe: node scratchpad/probe.mjs (Terrain runs in node),
+  used to place things without renders.
