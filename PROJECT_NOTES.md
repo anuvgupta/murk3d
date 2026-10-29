@@ -313,3 +313,8 @@ screenshot-checked.
   towers with spires, keep with great tower and rose window, long arched
   bridge from the knoll). Plan: MESAS/CASTLE in plan.js, castle road spirals
   the knoll; Terrain.castleHeight terraces the plateau top.
+- Castle geometry fixed: wards clamped to one absolute level (Terrain
+  castleHeight(x,z,natural) with plateauTop averaged), knoll gets a cliff
+  facing the plateau so the bridge is level over a ~40 m gorge, castle road
+  climbs the knoll's far side. Sawmill now on a stone pier at the river
+  with the wheel in the water; plots ease into riverbanks (plotWeight).
