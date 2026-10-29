@@ -373,3 +373,12 @@ screenshot-checked.
   clip; raw in-scatter (thousands) hit bloom. Fix: finishSkyFragment()
   applied after the splice (+ NaN guards, horizon UV guard). Day now
   05:30–19:30 so golden hour/sunset exist at 18:30–19:30.
+- Lighting round 2 (16:00): after the white-out fix the dawn (06:00) view
+  is warm and misty — good; 09:00/12:30 clear. Problems: golden hour too
+  cool/white with a heavy grey mist band; sunset sky grey; night came
+  abruptly at 20:00; realm bowls showed as notches in the mountain ring
+  (floating isles visible from the Vale). Changes: longer twilight (day =
+  smoothstep(-0.2,0.1)), golden factor wider, warmer sun earlier, fog →
+  fogGolden 0.85, mist lower, saturation +golden, warm horizon band in the
+  sky shader at low sun, moon disc + navy night floor, crater rims round
+  every realm. River/bridge morning view is the best shot so far.
