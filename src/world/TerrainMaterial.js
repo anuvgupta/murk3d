@@ -71,3 +71,28 @@ export function createTerrainMaterial({ noise, mask }) {
   };
   return material;
 }
+
+// Turf for built things (island tops, the barrow): the same meadow colouring
+// as the ground, so they match the grass around them.
+export function createTurfMaterial({ noise, mask }) {
+  const material = new THREE.MeshStandardMaterial({ roughness: 1, metalness: 0 });
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uNoise = { value: noise };
+    shader.uniforms.uMask = { value: mask };
+    Object.assign(shader.uniforms, regionUniforms());
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;`)
+      .replace('#include <project_vertex>', `#include <project_vertex>\nvWPos = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\n${GROUND_GLSL}`)
+      .replace(
+        '#include <color_fragment>',
+        `#include <color_fragment>
+        {
+          vec4 gn = groundNoise( vWPos.xz );
+          diffuseColor.rgb = meadowColor( vWPos.xz, gn ) * 0.78;
+        }`
+      );
+  };
+  return material;
+}

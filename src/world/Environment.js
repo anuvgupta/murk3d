@@ -49,6 +49,7 @@ export class Environment {
       fogHeight: 0,
       fogFalloff: 0.02,
       groundMist: 0,
+      mistFill: 0,
       shaft: 0,
       glow: 0,
       disc: 0,
@@ -260,6 +261,7 @@ export class Environment {
     a.fogFalloff = 0.025;
     // Mist lies in the valley at dawn and dusk and thins through the day.
     a.groundMist = 0.1 + 0.35 * low * day + 0.2 * (1 - day);
+    a.mistFill = 0;
     a.saturation = 1.1 + 0.05 * day;
     a.lift.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
     a.vignette = 0.22;
@@ -272,6 +274,7 @@ export class Environment {
       a.saturation = THREE.MathUtils.lerp(a.saturation, P.saturation, rw);
       if (realm.region.mist) {
         a.groundMist = Math.max(a.groundMist, 0.95 * rw);
+        a.mistFill = rw;
         a.fogHeight = THREE.MathUtils.lerp(a.fogHeight, realm.region.mist.top - 9, rw);
       }
     }

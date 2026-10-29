@@ -7,7 +7,7 @@ import { AtmospherePass } from '../world/AtmospherePass.js';
 
 import { Terrain } from '../world/Terrain.js';
 import { GroundMask } from '../world/GroundMask.js';
-import { createTerrainMaterial } from '../world/TerrainMaterial.js';
+import { createTerrainMaterial, createTurfMaterial } from '../world/TerrainMaterial.js';
 import { createNoiseTexture } from '../util/noiseTexture.js';
 import { Environment } from '../world/Environment.js';
 import { Wind } from '../world/Wind.js';
@@ -122,6 +122,7 @@ export class Game {
     mark('water');
 
     this.buildingMaterials = createBuildingMaterials(this.noiseTexture);
+    this.buildingMaterials.turf = createTurfMaterial({ noise: this.noiseTexture, mask: this.groundMask.texture });
     mark('textures');
     this.village = new Village({ terrain: this.terrain, materials: this.buildingMaterials });
     scene.add(this.village.group);

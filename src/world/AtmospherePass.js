@@ -72,6 +72,7 @@ const compositeShader = {
     uFogHeight: { value: 0.0 },
     uFogFalloff: { value: 0.02 },
     uGroundMist: { value: 0 },
+    uMistFill: { value: 0 },
     uNoise: { value: null },
     uWindDir: { value: new THREE.Vector2(1, 0) },
     uWindTravel: { value: 0 },
@@ -111,6 +112,7 @@ const compositeShader = {
     uniform float uFogHeight;
     uniform float uFogFalloff;
     uniform float uGroundMist;
+    uniform float uMistFill;
     uniform sampler2D uNoise;
     uniform vec2 uWindDir;
     uniform float uWindTravel;
@@ -161,7 +163,7 @@ const compositeShader = {
             vec2 q = sp.xz - uWindDir * uWindTravel * 2.2;
             float bank = texture2D( uNoise, q * 0.004 + vec2( 0.0, uTime * 0.002 ) ).r;
             float wisp = texture2D( uNoise, q * 0.02 + vec2( uTime * 0.01, 0.0 ) ).g;
-            float dens = smoothstep( 0.35, 0.75, bank * 0.7 + wisp * 0.45 ) * hgt;
+            float dens = max( smoothstep( 0.35, 0.75, bank * 0.7 + wisp * 0.45 ), uMistFill * ( 0.7 + 0.3 * bank ) ) * hgt;
             mist += dens * ( 1.0 - exp( -dist * 0.5 * t * 0.02 ) );
           }
           mist = uGroundMist * clamp( mist / 3.0, 0.0, 1.0 );
@@ -251,7 +253,7 @@ export class AtmospherePass extends Pass {
   }
 
   // Called by the game each frame with the current lighting state.
-  update({ sunDir, sunColor, sunVisible, fogColor, fogSunColor, fogDensity, fogHeight, fogFalloff, groundMist, shaft, glow, disc, saturation, lift, vignette }, wind, noise, time) {
+  update({ sunDir, sunColor, sunVisible, fogColor, fogSunColor, fogDensity, fogHeight, fogFalloff, groundMist, mistFill, shaft, glow, disc, saturation, lift, vignette }, wind, noise, time) {
     const u = this.material.uniforms;
     if (wind) {
       u.uWindDir.value.copy(wind.direction);
@@ -271,6 +273,7 @@ export class AtmospherePass extends Pass {
     u.uFogHeight.value = fogHeight;
     u.uFogFalloff.value = fogFalloff;
     u.uGroundMist.value = groundMist;
+    u.uMistFill.value = mistFill || 0;
     u.uShaftStrength.value = shaft;
     u.uGlowStrength.value = glow;
     u.uSaturation.value = saturation;
