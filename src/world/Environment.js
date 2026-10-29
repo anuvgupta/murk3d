@@ -8,16 +8,16 @@ const LATITUDE_TILT = 0.6; // radians; noon sun sits ~56° up in the south (+z)
 
 const C = (hex) => new THREE.Color(hex);
 const PALETTE = {
-  sunHigh: C(0xfff4e2),
+  sunHigh: C(0xfff1d6),
   sunLow: C(0xff7a2e),
   moon: C(0x9bb2e6),
-  fogDay: C(0xaebfd0),
-  fogGolden: C(0xe0a07a),
+  fogDay: C(0xd4dde6),
+  fogGolden: C(0xd9a070),
   fogNight: C(0x0b0f19),
-  hemiSkyDay: C(0xa9c3e0),
+  hemiSkyDay: C(0xd3d8d6),
   hemiSkyGolden: C(0xf0b08a),
   hemiSkyNight: C(0x5a6fa8),
-  hemiGround: C(0x4a4230),
+  hemiGround: C(0x7a6240),
 };
 
 export class Environment {
@@ -34,13 +34,54 @@ export class Environment {
     this.nightFactor = 0;
     this.lightLevel = 1;
     this.exposure = 0.55;
+    this.focusHeight = 0;
+    this._tmpColor = new THREE.Color();
+    this._tmpColor2 = new THREE.Color();
+    this.atmosphere = {
+      sunDir: new THREE.Vector3(0, 1, 0),
+      sunColor: new THREE.Color(),
+      sunVisible: 0,
+      fogColor: new THREE.Color(),
+      fogSunColor: new THREE.Color(),
+      fogDensity: 0.001,
+      fogHeight: 0,
+      fogFalloff: 0.02,
+      groundMist: 0,
+      shaft: 0,
+      glow: 0,
+      disc: 0,
+      saturation: 1,
+      lift: new THREE.Color(),
+      vignette: 0,
+    };
 
     // Sky dome with built-in clouds.
     this.sky = new Sky();
     this.sky.scale.setScalar(9000);
+    // The stock disc is a hard 0.5° dot; make it a soft 2.5° orb with a corona.
+    this.sky.material.fragmentShader = this.sky.material.fragmentShader
+      .replace(
+        'float sundisc = clamp( ( cosTheta - sunAngularDiameterCos ) * 50000.0, 0.0, 1.0 ) * showSunDisc;',
+        `float sunAngle = acos( clamp( cosTheta, -1.0, 1.0 ) );
+        float sundisc = ( smoothstep( 0.024, 0.012, sunAngle ) * 0.8 + exp( -sunAngle * 60.0 ) * 0.5 ) * showSunDisc;`
+      )
+      .replace(
+        'vec3 sundiscColor = ( 760.0 * sundisc ) * min( vSunE * Fex, 80.0 );',
+        'vec3 sundiscColor = ( 520.0 * sundisc ) * min( vSunE * Fex, 80.0 );'
+      )
+      .replace(
+        'gl_FragColor = vec4( texColor, 1.0 );',
+        `// Soft-clip the in-scatter so a low sun grades into a glow rather than a
+        // white-out, and cap it so bloom never runs away.
+        texColor = texColor / ( 1.0 + texColor * 0.9 );
+        texColor = min( texColor, vec3( 1.5 ) );
+        gl_FragColor = vec4( texColor, 1.0 );`
+      );
+    this.sky.material.needsUpdate = true;
     scene.add(this.sky);
     const u = this.sky.material.uniforms;
-    u.mieDirectionalG.value = 0.86;
+    u.mieDirectionalG.value = 0.8;
+    if (u.showSunDisc) u.showSunDisc.value = 0;
     if (u.cloudCoverage) {
       u.cloudCoverage.value = 0.42;
       u.cloudDensity.value = 0.45;
@@ -68,6 +109,7 @@ export class Environment {
     sc.bottom = -SHADOW_EXTENT;
     sc.near = 1;
     sc.far = 900;
+    sc.updateProjectionMatrix();
     this.sun.shadow.bias = -0.0003;
     this.sun.shadow.normalBias = 0.05;
     scene.add(this.sun, this.sun.target);
@@ -75,7 +117,6 @@ export class Environment {
     this.hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.4);
     scene.add(this.hemi);
 
-    scene.fog = new THREE.FogExp2(0xaebfd0, 0.0011);
 
     this.stars = createStars();
     scene.add(this.stars);
@@ -101,20 +142,31 @@ export class Environment {
       .normalize();
   }
 
+  // The scene's image-based light. The sky probe is rendered without the sun
+  // disc and with the haze (mie) turned down, so it carries sky colour and not
+  // a second, blurred sun; the directional light is the sun.
   refreshEnvironment() {
     const u = this.sky.material.uniforms;
     const disc = u.showSunDisc;
+    const mie = u.mieCoefficient.value;
+    const mieG = u.mieDirectionalG.value;
     if (disc) disc.value = false;
-    const target = this.pmrem.fromScene(this.envScene, 0, 0.1, 5000);
+    u.mieCoefficient.value = 0.0008;
+    u.mieDirectionalG.value = 0.3;
+    const target = this.pmrem.fromScene(this.envScene, 0.04, 0.1, 5000);
     if (disc) disc.value = true;
+    u.mieCoefficient.value = mie;
+    u.mieDirectionalG.value = mieG;
     if (this.envTarget) this.envTarget.dispose();
     this.envTarget = target;
     this.scene.environment = target.texture;
+    this.envTexture = target.texture;
     this.lastEnvSunDir.copy(this.sunDir);
   }
 
   update(dt, focus) {
     if (!this.paused) this.setTime(this.timeOfDay + dt * this.timeScale);
+    this.focusHeight = focus.y;
 
     const sunDir = this.computeSunDirection(this.timeOfDay, this.sunDir);
     const elev = sunDir.y;
@@ -126,13 +178,13 @@ export class Environment {
     // Sky scattering: hazier and redder as the sun nears the horizon.
     const u = this.sky.material.uniforms;
     u.sunPosition.value.copy(sunDir).multiplyScalar(450000);
-    u.turbidity.value = THREE.MathUtils.lerp(3.2, 8.5, golden);
+    u.turbidity.value = THREE.MathUtils.lerp(3.0, 5.5, golden);
     u.rayleigh.value = THREE.MathUtils.lerp(1.1, 2.6, golden);
-    u.mieCoefficient.value = THREE.MathUtils.lerp(0.003, 0.007, golden);
+    u.mieCoefficient.value = THREE.MathUtils.lerp(0.0035, 0.0045, golden);
 
     // Direct light: the sun by day, a dim cool moon by night. Their intensities
     // both pass through ~0 around the horizon, hiding the swap in direction.
-    const sunI = 3.4 * smoothstep(-0.03, 0.14, elev);
+    const sunI = 4.4 * smoothstep(-0.03, 0.14, elev);
     const moonI = 1.6 * smoothstep(-0.03, -0.14, elev);
     if (sunI > 0.0001 || moonI <= 0.0001) {
       this.lightDir.copy(sunDir);
@@ -166,16 +218,35 @@ export class Environment {
     this.hemi.groundColor.copy(PALETTE.hemiGround).multiplyScalar(0.25 + 0.75 * day);
     // Twilight keeps a fair amount of sky light so dusk reads as dusk, not black.
     const twilight = smoothstep(-0.2, 0.0, elev) * (1 - day);
-    this.hemi.intensity = 0.55 + 0.2 * day + 0.5 * twilight;
-    this.scene.environmentIntensity = 0.15 + 0.55 * day;
+    this.hemi.intensity = 0.48 + 0.12 * day + 0.45 * twilight;
+    this.scene.environmentIntensity = 0.1 + 0.18 * day;
 
-    c.copy(PALETTE.fogDay).lerp(PALETTE.fogGolden, golden);
-    this.scene.fog.color.copy(PALETTE.fogNight).lerp(c, day);
+    // Atmosphere pass settings for this time of day.
+    const a = this.atmosphere;
+    const low = 1 - smoothstep(0.05, 0.45, elev); // sun near the horizon
+    a.sunDir.copy(this.lightDir);
+    a.sunVisible = this.sun.intensity > 0.05 && this.lightDir === this.lightDir ? smoothstep(-0.08, 0.02, elev) : 0;
+    // Glow colour: white-gold high, apricot low.
+    a.sunColor.setRGB(1.0, 0.93, 0.8).lerp(this._tmpColor.setRGB(1.0, 0.72, 0.45), low);
+    a.shaft = 0.1 + 0.35 * low;
+    a.glow = 0.35 + 0.9 * low;
+    a.disc = 9.0;
+    // Haze: pale blue-white by day, warm amber-rose at low sun, deep blue at night.
+    a.fogColor.copy(PALETTE.fogNight).lerp(this._tmpColor.copy(PALETTE.fogDay).lerp(PALETTE.fogGolden, golden * 0.6), day);
+    a.fogSunColor.copy(PALETTE.fogNight).lerp(this._tmpColor.setRGB(0.92, 0.88, 0.8).lerp(this._tmpColor2.setRGB(0.88, 0.62, 0.42), low), day);
+    a.fogDensity = 0.0012 + 0.001 * low * day + 0.0003 * (1 - day);
+    a.fogHeight = this.focusHeight - 6;
+    a.fogFalloff = 0.025;
+    a.groundMist = 0.05 + 0.25 * low * day;
+    a.saturation = 1.1 + 0.05 * day;
+    a.lift.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
+    a.vignette = 0.22;
 
     this.lightLevel = 0.12 + 0.88 * day;
 
     // Eye adaptation: open up the exposure as the light fails.
-    this.exposure = THREE.MathUtils.lerp(1.5, 0.55, smoothstep(-0.18, 0.3, elev));
+    const dayExposure = THREE.MathUtils.lerp(0.8, 0.6, smoothstep(0.0, 0.3, elev));
+    this.exposure = THREE.MathUtils.lerp(1.45, dayExposure, smoothstep(-0.18, -0.02, elev));
 
     const starFactor = smoothstep(-0.04, -0.2, elev);
     this.stars.material.opacity = starFactor;

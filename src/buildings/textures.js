@@ -83,137 +83,106 @@ function toTexture(data, size, srgb) {
 
 // --- Stone -----------------------------------------------------------------
 
-// Irregular rubble or cobble stones: a weighted Voronoi (power) diagram over
-// jittered cells, so every stone has its own size and outline. Cells are
-// stretched horizontally for coursed rubble.
-function stoneWall({ size = 1024, cellsX, cellsY, seed, palette, mortar, mortarWidth = 0.07, roundness = 0.22 }) {
+// Coursed rubble: rows of rounded-rectangular stones of varying width and
+// course height, laid in a broken bond. Each stone's outline wavers a little
+// and is finely jagged, its face is rounded toward the joint and granular,
+// and the mortar sits back in shadow. `courses` per tile, `aspect` is the
+// typical stone width relative to its height.
+function stoneWall({ size = 1024, courses = 9, aspect = 2.2, seed, palette, mortar, joint = 0.028, bevel = 0.08, moss = 0.25 }) {
   const random = mulberry32(seed);
-  const cells = [];
-  for (let j = 0; j < cellsY; j++) {
-    for (let i = 0; i < cellsX; i++) {
-      const tint = palette[Math.floor(random() * palette.length)];
-      const l = 0.78 + random() * 0.4;
-      cells.push({
-        px: i + 0.15 + random() * 0.7,
-        py: j + 0.15 + random() * 0.7,
-        w: Math.pow(random(), 1.5) * 0.5, // power-diagram weight: some stones much bigger
-        c: [tint[0] * l, tint[1] * l, tint[2] * l],
-        lichen: random() < 0.12 ? random() : 0,
-        k: random(),
-      });
+  const rows = [];
+  // Course heights, scaled to tile vertically.
+  const hs = Array.from({ length: courses }, () => 0.8 + random() * 0.5);
+  const total = hs.reduce((a, b) => a + b, 0);
+  let y = 0;
+  for (let r = 0; r < courses; r++) {
+    const h = hs[r] / total;
+    const stones = [];
+    let x = -random() * 0.5 * h * aspect;
+    while (x < 1) {
+      const w = h * aspect * (0.6 + random() * 0.9);
+      stones.push({ x, w, tint: palette[Math.floor(random() * palette.length)], l: 0.85 + random() * 0.3, k: random(), lichen: random() < 0.15 ? random() : 0 });
+      x += w;
     }
+    rows.push({ y, h, stones });
+    y += h;
   }
-  const cell = (i, j) => cells[(((j % cellsY) + cellsY) % cellsY) * cellsX + (((i % cellsX) + cellsX) % cellsX)];
-
+  const findRow = (v) => {
+    for (let r = rows.length - 1; r >= 0; r--) if (v >= rows[r].y) return rows[r];
+    return rows[0];
+  };
   return paint(size, (u, v, out) => {
-    const gx = u * cellsX;
-    const gy = v * cellsY;
-    const ci = Math.floor(gx);
-    const cj = Math.floor(gy);
-    let d1 = Infinity;
-    let d2 = Infinity;
-    let b1 = null;
-    let p1x = 0;
-    let p1y = 0;
-    let p2x = 0;
-    let p2y = 0;
-    for (let dj = -1; dj <= 1; dj++) {
-      for (let di = -1; di <= 1; di++) {
-        const c = cell(ci + di, cj + dj);
-        const px = Math.floor(gx) + di + (c.px - Math.floor(c.px));
-        const py = Math.floor(gy) + dj + (c.py - Math.floor(c.py));
-        const dx = gx - px;
-        const dy = gy - py;
-        const d = dx * dx + dy * dy - c.w;
-        if (d < d1) {
-          d2 = d1;
-          p2x = p1x;
-          p2y = p1y;
-          d1 = d;
-          b1 = c;
-          p1x = px;
-          p1y = py;
-        } else if (d < d2) {
-          d2 = d;
-          p2x = px;
-          p2y = py;
-        }
-      }
+    const row = findRow(v);
+    // Wrap horizontally: the last stone runs past 1 and continues at 0.
+    let st = null;
+    for (const s of row.stones) if (u >= s.x && u < s.x + s.w) st = s;
+    if (!st) {
+      const last = row.stones[row.stones.length - 1];
+      st = u < last.x ? last : row.stones[0];
     }
-    // Distance to the boundary between the two nearest cells.
-    const sep = Math.hypot(p2x - p1x, p2y - p1y) || 1;
-    const edge = (d2 - d1) / (2 * sep);
-    const wobble = (nz(2, u * 4, v * 4) - 0.5) * 0.05;
-    const mw = mortarWidth + wobble;
-    const fine = nz(3, u * 8, v * 8);
-    const grain = nz(2, u * 16 + b1.k, v * 16);
-
-    if (edge < mw) {
-      const m = 0.85 + 0.3 * fine;
+    const uu = u >= st.x ? u : u + 1;
+    const lx = (uu - st.x) / st.w;
+    const ly = (v - row.y) / row.h;
+    // Edge distance in texture units, with gentle waviness and fine jaggedness.
+    const wave = (nz(1, u * 10 + st.k, v * 10) - 0.5) * 0.02;
+    const jag = (nz(3, u * 64 + st.k * 3, v * 64) - 0.5) * 0.012;
+    const ex = Math.min(lx, 1 - lx) * st.w;
+    const ey = Math.min(ly, 1 - ly) * row.h;
+    const edge = Math.min(ex, ey) + wave + jag;
+    const grain = nz(3, u * 24 + st.k, v * 24);
+    const fine = nz(2, u * 48, v * 48);
+    const half = joint * 0.5;
+    if (edge < half) {
+      const m = 0.8 + 0.4 * fine;
       out[0] = mortar[0] * m;
       out[1] = mortar[1] * m;
       out[2] = mortar[2] * m;
-      out[3] = 0.08 + 0.1 * fine;
+      out[3] = 0.05 + 0.1 * fine;
       return;
     }
-    // Rounded stone faces: darker toward the joints, lit a little from above.
-    const round = smooth(mw, mw + roundness, edge);
-    const shade = (0.62 + 0.38 * round) * (0.82 + 0.28 * grain) * (0.92 + 0.12 * (b1.py - gy + 0.5));
-    let r = b1.c[0] * shade;
-    let g = b1.c[1] * shade;
-    let b = b1.c[2] * shade;
-    if (b1.lichen) {
-      const lich = smooth(0.55, 0.75, nz(1, u * 8 + b1.lichen, v * 8)) * 0.6;
-      r = mix(r, 0.52, lich);
-      g = mix(g, 0.55, lich);
-      b = mix(b, 0.32, lich);
-    }
+    // Rounded face: shaded toward the joint, lit a little from above.
+    const round = smooth(half, half + bevel, edge);
+    const topLight = 0.94 + 0.12 * (1 - ly);
+    const face = (0.62 + 0.38 * round) * (0.86 + 0.28 * grain) * (0.94 + 0.12 * fine) * topLight * st.l;
+    let r = st.tint[0] * face;
+    let g = st.tint[1] * face;
+    let b = st.tint[2] * face;
+    // Lichen and moss creep in from the joints.
+    const damp = (1 - round) * moss * smooth(0.5, 0.75, nz(1, u * 6, v * 6));
+    const lich = st.lichen ? smooth(0.6, 0.8, nz(0, u * 9 + st.lichen, v * 9)) * 0.45 : 0;
+    r = mix(mix(r, 0.3, damp), 0.6, lich);
+    g = mix(mix(g, 0.36, damp), 0.6, lich);
+    b = mix(mix(b, 0.16, damp), 0.4, lich);
     out[0] = clamp01(r);
     out[1] = clamp01(g);
     out[2] = clamp01(b);
-    out[3] = 0.35 + 0.5 * round + 0.15 * grain;
+    out[3] = clamp01(0.3 + 0.55 * round + 0.15 * grain);
   });
 }
 
 const GREY_STONE = [
-  [0.47, 0.44, 0.39],
-  [0.53, 0.5, 0.44],
-  [0.41, 0.39, 0.35],
-  [0.52, 0.46, 0.37],
-  [0.44, 0.43, 0.41],
-  [0.58, 0.53, 0.45],
-  [0.38, 0.35, 0.31],
+  [0.56, 0.53, 0.47],
+  [0.6, 0.57, 0.51],
+  [0.5, 0.48, 0.44],
+  [0.62, 0.56, 0.46],
+  [0.53, 0.53, 0.5],
+  [0.66, 0.61, 0.53],
+  [0.47, 0.44, 0.4],
 ];
 const WARM_STONE = [
-  [0.55, 0.47, 0.37],
-  [0.6, 0.53, 0.42],
-  [0.5, 0.43, 0.35],
-  [0.62, 0.57, 0.49],
-  [0.47, 0.43, 0.39],
+  [0.64, 0.55, 0.43],
+  [0.68, 0.6, 0.48],
+  [0.58, 0.5, 0.4],
+  [0.7, 0.64, 0.54],
+  [0.55, 0.5, 0.44],
 ];
 
 export const rubbleStone = (seed = 1, warm = false) =>
-  stoneWall({
-    cellsX: 6,
-    cellsY: 10,
-    seed,
-    palette: warm ? WARM_STONE : GREY_STONE,
-    mortar: [0.34, 0.32, 0.28],
-    mortarWidth: 0.045,
-    roundness: 0.3,
-  });
+  stoneWall({ courses: 9, aspect: 2.1, seed, palette: warm ? WARM_STONE : GREY_STONE, mortar: [0.38, 0.36, 0.32] });
 
+// Small near-square setts for paving: tighter joints, flatter faces.
 export const cobbleStone = (seed = 2) =>
-  stoneWall({
-    size: 512,
-    cellsX: 9,
-    cellsY: 9,
-    seed,
-    palette: GREY_STONE,
-    mortar: [0.3, 0.28, 0.25],
-    mortarWidth: 0.06,
-    roundness: 0.3,
-  });
+  stoneWall({ size: 512, courses: 8, aspect: 1.15, seed, palette: GREY_STONE, mortar: [0.26, 0.24, 0.21], joint: 0.04, bevel: 0.1, moss: 0.4 });
 
 // Dressed blocks for corners, door frames and the bridge: courses of
 // rectangular stones with chamfered edges.
@@ -310,18 +279,29 @@ export function planks(base = [0.42, 0.3, 0.19], boards = 5) {
   });
 }
 
-// Bark with vertical fissures; v runs along the trunk.
-export function bark(base = [0.32, 0.26, 0.2], fissures = 10) {
+// Bark: wandering vertical furrows between broad rounded ridges, broken into
+// plates, with fine grain. v runs along the trunk. `depth` widens the furrows.
+// Furrows are the lines where a stretched noise crosses its midpoint, so they
+// branch and join like real fissures and cover roughly a fifth of the surface.
+export function bark(base = [0.32, 0.26, 0.2], fissures = 10, depth = 1) {
   return paint(512, (u, v, out) => {
-    const w = nz(1, u * 4, v * 2) * 0.35;
-    const ridge = Math.abs(Math.sin((u * fissures + w * 3) * Math.PI));
-    const plates = smooth(0.15, 0.6, ridge) * (0.7 + 0.3 * nz(2, u * 8, v * 2));
-    const fine = nz(3, u * 32, v * 8);
-    const l = 0.45 + 0.55 * plates + 0.1 * (fine - 0.5);
-    out[0] = clamp01(base[0] * l * 1.2);
-    out[1] = clamp01(base[1] * l * 1.2);
-    out[2] = clamp01(base[2] * l * 1.2);
-    out[3] = 0.15 + 0.75 * plates + 0.1 * fine;
+    const warp = (nz(1, u * 2, v * 1) - 0.5) * 0.5 + (nz(2, u * 4, v * 3) - 0.5) * 0.2;
+    const f1 = 1 - Math.abs(2 * nz(2, u * fissures * 0.5 + warp, v * 2) - 1);
+    const f2 = 1 - Math.abs(2 * nz(3, u * fissures + warp * 1.5, v * 5) - 1);
+    const w = 0.06 * depth;
+    const furrow = Math.max(smooth(0.93 - w, 0.99, f1), smooth(0.95 - w * 0.6, 0.995, f2) * 0.7);
+    const plate = smooth(0.84, 0.92, nz(0, u * 3 + warp, v * 10 + nz(1, u * 8, v * 2) * 0.5)) * 0.6;
+    const grain = nz(3, u * 48, v * 6);
+    const crack = Math.max(furrow, plate);
+    // Ridge faces 0.9–1.25× base, furrow bottoms 0.3×.
+    const l = mix(0.9 + 0.35 * (grain - 0.3), 0.3, crack);
+    const tint = 0.9 + 0.2 * nz(0, u * 1 + 7, v * 4);
+    // Pale weathered ridge tops where exposed.
+    const weather = (1 - crack) * smooth(0.6, 0.85, nz(1, u * 6, v * 3)) * 0.3;
+    out[0] = clamp01(mix(base[0] * l * tint, 0.6, weather));
+    out[1] = clamp01(mix(base[1] * l * tint, 0.58, weather));
+    out[2] = clamp01(mix(base[2] * l * tint, 0.5, weather));
+    out[3] = clamp01(mix(0.75 + 0.25 * grain, 0.05, crack));
   });
 }
 

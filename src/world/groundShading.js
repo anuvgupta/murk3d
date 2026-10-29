@@ -32,10 +32,10 @@ export const GROUND_GLSL = /* glsl */ `
   }
 
   vec3 meadowColor( vec2 p, vec4 n ) {
-    vec3 c = mix( ${lin(0x46651f)}, ${lin(0x587a25)}, smoothstep( 0.2, 0.8, n.y ) );
-    // Broad lush and sun-dried areas.
-    c = mix( c, ${lin(0x34531a)}, smoothstep( 0.55, 0.85, n.x ) * 0.45 );
-    c = mix( c, ${lin(0x8a8340)}, smoothstep( 0.62, 0.88, 1.0 - n.x ) * 0.35 );
+    // Warm yellow-greens: fresh spring green in the sun, deeper green in the lee.
+    vec3 c = mix( ${lin(0x5c7f2e)}, ${lin(0x7fa23a)}, smoothstep( 0.2, 0.8, n.y ) );
+    c = mix( c, ${lin(0x47682a)}, smoothstep( 0.55, 0.85, n.x ) * 0.45 );
+    c = mix( c, ${lin(0xa3a052)}, smoothstep( 0.62, 0.9, 1.0 - n.x ) * 0.35 );
     c *= 0.92 + 0.16 * n.z;
     return c;
   }
@@ -47,7 +47,7 @@ export const GROUND_GLSL = /* glsl */ `
   }
 
   vec3 bedColor( vec4 n ) {
-    return mix( ${lin(0x5b5444)}, ${lin(0x8d8162)}, n.z ) * ( 0.85 + 0.3 * n.w );
+    return mix( ${lin(0x7d745f)}, ${lin(0xa89c7e)}, n.z ) * ( 0.85 + 0.3 * n.w );
   }
 
   vec3 rockColor( vec3 p, vec3 nrm ) {
@@ -65,28 +65,27 @@ export const GROUND_GLSL = /* glsl */ `
     return c * ( 0.8 + 0.4 * b );
   }
 
-  // Irregular cobbles: distance to the nearest two jittered cell centres.
+  // Paving setts: staggered courses of rounded-rectangular stones with wavy,
+  // finely jagged edges, recessed joints and moss in the cracks.
   vec3 cobbleColor( vec2 p, vec4 n ) {
-    vec2 q = p * 1.9;
-    vec2 cell = floor( q );
+    vec2 q = p * 3.0;
+    float row = floor( q.y );
+    float rh = fract( sin( row * 12.99 ) * 43758.5 );
+    q.x += rh * 0.7 + 0.5 * mod( row, 2.0 );
+    float col = floor( q.x );
+    vec2 id = vec2( col, row );
+    float h = fract( sin( dot( id, vec2( 127.1, 311.7 ) ) ) * 43758.5 );
     vec2 f = fract( q );
-    float d1 = 8.0;
-    float d2 = 8.0;
-    float id = 0.0;
-    for ( int y = -1; y <= 1; y++ ) {
-      for ( int x = -1; x <= 1; x++ ) {
-        vec2 g = vec2( float( x ), float( y ) );
-        vec2 h = fract( sin( vec2( dot( cell + g, vec2( 127.1, 311.7 ) ), dot( cell + g, vec2( 269.5, 183.3 ) ) ) ) * 43758.5453 );
-        vec2 r = g + 0.15 + 0.7 * h - f;
-        float d = dot( r, r );
-        if ( d < d1 ) { d2 = d1; d1 = d; id = h.x; }
-        else if ( d < d2 ) { d2 = d; }
-      }
-    }
-    float edge = sqrt( d2 ) - sqrt( d1 );
-    float stone = smoothstep( 0.04, 0.16, edge );
-    vec3 c = mix( ${lin(0x5f574b)}, ${lin(0x8a7d68)}, id ) * ( 0.8 + 0.3 * n.w ) * ( 0.8 + 0.25 * smoothstep( 0.1, 0.4, edge ) );
-    return mix( ${lin(0x2e2922)}, c, stone );
+    vec2 e2 = min( f, 1.0 - f );
+    float wave = ( texture( uNoise, p * 0.9 + h ).g - 0.5 ) * 0.07;
+    float jag = ( texture( uNoise, p * 6.0 ).a - 0.5 ) * 0.035;
+    float edge = min( e2.x * 0.85, e2.y ) + wave + jag;
+    float joint = smoothstep( 0.035, 0.075, edge );
+    float round = smoothstep( 0.075, 0.26, edge );
+    vec3 c = mix( ${lin(0x7a7268)}, ${lin(0xa59b8a)}, h ) * ( 0.82 + 0.3 * n.w ) * ( 0.7 + 0.3 * round );
+    c = mix( c, c * ${lin(0xd4b58a)} * 1.2, smoothstep( 0.6, 0.9, fract( h * 7.3 ) ) * 0.4 );
+    vec3 mortar = mix( ${lin(0x3a342c)}, ${lin(0x4f6a2a)}, smoothstep( 0.55, 0.8, n.y ) * 0.7 );
+    return mix( mortar, c, joint );
   }
 
   vec3 groundColor( vec3 p, vec3 nrm, out float wet ) {
@@ -99,14 +98,18 @@ export const GROUND_GLSL = /* glsl */ `
     if ( m.a > 0.01 ) c = mix( c, cobbleColor( p.xz, n ), m.a );
 
     float slope = 1.0 - nrm.y;
+    // Banks: worn earth on moderate slopes, bare rock where it steepens or climbs.
+    float bank = smoothstep( 0.22, 0.4, slope + ( n.z - 0.5 ) * 0.1 );
+    c = mix( c, dirtColor( n ) * 0.9, bank * 0.7 );
     float rockAmt = max(
-      smoothstep( 0.3, 0.48, slope + ( n.z - 0.5 ) * 0.12 ),
-      smoothstep( 110.0, 170.0, p.y + n.x * 40.0 ) * 0.9
+      smoothstep( 0.36, 0.52, slope + ( n.z - 0.5 ) * 0.1 ),
+      smoothstep( 95.0, 150.0, p.y + n.x * 40.0 ) * 0.9
     );
     c = mix( c, rockColor( p, nrm ), rockAmt );
 
-    float snowLine = 205.0 + ( n.x - 0.5 ) * 60.0;
-    float snow = smoothstep( snowLine, snowLine + 30.0, p.y ) * ( 1.0 - smoothstep( 0.45, 0.75, slope ) );
+    float snowLine = 150.0 + ( n.x - 0.5 ) * 50.0;
+    float snow = smoothstep( snowLine, snowLine + 35.0, p.y ) * ( 1.0 - smoothstep( 0.4, 0.7, slope ) );
+    snow *= 0.55 + 0.45 * smoothstep( 0.3, 0.6, n.z + ( 1.0 - slope ) * 0.2 );
     c = mix( c, ${lin(0xeef1f5)}, snow );
 
     wet = m.b;

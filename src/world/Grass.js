@@ -9,21 +9,28 @@ import { settings } from '../core/settings.js';
 //
 // The ground around the camera is divided into square tiles. Every tile draws
 // the same instanced blade layout, offset to its world position, so blades
-// are stable in the world as you move. Everything else is done in the vertex
-// shader: ground height (from the terrain height texture), where grass may
-// grow (ground mask), colour (shared meadow colours), height patches, wind and
-// the player pushing blades aside.
+// are stable in the world as you move. Everything else happens in the vertex
+// shader: ground height (terrain height texture), where grass may grow
+// (ground mask), colour, tuft shape, wind and the player pushing blades aside.
+//
+// Blades grow in tufts: a few blades round a shared centre, sharing a lean
+// direction and height, which gives the field structure instead of an even
+// stubble. Each blade is a thin tapered strip bent along a curve, dark at the
+// occluded base and pale at the tip, with a specular sheen and translucency
+// when backlit, so a field reads as soft and grassy rather than spiky.
 //
 // Distance LOD: blades carry a random rank sorted ascending. A tile at
-// distance d draws only the first N·f(d) instances, and the shader fades out
-// blades whose rank exceeds f at their own distance while widening the rest,
-// so density falls off smoothly with no popping. Distant tiles use a cheaper
-// single-triangle blade.
+// distance d draws only the first N·keep(d) instances, and the shader fades
+// blades whose rank exceeds keep at their own distance while widening the
+// rest, so density falls off smoothly with no popping. Far tiles use a
+// two-segment blade.
 
 const TILE = 16;
+const BLADES_PER_TUFT = 5;
+const TUFT_RADIUS = 0.14;
 
 function bladeGeometry(segments) {
-  // x in [-0.5, 0.5] across the blade, y in [0, 1] along it; tip is a point.
+  // x in [-0.5, 0.5] across the blade, y in [0, 1] along it, ending in a tip.
   const positions = [];
   const indices = [];
   for (let i = 0; i < segments; i++) {
@@ -53,17 +60,22 @@ export class Grass {
     const density = settings.grassDensity; // blades per m² at full density
     this.radius = settings.grassDrawDistance;
     this.fullRadius = settings.grassFullDetail;
-    this.perTile = Math.round(TILE * TILE * density);
+    const tufts = Math.round((TILE * TILE * density) / BLADES_PER_TUFT);
+    this.perTile = tufts * BLADES_PER_TUFT;
 
-    // Per-blade data: offset in the tile, rank (sorted ascending) and a random.
+    // Per-blade data: offset in the tile, rank (sorted ascending), tuft random.
     const random = mulberry32(17);
-    const side = Math.ceil(Math.sqrt(this.perTile));
+    const side = Math.ceil(Math.sqrt(tufts));
     const blades = [];
-    for (let i = 0; i < this.perTile; i++) {
-      // Stratified jitter keeps coverage even.
-      const cx = i % side;
-      const cz = Math.floor(i / side);
-      blades.push([((cx + random()) / side) * TILE, ((cz + random()) / side) * TILE, random(), random()]);
+    for (let i = 0; i < tufts; i++) {
+      const cx = ((i % side) + random()) / side;
+      const cz = (Math.floor(i / side) + random()) / side;
+      const tuftRand = random();
+      for (let b = 0; b < BLADES_PER_TUFT; b++) {
+        const a = random() * Math.PI * 2;
+        const r = Math.sqrt(random()) * TUFT_RADIUS;
+        blades.push([cx * TILE + Math.cos(a) * r, cz * TILE + Math.sin(a) * r, random(), tuftRand]);
+      }
     }
     blades.sort((a, b) => a[2] - b[2]);
     const bladeData = new Float32Array(this.perTile * 4);
@@ -71,7 +83,7 @@ export class Grass {
     this.ranks = blades.map((b) => b[2]);
     const bladeAttr = new THREE.InstancedBufferAttribute(bladeData, 4);
 
-    this.geometries = [bladeGeometry(4), bladeGeometry(1)];
+    this.geometries = [bladeGeometry(3), bladeGeometry(2), bladeGeometry(1)];
     for (const g of this.geometries) g.setAttribute('aBlade', bladeAttr);
 
     // InstancedMesh needs an instance matrix; one identity buffer is shared by every tile.
@@ -94,7 +106,7 @@ export class Grass {
     };
     this.material = this.createMaterial();
 
-    // A fixed set of tile slots around the camera, nearest first.
+    // A fixed set of tile slots around the camera.
     this.slots = [];
     const reach = Math.ceil(this.radius / TILE) + 1;
     for (let tz = -reach; tz <= reach; tz++) {
@@ -121,11 +133,11 @@ export class Grass {
   // Fraction of blades kept at distance d (mirrors the shader).
   keep(d) {
     if (d <= this.fullRadius) return 1;
-    return Math.max(0.03, (this.fullRadius * this.fullRadius) / (d * d));
+    const k = this.fullRadius / d;
+    return Math.max(0.02, k * k * k);
   }
 
   countFor(f) {
-    // Ranks are sorted, so binary-search the first rank above f.
     let lo = 0;
     let hi = this.ranks.length;
     while (lo < hi) {
@@ -147,17 +159,14 @@ export class Grass {
 
     for (const slot of this.slots) {
       const mesh = slot.mesh;
-      const tx = ctx + slot.dx;
-      const tz = ctz + slot.dz;
-      const x0 = tx * TILE;
-      const z0 = tz * TILE;
+      const x0 = (ctx + slot.dx) * TILE;
+      const z0 = (ctz + slot.dz) * TILE;
       if (moved) {
         const y = this.terrain.heightAt(x0 + TILE / 2, z0 + TILE / 2);
         mesh.position.set(x0, y, z0);
         mesh.updateMatrix();
         mesh.matrixWorld.copy(mesh.matrix);
       }
-      // Distance from the camera to the nearest point of the tile.
       const nx = Math.max(x0 - cam.x, 0, cam.x - (x0 + TILE));
       const nz = Math.max(z0 - cam.z, 0, cam.z - (z0 + TILE));
       const d = Math.hypot(nx, nz);
@@ -166,8 +175,10 @@ export class Grass {
         continue;
       }
       mesh.visible = true;
-      mesh.count = Math.max(1, this.countFor(this.keep(d) * 1.02));
-      mesh.geometry = d < this.fullRadius * 1.6 ? this.geometries[0] : this.geometries[1];
+      // Draw enough blades for the nearest point of the tile; the shader thins
+      // each blade by its own distance, so density is continuous across tiles.
+      mesh.count = Math.max(1, this.countFor(this.keep(Math.max(0, d - 2)) * 1.05));
+      mesh.geometry = d < this.fullRadius * 1.3 ? this.geometries[0] : d < this.fullRadius * 4 ? this.geometries[1] : this.geometries[2];
     }
   }
 
@@ -187,9 +198,13 @@ export class Grass {
           uniform vec3 uSunDir;
           attribute vec4 aBlade;
           varying float vTrans;
+          varying float vSheen;
+          varying float vHeight;
           ${GROUND_GLSL}
           ${TERRAIN_HEIGHT_GLSL}
-          ${WIND_GLSL}`
+          ${WIND_GLSL}
+
+          float hash1( vec2 p ) { return fract( sin( dot( p, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 ); }`
         )
         .replace(
           '#include <beginnormal_vertex>',
@@ -197,41 +212,64 @@ export class Grass {
           // ---- Per-blade setup (shared by the normal and position code below).
           vec3 tileOrigin = modelMatrix[ 3 ].xyz;
           vec2 root = tileOrigin.xz + aBlade.xy;
-          // Tiles repeat the same layout, so derive per-blade randoms from world position too.
-          float wr = fract( sin( dot( root, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 );
-          float wr2 = fract( wr * 31.17 + aBlade.w );
+          float tr = aBlade.w;                       // tuft random (shared by the tuft)
+          float br = hash1( root );                  // per-blade random
+          float br2 = fract( br * 31.17 + tr );
           float ground = terrainHeight( root );
           vec4 gmask = texture( uMask, maskUv( root ) );
           vec4 gn = groundNoise( root );
 
-          float dist = length( root - cameraPosition.xz );
-          float keep = dist <= uFullRadius ? 1.0 : max( 0.03, uFullRadius * uFullRadius / ( dist * dist ) );
-          float thin = clamp( ( keep - aBlade.z ) / ( 0.25 * keep ), 0.0, 1.0 );
-          float fade = 1.0 - smoothstep( uRadius * 0.75, uRadius, dist );
-          float widen = clamp( inversesqrt( keep ), 1.0, 4.0 );
+          float dist = distance( vec3( root.x, ground, root.y ), cameraPosition );
+          float kk = uFullRadius / max( dist, uFullRadius );
+          float keep = max( 0.02, kk * kk * kk );
+          float thin = clamp( ( keep - aBlade.z ) / ( 0.3 * keep ), 0.0, 1.0 );
+          float fade = 1.0 - smoothstep( uRadius * 0.7, uRadius, dist );
+          float widen = clamp( inversesqrt( keep ), 1.0, 5.0 );
 
           // Tall lush patches, shorter dry patches, short at the verges.
-          float density = smoothstep( 0.15, 0.9, gmask.r );
-          float tall = 0.55 + 0.75 * smoothstep( 0.3, 0.8, gn.y ) - 0.25 * smoothstep( 0.6, 0.9, 1.0 - gn.x );
-          float bladeH = ( 0.34 + 0.46 * wr ) * tall * density * thin * fade;
-          float bladeW = ( 0.05 + 0.04 * wr2 ) * widen * step( 0.02, bladeH );
+          float density = smoothstep( 0.12, 0.85, gmask.r );
+          float lush = smoothstep( 0.3, 0.8, gn.y );
+          float dryPatch = smoothstep( 0.62, 0.9, 1.0 - gn.x );
+          float tall = 0.6 + 0.6 * lush - 0.3 * dryPatch;
+          float bladeH = ( 0.42 + 0.22 * tr + 0.14 * br ) * tall * density * thin * fade;
+          float bladeW = ( 0.016 + 0.008 * br2 ) * widen * step( 0.02, bladeH );
 
-          float yaw = wr2 * 6.2832;
-          vec2 facing = vec2( cos( yaw ), sin( yaw ) );
+          // Tuft lean: shared direction, per-blade spread; some blades stand, some lie over.
+          float tuftYaw = tr * 6.2832 + ( br - 0.5 ) * 2.4;
+          vec2 facing = vec2( cos( tuftYaw ), sin( tuftYaw ) );
           vec2 across = vec2( -facing.y, facing.x );
+          float leanAmt = 0.12 + 0.22 * br2 * br2;
 
-          // Wind: lean downwind with gust fronts, plus a sway.
+          // Wind: lean downwind under gust fronts, plus waves rolling across the field.
           float w = windAt( root );
-          float sway = sin( uTime * ( 1.6 + wr * 0.8 ) + dot( root, uWindDir ) * 0.35 - uWindTravel * 0.4 + wr * 6.0 );
-          vec2 bend = uWindDir * ( w * 0.65 + sway * ( 0.08 + 0.18 * w ) );
-          bend += facing * ( 0.12 + 0.25 * wr2 ); // natural curve
+          float wave = sin( dot( root, uWindDir ) * 0.22 - uWindTravel * 0.9 + tr * 2.0 ) * 0.5 + 0.5;
+          float flutter = sin( uTime * ( 2.2 + br * 1.5 ) + br * 6.28 + dot( root, uWindDir ) * 0.6 ) * 0.5;
+          vec2 bend = facing * leanAmt;
+          bend += uWindDir * ( w * ( 0.25 + 0.55 * wave ) + flutter * ( 0.03 + 0.1 * w ) );
           // Part around the player's feet.
           vec2 away = root - uPlayer.xz;
           float pd = length( away );
-          float push = ( 1.0 - smoothstep( 0.25, 1.4, pd ) ) * step( abs( ground - uPlayer.y ), 1.5 );
-          bend += ( away / max( pd, 0.001 ) ) * push * 1.4;
+          float push = ( 1.0 - smoothstep( 0.2, 1.3, pd ) ) * step( abs( ground - uPlayer.y ), 1.6 );
+          bend += ( away / max( pd, 0.001 ) ) * push * 1.6;
+          float blen = min( length( bend ), 1.6 );
 
-          vec3 objectNormal = normalize( vec3( facing.x * 0.3 + bend.x * 0.2, 1.0, facing.y * 0.3 + bend.y * 0.2 ) );
+          // Blade curve: p(t) = root + up * t * H * (1 - c t^2) + bend * t^2 * H
+          float hy0 = position.y;
+          float curl = 0.12 + 0.3 * blen;
+          vec3 up = vec3( 0.0, 1.0, 0.0 );
+          vec3 bend3 = vec3( bend.x, 0.0, bend.y );
+          vec3 tangent = up * ( 1.0 - 3.0 * curl * hy0 * hy0 ) + bend3 * ( 2.0 * hy0 );
+          vec3 side3 = vec3( across.x, 0.0, across.y );
+          vec3 bladeN = normalize( cross( side3, tangent ) );
+          if ( dot( bladeN, up ) < 0.0 ) bladeN = -bladeN;
+          // The field shades like a soft carpet: mostly the ground's own normal,
+          // a little blade shape, and a curl across the blade so it isn't a flat strip.
+          float hL = terrainHeight( root - vec2( 0.6, 0.0 ) );
+          float hR = terrainHeight( root + vec2( 0.6, 0.0 ) );
+          float hD = terrainHeight( root - vec2( 0.0, 0.6 ) );
+          float hU = terrainHeight( root + vec2( 0.0, 0.6 ) );
+          vec3 groundN = normalize( vec3( hL - hR, 1.2, hD - hU ) );
+          vec3 objectNormal = normalize( mix( bladeN, groundN, 0.62 ) + side3 * ( position.x * 0.35 ) );
           #ifdef USE_TANGENT
             vec3 objectTangent = vec3( tangent.xyz );
           #endif`
@@ -239,28 +277,43 @@ export class Grass {
         .replace(
           '#include <begin_vertex>',
           `float hy = position.y;
-          float h2 = hy * hy;
-          vec3 world = vec3( root.x, ground - 0.03, root.y );
-          world.xz += across * position.x * bladeW * ( 1.0 - hy * 0.9 );
-          float blen = min( length( bend ), 1.5 );
-          world.xz += bend * h2 * bladeH;
-          world.y += hy * bladeH * ( 1.0 - 0.45 * blen * h2 );
+          // Width tapers to a rounded tip.
+          // Width: nearly constant, tapering only near the tip.
+          float wprof = 1.0 - smoothstep( 0.55, 1.0, hy ) * 0.9;
+          vec3 world = vec3( root.x, ground - 0.02, root.y );
+          world += up * ( hy * bladeH * ( 1.0 - curl * hy * hy ) );
+          world += bend3 * ( hy * hy * bladeH );
+          world.xz += across * ( position.x * bladeW * wprof );
           vec3 transformed = world - tileOrigin;
-          // Light through the blade when looking toward the sun.
+          vHeight = hy;
+
+          // Sun through the blade when looking toward the sun; sheen on the tips.
           vec3 viewDir = normalize( world - cameraPosition );
-          vTrans = pow( max( dot( viewDir, uSunDir ), 0.0 ), 5.0 ) * hy * 0.6;
-          // Colour (color_vertex runs earlier in this shader, so set vColor here).
+          vTrans = pow( max( dot( viewDir, uSunDir ), 0.0 ), 6.0 ) * hy * hy;
+          vec3 halfV = normalize( uSunDir - viewDir );
+          vec3 wn = normalize( mix( bladeN, groundN, 0.5 ) );
+          vSheen = pow( max( dot( wn, halfV ), 0.0 ), 30.0 ) * hy * hy;
+
+          // Colour: dark occluded base to a pale, slightly yellow tip; some straw.
           vec3 base = meadowColor( root, gn );
-          vec3 tipTint = mix( base * vec3( 1.25, 1.3, 0.95 ), vec3( 0.42, 0.45, 0.16 ), 0.15 + 0.2 * wr );
-          vColor.rgb = mix( base * 0.45, tipTint, smoothstep( 0.0, 1.0, hy ) ) * ( 0.9 + 0.2 * wr2 );`
-        )
-        ;
+          float dry = step( 0.985 - dryPatch * 0.25, br ) * density;
+          vec3 tip = mix( base * vec3( 1.25, 1.22, 0.85 ), vec3( 0.78, 0.82, 0.42 ), 0.25 + 0.2 * br2 );
+          // Each tuft a little lighter or darker; roots in shadow.
+          float tuftTone = 0.82 + 0.36 * tr;
+          vec3 rootCol = base * 0.38;
+          vec3 col = mix( rootCol, tip * tuftTone, smoothstep( 0.0, 0.9, hy ) );
+          col = mix( col, mix( vec3( 0.25, 0.2, 0.08 ), vec3( 0.62, 0.52, 0.28 ), hy ), dry );
+          vColor.rgb = col * ( 0.96 + 0.08 * br );`
+        );
+
       shader.fragmentShader = shader.fragmentShader
         .replace(
           '#include <common>',
           `#include <common>
           uniform vec3 uSunColor;
-          varying float vTrans;`
+          varying float vTrans;
+          varying float vSheen;
+          varying float vHeight;`
         )
         // Light both faces the same way; a flipped normal would turn back faces black.
         .replace(
@@ -269,7 +322,7 @@ export class Grass {
         )
         .replace(
           '#include <opaque_fragment>',
-          `outgoingLight += diffuseColor.rgb * uSunColor * vTrans;
+          `outgoingLight += uSunColor * ( diffuseColor.rgb * vTrans * 0.8 + vec3( 0.9, 0.92, 0.7 ) * vSheen * 0.08 );
           #include <opaque_fragment>`
         );
     };

@@ -144,6 +144,7 @@ export class Water {
       roughness: 0.06,
       metalness: 0,
       transparent: true,
+      envMapIntensity: 1.6,
     });
     const uniforms = this.uniforms;
     material.onBeforeCompile = (shader) => {
@@ -192,8 +193,8 @@ export class Water {
           '#include <color_fragment>',
           `#include <color_fragment>
           float depth = max( vDepth, 0.0 );
-          vec3 shallow = vec3( 0.10, 0.24, 0.20 );
-          vec3 deep = vec3( 0.012, 0.045, 0.06 );
+          vec3 shallow = vec3( 0.12, 0.2, 0.15 );
+          vec3 deep = vec3( 0.02, 0.05, 0.05 );
           vec3 waterCol = mix( shallow, deep, smoothstep( 0.1, 3.5, depth ) );
 
           // Foam: a broken band along the shore, and streaks in fast water.
@@ -233,6 +234,8 @@ export class Water {
             float gust = windAt( vWPos.xz );
             vec3 n3 = texture( uWaterNormals, vWPos.xz * 0.55 - uWindDir * t * 0.8 ).xyz * 2.0 - 1.0;
             vec2 slope = n1.xy * 0.55 + n2.xy * 0.35 + n3.xy * ( 0.08 + 0.45 * gust );
+            // Lakes lie flatter than running water.
+            slope *= isRiver ? 1.0 : 0.3 + 0.25 * uWindStrength;
             slope *= mix( 1.0, 0.25, waterFoam );
             vec3 worldN = normalize( vec3( 0.0, 1.0, 0.0 )
               + vec3( across.x, 0.0, across.y ) * slope.x

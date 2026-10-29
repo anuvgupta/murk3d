@@ -87,8 +87,10 @@ export class Player {
     this.position.x += this.velocity.x * dt;
     this.position.z += this.velocity.z * dt;
 
+    // The slope rule is about the terrain; on a bridge deck or porch the ground
+    // beneath (a riverbed, say) must not block the way.
     const n = this.terrain.normalAt(this.position.x, this.position.z, this._normal);
-    if (n.y < MAX_WALK_SLOPE) {
+    if (n.y < MAX_WALK_SLOPE && !this.onSurface) {
       const uphill = this.velocity.x * n.x + this.velocity.z * n.z < 0;
       if (uphill) {
         // Slide along the slope instead of climbing it.
@@ -129,9 +131,13 @@ export class Player {
   // Highest walkable height at (x, z) that the feet at y can step onto.
   groundAt(x, z, y) {
     let h = this.terrain.heightAt(x, z);
+    this.onSurface = false;
     for (const surface of this.surfaces) {
       const s = surface(x, z);
-      if (s !== null && s > h && s <= y + 0.6) h = s;
+      if (s !== null && s > h && s <= y + 0.6) {
+        h = s;
+        this.onSurface = true;
+      }
     }
     return h;
   }

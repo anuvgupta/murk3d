@@ -3,6 +3,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { AtmospherePass } from '../world/AtmospherePass.js';
 
 import { Terrain } from '../world/Terrain.js';
 import { GroundMask } from '../world/GroundMask.js';
@@ -37,6 +38,8 @@ export class Game {
     renderer.shadowMap.type = THREE.PCFShadowMap;
     container.appendChild(renderer.domElement);
     this.renderer = renderer;
+    renderer.info.autoReset = false;
+    this.perf = { el: document.getElementById('perf'), frames: 0, time: 0, fps: 0, ms: 0, show: false };
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 20000);
@@ -74,14 +77,11 @@ export class Game {
     // Sun (or moon) direction and colour × intensity, for shader effects.
     this.sunInfo = { direction: this.environment.lightDir, color: new THREE.Color() };
 
-    const terrainMesh = new THREE.Mesh(
-      this.terrain.geometry,
-      createTerrainMaterial({ noise: this.noiseTexture, mask: this.groundMask.texture })
-    );
-    terrainMesh.name = 'terrain';
-    terrainMesh.receiveShadow = true;
-    terrainMesh.castShadow = true;
-    scene.add(terrainMesh);
+    const terrainMaterial = createTerrainMaterial({ noise: this.noiseTexture, mask: this.groundMask.texture });
+    this.terrainGroup = new THREE.Group();
+    this.terrainGroup.name = 'terrain';
+    for (const chunk of this.terrain.buildChunks(terrainMaterial)) this.terrainGroup.add(chunk);
+    scene.add(this.terrainGroup);
     scene.add(this.rocks.build(this.noiseTexture));
 
     this.grass = new Grass({
@@ -104,7 +104,7 @@ export class Game {
     scene.add(this.village.group);
     mark('village');
 
-    this.forest = new Forest({ terrain: this.terrain, mask: this.groundMask, noise: this.noiseTexture, wind: this.wind, rocks: this.rocks });
+    this.forest = new Forest({ terrain: this.terrain, mask: this.groundMask, noise: this.noiseTexture, wind: this.wind, rocks: this.rocks, sun: this.sunInfo });
     scene.add(this.forest.group);
     mark('trees');
 
@@ -152,11 +152,20 @@ export class Game {
 
   setupPostProcessing() {
     const size = new THREE.Vector2(window.innerWidth, window.innerHeight);
-    this.composer = new EffectComposer(this.renderer);
+    const dpr = this.renderer.getPixelRatio();
+    // The atmosphere pass reads scene depth, so the composer's buffers carry one.
+    const target = new THREE.WebGLRenderTarget(size.x * dpr, size.y * dpr, {
+      type: THREE.HalfFloatType,
+      depthTexture: new THREE.DepthTexture(size.x * dpr, size.y * dpr, THREE.UnsignedIntType),
+    });
+    this.composer = new EffectComposer(this.renderer, target);
     this.composer.addPass(new RenderPass(this.scene, this.camera));
+    this.atmosphere = new AtmospherePass(this.camera);
+    this.atmosphere.setSize(size.x * dpr, size.y * dpr);
+    this.composer.addPass(this.atmosphere);
     if (settings.bloom) {
       // High threshold: only the sun, glowing windows and bright cloud edges bloom.
-      this.composer.addPass(new UnrealBloomPass(size, 0.3, 0.5, 5.0));
+      this.composer.addPass(new UnrealBloomPass(size, 0.25, 0.6, 4.0));
     }
     this.composer.addPass(new OutputPass());
   }
@@ -182,14 +191,49 @@ export class Game {
       if (input.wasPressed('BracketLeft')) this.environment.setTime(this.environment.timeOfDay - 0.5);
       if (input.wasPressed('KeyT')) this.environment.paused = !this.environment.paused;
       if (input.wasPressed('KeyF')) this.openFeedback();
+      if (input.wasPressed('F3')) {
+        this.perf.show = !this.perf.show;
+        this.perf.el.classList.toggle('hidden', !this.perf.show);
+      }
       this.player.update(dt);
     }
 
     this.updateWorld(dt);
     this.hud.update(this.player.yaw, this.environment.timeLabel());
 
+    const t0 = performance.now();
+    this.renderer.info.reset();
     this.render();
+    this.updatePerf(dt, performance.now() - t0);
     input.endFrame();
+  }
+
+  updatePerf(dt, renderMs) {
+    const p = this.perf;
+    p.frames++;
+    p.time += dt;
+    p.ms += renderMs;
+    if (p.time < 0.5) return;
+    p.fps = p.frames / p.time;
+    const cpu = p.ms / p.frames;
+    p.frames = 0;
+    p.time = 0;
+    p.ms = 0;
+    if (!p.show) return;
+    const r = this.renderer.info.render;
+    const m = this.renderer.info.memory;
+    let grass = 0;
+    for (const s of this.grass.slots) if (s.mesh.visible) grass += s.mesh.count;
+    let trees = 0;
+    for (const set of this.forest.sets) for (const tier of set.tiers) trees += tier[0].count;
+    const pos = this.player.position;
+    p.el.textContent = [
+      `${p.fps.toFixed(0)} fps   ${(1000 / p.fps).toFixed(1)} ms/frame   render cpu ${cpu.toFixed(1)} ms`,
+      `draw calls ${r.calls}   triangles ${(r.triangles / 1e6).toFixed(2)} M`,
+      `grass blades ${(grass / 1000).toFixed(0)} k   trees ${trees}`,
+      `textures ${m.textures}   geometries ${m.geometries}`,
+      `position ${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`,
+    ].join('\n');
   }
 
   // Everything that animates regardless of input.
@@ -197,6 +241,12 @@ export class Game {
     const env = this.environment;
     env.update(dt, this.player.position);
     this.renderer.toneMappingExposure = env.exposure;
+    if (this.atmosphere) this.atmosphere.update(env.atmosphere);
+    // Water reflects the sky at full strength, independent of the scene's ambient level.
+    if (this.water && this.water.material.envMap !== env.envTexture) {
+      this.water.material.envMap = env.envTexture;
+      this.water.material.needsUpdate = true;
+    }
     this.sunInfo.color.copy(env.sun.color).multiplyScalar(env.sun.intensity);
     this.wind.update(dt);
     this.grass.update(this.camera, this.player.position);
@@ -216,6 +266,12 @@ export class Game {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
-    if (this.composer) this.composer.setSize(w, h);
+    if (this.composer) {
+      this.composer.setSize(w, h);
+      const dpr = this.renderer.getPixelRatio();
+      this.composer.renderTarget1.depthTexture.image.width = w * dpr;
+      this.composer.renderTarget1.depthTexture.image.height = h * dpr;
+      this.atmosphere.setSize(w * dpr, h * dpr);
+    }
   }
 }

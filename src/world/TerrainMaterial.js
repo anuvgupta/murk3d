@@ -48,7 +48,7 @@ export function createTerrainMaterial({ noise, mask }) {
         float detail = 1.0 - smoothstep( 12.0, 70.0, length( vViewPosition ) );
         rockDetail = detail;
         rockHOut = rockHeight( vWPos, tw, detail );
-        rockAmtOut = smoothstep( 0.3, 0.48, 1.0 - wn.y );
+        rockAmtOut = smoothstep( 0.36, 0.52, 1.0 - wn.y + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.1 );
         ground = mix( ground, rockAlbedo( vWPos, wn, tw, rockHOut ), rockAmtOut );
         diffuseColor.rgb *= ground;`
       )
@@ -60,7 +60,12 @@ export function createTerrainMaterial({ noise, mask }) {
       .replace(
         '#include <normal_fragment_maps>',
         `#include <normal_fragment_maps>
-        normal = bumpNormal( -vViewPosition, normal, rockHOut, 1.4 * rockAmtOut * rockDetail );`
+        normal = bumpNormal( -vViewPosition, normal, rockHOut, 1.4 * rockAmtOut * ( 0.4 + 0.6 * rockDetail ) );
+        if ( rockAmtOut > 0.01 ) {
+          vec3 wn2 = macroNormal( vWPos, normalize( vWNormal ), 9.0 * rockAmtOut );
+          vec3 vn2 = normalize( ( viewMatrix * vec4( wn2, 0.0 ) ).xyz );
+          normal = normalize( mix( normal, vn2, 0.75 ) );
+        }`
       );
   };
   return material;

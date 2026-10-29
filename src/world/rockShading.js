@@ -32,15 +32,21 @@ export const ROCK_GLSL = /* glsl */ `
     float cracks = ( 1.0 - smoothstep( 0.0, 0.03 + 0.04 * ( 1.0 - detail ), abs( crackN - 0.5 ) ) ) * detail;
     float grain = mix( 0.5, tri( p, w, 0.45, 3 ), detail );
     float lumps = tri( p, w, 0.16, 1 );
-    return clamp( strata * 0.25 + lumps * 0.4 + grain * 0.25 - cracks * 0.5 + 0.1, 0.0, 1.0 );
+    // Macro relief: buttresses and gullies tens of metres across.
+    float macro = tri( vec3( p.x, p.y * 0.35, p.z ), w, 0.022, 0 );
+    return clamp( strata * 0.2 + lumps * 0.3 + grain * 0.2 + macro * 0.35 - cracks * 0.45 + 0.05, 0.0, 1.0 );
   }
 
   vec3 rockAlbedo( vec3 p, vec3 n, vec3 w, float h ) {
     float broad = tri( p, w, 0.015, 0 );
     float band = sin( p.y * 0.9 + broad * 7.0 ) * 0.5 + 0.5;
-    vec3 c = mix( ${lin(0x625c53)}, ${lin(0x9a907f)}, smoothstep( 0.2, 0.8, broad ) );
-    c = mix( c, c * ${lin(0xc9a78a)} * 1.4, band * 0.3 );
-    c *= 0.72 + 0.4 * h;
+    vec3 c = mix( ${lin(0x7d7872)}, ${lin(0xb3aa9c)}, smoothstep( 0.2, 0.8, broad ) );
+    c = mix( c, c * ${lin(0xd2b08f)} * 1.25, band * 0.35 );
+    c *= 0.8 + 0.4 * h;
+    // Mid-scale variation and gullies streaking down the slope, visible from afar.
+    float meso = tri( p, w, 0.05, 2 );
+    float gully = tri( vec3( p.x, p.y * 0.22, p.z ), w, 0.045, 3 );
+    c *= ( 0.86 + 0.28 * meso ) * ( 0.88 + 0.24 * smoothstep( 0.35, 0.7, gully ) );
     // Lichen in patches.
     float lichen = smoothstep( 0.64, 0.8, tri( p, w, 0.08, 0 ) ) * 0.45;
     c = mix( c, ${lin(0x8b8a52)}, lichen );
@@ -48,6 +54,23 @@ export const ROCK_GLSL = /* glsl */ `
     float up = smoothstep( 0.78, 0.95, n.y + ( tri( p, w, 0.05, 3 ) - 0.5 ) * 0.3 );
     c = mix( c, ${lin(0x4a6a22)} * ( 0.8 + 0.4 * tri( p, w, 0.3, 2 ) ), up * 0.8 );
     return c;
+  }
+
+  // Large-scale relief as a world-space normal perturbation: sample the macro
+  // height a few metres either side and tilt the normal down the gradient.
+  float macroHeight( vec3 p, vec3 w ) {
+    return tri( vec3( p.x, p.y * 0.35, p.z ), w, 0.022, 0 ) * 0.7 + tri( p, w, 0.06, 1 ) * 0.3;
+  }
+  vec3 macroNormal( vec3 p, vec3 n, float strength ) {
+    vec3 w = triWeights( n );
+    float d = 2.5;
+    float hx = macroHeight( p + vec3( d, 0.0, 0.0 ), w ) - macroHeight( p - vec3( d, 0.0, 0.0 ), w );
+    float hy = macroHeight( p + vec3( 0.0, d, 0.0 ), w ) - macroHeight( p - vec3( 0.0, d, 0.0 ), w );
+    float hz = macroHeight( p + vec3( 0.0, 0.0, d ), w ) - macroHeight( p - vec3( 0.0, 0.0, d ), w );
+    vec3 grad = vec3( hx, hy, hz ) / ( 2.0 * d );
+    // Remove the component along the normal; tilt within the surface.
+    grad -= n * dot( grad, n );
+    return normalize( n - grad * strength );
   }
 
   // Perturb a view-space normal by a height field (three.js' perturbNormalArb).

@@ -99,7 +99,12 @@ export function createRockMaterial(noise) {
       .replace(
         '#include <normal_fragment_maps>',
         `#include <normal_fragment_maps>
-        normal = bumpNormal( -vViewPosition, normal, rockH, 1.2 * detail );`
+        normal = bumpNormal( -vViewPosition, normal, rockH, 1.2 * detail );
+        {
+          vec3 wn2 = macroNormal( vWPos, wn, 4.0 );
+          vec3 vn2 = normalize( ( viewMatrix * vec4( wn2, 0.0 ) ).xyz );
+          normal = normalize( mix( normal, vn2, 0.6 ) );
+        }`
       );
   };
   return material;
@@ -142,26 +147,27 @@ export class RockField {
   placeCliff() {
     const r = this.random;
     const t = this.terrain;
-    for (let a = HILL.cliffDir - HILL.cliffSpread * 1.05; a <= HILL.cliffDir + HILL.cliffSpread * 1.05; a += 0.07 + r() * 0.04) {
+    for (let a = HILL.cliffDir - HILL.cliffSpread * 1.0; a <= HILL.cliffDir + HILL.cliffSpread * 1.0; a += 0.15 + r() * 0.12) {
       const edge = t.hillEdge(a);
       const footR = edge + HILL.cliffWidth + 1;
       const foot = t.heightAt(HILL.x + Math.cos(a) * footR, HILL.z + Math.sin(a) * footR);
       const top = t.heightAt(HILL.x + Math.cos(a) * (edge - 2), HILL.z + Math.sin(a) * (edge - 2));
-      const face = edge + HILL.cliffWidth * (0.45 + r() * 0.3);
+      const face = edge + HILL.cliffWidth * (0.5 + r() * 0.3);
       const x = HILL.x + Math.cos(a) * face;
       const z = HILL.z + Math.sin(a) * face;
-      // Slabs stand from below the foot to just under the plateau's lip.
-      const tall = (top - foot) * (0.75 + r() * 0.3) + 1.5;
-      this.add(5 + Math.floor(r() * 5), x, z, new THREE.Vector3(5 + r() * 5, tall, 4 + r() * 3), {
-        base: foot - 1.5, ry: -a + Math.PI / 2 + (r() - 0.5) * 0.5, tilt: 0.12,
+      // Outcrops of varied height, leaning back into the slope.
+      const tall = (top - foot) * (0.35 + r() * 0.5) + 1.0;
+      const variant = r() < 0.6 ? 5 + Math.floor(r() * 5) : Math.floor(r() * 5);
+      this.add(variant, x, z, new THREE.Vector3(3 + r() * 4, tall, 2.5 + r() * 2.5), {
+        base: foot - 1.0, ry: -a + Math.PI / 2 + (r() - 0.5) * 0.9, tilt: 0.3,
       });
       // Scree and fallen blocks at the foot.
       const n = 1 + Math.floor(r() * 3);
       for (let k = 0; k < n; k++) {
         const fr = edge + HILL.cliffWidth + 1 + r() * 7;
-        const fa = a + (r() - 0.5) * 0.08;
-        const s = 0.6 + r() * 1.8;
-        this.add(Math.floor(r() * 5), HILL.x + Math.cos(fa) * fr, HILL.z + Math.sin(fa) * fr, new THREE.Vector3(s, s * 0.8, s));
+        const fa = a + (r() - 0.5) * 0.12;
+        const sz = 0.6 + r() * 1.8;
+        this.add(Math.floor(r() * 5), HILL.x + Math.cos(fa) * fr, HILL.z + Math.sin(fa) * fr, new THREE.Vector3(sz, sz * 0.8, sz));
       }
     }
   }

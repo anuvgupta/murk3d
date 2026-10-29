@@ -99,7 +99,7 @@ export class GroundMask {
     grass.fillRect(0, 0, SIZE, SIZE);
     grass.fillStyle = grass.strokeStyle = '#000';
     for (const r of ROADS) strokePath(grass, r.path, r.width + 0.8);
-    strokePath(grass, RIVER.path, (s) => RIVER.widthAt(s) + 1.5);
+    strokePath(grass, RIVER.path, (s) => RIVER.widthAt(s) + 0.3);
     fillLake(grass, 2);
     grass.beginPath();
     grass.arc(toPx(PLAZA.x), toPx(PLAZA.z), (PLAZA.radius + 0.5) * PX, 0, Math.PI * 2);
@@ -183,7 +183,7 @@ export class GroundMask {
       for (let x = 0; x < SIZE; x++) {
         const v = j * side + toGrid[x];
         const slope = 1 - ny[v * 3 + 1];
-        const rock = Math.max(smooth(0.26, 0.42, slope), smooth(105, 150, heights[v]));
+        const rock = Math.max(smooth(0.34, 0.5, slope), smooth(105, 150, heights[v]));
         const o = (y * SIZE + x) * 4;
         this.data[o] = Math.round(this.data[o] * (1 - rock));
       }

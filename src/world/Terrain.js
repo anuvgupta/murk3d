@@ -52,16 +52,18 @@ export class Terrain {
     const hills = fbm(this.noiseHills, x * 0.0035, z * 0.0035, 5) * 16 * hillMask;
     const rolling = fbm(this.noiseRoll, x * 0.013, z * 0.013, 3) * 1.8;
 
-    // A ring of jagged peaks that encloses the vale: broad massifs carved by
-    // sharp ridgelines, with a domain warp so crests don't line up on a grid.
+    // A ring of mountains encloses the vale: broad massifs carrying long
+    // ridgelines, domain-warped so crests bend, with fine erosion detail.
     let mountains = 0;
     const mountainMask = smoothstep(220, 560, r);
     if (mountainMask > 0) {
-      const wx = x + fbm(this.noiseRoll, x * 0.002 + 9, z * 0.002, 3) * 120;
-      const wz = z + fbm(this.noiseRoll, x * 0.002, z * 0.002 + 9, 3) * 120;
-      const massif = fbm(this.noiseMount, wx * 0.0012, wz * 0.0012, 3) * 0.5 + 0.5;
-      const ridge = ridged(this.noiseMount, wx * 0.0021, wz * 0.0021, 6);
-      mountains = (massif * 140 + Math.pow(ridge, 1.15) * 260 * (0.4 + massif)) * mountainMask;
+      const wx = x + fbm(this.noiseRoll, x * 0.0015 + 9, z * 0.0015, 3) * 160;
+      const wz = z + fbm(this.noiseRoll, x * 0.0015, z * 0.0015 + 9, 3) * 160;
+      const massif = fbm(this.noiseMount, wx * 0.0009, wz * 0.0009, 3) * 0.5 + 0.5;
+      const ridge = ridged(this.noiseMount, wx * 0.0013, wz * 0.0013, 5);
+      const detail = fbm(this.noiseHills, wx * 0.006, wz * 0.006, 3);
+      const m = massif * 130 + ridge * 240 * (0.45 + massif) + detail * 16 * (0.5 + ridge);
+      mountains = m * mountainMask;
     }
 
     return hills + rolling + mountains + this.hillHeight(x, z);
@@ -189,7 +191,7 @@ export class Terrain {
     for (const house of HOUSES) {
       const dx = x - house.x;
       const dz = z - house.z;
-      if (dx * dx + dz * dz > 400) continue;
+      if (dx * dx + dz * dz > 900) continue;
       // Distance from the footprint rectangle (in the house's frame).
       const c = Math.cos(house.rotationY);
       const s = Math.sin(house.rotationY);
@@ -198,7 +200,7 @@ export class Terrain {
       const ex = Math.max(0, Math.abs(lx) - house.footprint.hx - 1.2);
       const ez = Math.max(0, Math.abs(lz) - house.footprint.hz - 1.2);
       const d = Math.hypot(ex, ez);
-      if (d < 7) h = lerp(house.y, h, smoothstep(0, 7, d));
+      if (d < 11) h = lerp(house.y, h, smoothstep(0, 11, d));
     }
     return h;
   }
@@ -229,7 +231,7 @@ export class Terrain {
         // Cut sloping banks, except where a road runs up to the bridge.
         // Steepening with distance, so the cut always meets the natural ground.
         const e = rq.d - w;
-        const bank = level - 0.35 + e * 0.5 + Math.max(0, e - 8) ** 2 * 0.05;
+        const bank = level - 0.35 + e * 0.32 + Math.max(0, e - 10) ** 2 * 0.04;
         if (!onRoad) h = Math.min(h, bank);
         // Keep low ground beside the river from flooding.
         if (rq.d < w + 4) h = Math.max(h, level + 0.15 * smoothstep(w, w + 1.5, rq.d));
@@ -299,6 +301,61 @@ export class Terrain {
     geometry.computeVertexNormals();
     geometry.computeBoundingSphere();
     return geometry;
+  }
+
+  // Split the terrain into blocks so the camera and the sun's shadow pass
+  // each draw only the blocks they can see.
+  buildChunks(material, blocks = 8) {
+    const n = this.segments;
+    const side = n + 1;
+    const step = n / blocks;
+    const pos = this.geometry.attributes.position.array;
+    const nrm = this.geometry.attributes.normal.array;
+    const meshes = [];
+    for (let bj = 0; bj < blocks; bj++) {
+      for (let bi = 0; bi < blocks; bi++) {
+        const i0 = bi * step;
+        const j0 = bj * step;
+        const w = step + 1;
+        const positions = new Float32Array(w * w * 3);
+        const normals = new Float32Array(w * w * 3);
+        for (let j = 0; j < w; j++) {
+          for (let i = 0; i < w; i++) {
+            const src = ((j0 + j) * side + (i0 + i)) * 3;
+            const dst = (j * w + i) * 3;
+            positions[dst] = pos[src];
+            positions[dst + 1] = pos[src + 1];
+            positions[dst + 2] = pos[src + 2];
+            normals[dst] = nrm[src];
+            normals[dst + 1] = nrm[src + 1];
+            normals[dst + 2] = nrm[src + 2];
+          }
+        }
+        const indices = new Uint32Array(step * step * 6);
+        let k = 0;
+        for (let j = 0; j < step; j++) {
+          for (let i = 0; i < step; i++) {
+            const a = j * w + i;
+            const b = a + 1;
+            const c = a + w;
+            const d = c + 1;
+            indices.set([a, c, b, b, c, d], k);
+            k += 6;
+          }
+        }
+        const g = new THREE.BufferGeometry();
+        g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        g.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+        g.setIndex(new THREE.BufferAttribute(indices, 1));
+        g.computeBoundingSphere();
+        const mesh = new THREE.Mesh(g, material);
+        mesh.name = 'terrain';
+        mesh.receiveShadow = true;
+        mesh.castShadow = true;
+        meshes.push(mesh);
+      }
+    }
+    return meshes;
   }
 
   // Heights as a float texture so shaders (grass) can find the ground.

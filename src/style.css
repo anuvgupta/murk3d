@@ -316,3 +316,15 @@ body {
 #fb-token-row .fb-row {
   margin-top: 8px;
 }
+
+#perf {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  margin: 0;
+  padding: 8px 10px;
+  font: 12px/1.45 ui-monospace, Menlo, Consolas, monospace;
+  color: #e8f0d8;
+  background: rgba(0, 0, 0, 0.5);
+  font-variant-numeric: tabular-nums;
+}
