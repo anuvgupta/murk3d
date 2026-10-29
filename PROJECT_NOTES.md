@@ -589,3 +589,8 @@ screenshot-checked.
   zone tighter (staged, ships once BA's renders finish — a concurrent
   Chromium killed AY's shots). view2 screenshot timeout 600→1500 s.
   Render queue: BA → AZ (steeper Shelves) → BB (AY re-shoot).
+- 04:20 BA2/BA3: face-normal fix shows rock on the steep part at the
+  cliff foot; castle cliff clean. Remaining bald band = grassy bank at
+  ny 0.6–0.82 where blades were already culled but rock hadn't started →
+  grass cull now smoothstep(0.56,0.7), rock by 90% face normal. Cracks
+  softened (0.28). Verify BC after BB.
