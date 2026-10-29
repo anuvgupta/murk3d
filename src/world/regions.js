@@ -79,7 +79,7 @@ export const REGIONS = [
     floor: 20,
     palette: { ground: [0.95, 0.97, 0.9], grass: [0.9, 1.0, 0.8], fog: [0.8, 0.86, 0.92], fogDensity: 0.8, saturation: 1.06 },
     lake: { r: 24, depth: 4, level: 0.4, dx: 10, dz: 30 },
-    falls: [{ from: { dx: 76, dz: 30 }, to: { dx: 35, dz: 30 }, w: 6 }],
+    falls: [{ from: { dx: 76, dz: 30 }, to: { dx: 35, dz: 30 }, w: 9 }],
     gate: { dx: 0, dz: -70 },
     rocks: 70,
     flora: [{ species: 'pine', density: 5.0, spacing: 7 }, { species: 'birch', density: 1.0, spacing: 6 }],
@@ -158,7 +158,7 @@ export const REGIONS = [
     palette: { ground: [0.9, 1.0, 0.84], grass: [0.9, 1.04, 0.8], fog: [0.78, 0.86, 0.84], fogDensity: 1.2, saturation: 1.12 },
     mesas: [{ dx: -20, dz: 0, radius: 56, height: 62, gentleWidth: 60, cliffWidth: 9, cliffDir: 0, cliffSpread: 1.4 }],
     lake: { r: 12, depth: 3, level: 0.6, dx: 64, dz: 2, steep: true }, // plunge pool under the cliff
-    falls: [{ from: { dx: 34, dz: 2 }, to: { dx: 53, dz: 2 }, w: 5 }],
+    falls: [{ from: { dx: 34, dz: 2 }, to: { dx: 53, dz: 2 }, w: 9 }],
     arches: [{ dx: 30, dz: -70, r: 13, tube: 3, ry: 0.4 }],
     ruins: ['chapel', 'tower', 'stones'],
     rocks: 26,
