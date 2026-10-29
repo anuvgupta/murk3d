@@ -18,6 +18,12 @@ function finishSkyFragment(fragment) {
     'gl_FragColor = vec4( texColor, 1.0 );',
     `texColor = texColor / ( 1.0 + texColor * 0.45 );
     {
+      // By day the sky deepens to a saturated blue away from the horizon.
+      float dayF = smoothstep( 0.1, 0.4, vSunDirection.y );
+      float up = smoothstep( 0.02, 0.5, direction.y );
+      texColor = mix( texColor, texColor * vec3( 0.6, 0.76, 1.04 ), dayF * up * 0.8 );
+    }
+    {
       // Golden hour: the whole horizon warms, not just the sun's side.
       float g = ( 1.0 - smoothstep( 0.02, 0.45, vSunDirection.y ) ) * smoothstep( -0.16, 0.0, vSunDirection.y );
       float hz = 1.0 - smoothstep( 0.0, 0.28, direction.y );
