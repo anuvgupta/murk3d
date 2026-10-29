@@ -575,3 +575,8 @@ screenshot-checked.
   smoothed-normal classification as the cause (AY tests the dFdx fix).
   Temple noon and overlook noon stable. Next candidate after AY: rock
   faces are flat/pale at <10 m (need mid-scale relief / cavity shading).
+- 03:25 AX (Shelves cameras): plates read as gentle tree-covered hills
+  with a grey ledge, not jagged tilted slabs → rise ×1.5 (14→21 m over
+  46 m ≈ 25°), lifts ×1.3, no trees on plates. Face-normal fix (AY)
+  should turn the broken faces to rock. Verify AZ (wide, foot, upslope,
+  golden).
