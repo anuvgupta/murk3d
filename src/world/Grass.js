@@ -301,7 +301,7 @@ export class Grass {
           // Colour: dark occluded base to a pale, slightly yellow tip; some straw.
           vec3 base = meadowColor( root, gn );
           float dry = step( 0.985 - dryPatch * 0.25, br ) * density;
-          vec3 tip = mix( base * vec3( 1.25, 1.22, 0.85 ), vec3( 0.78, 0.82, 0.42 ), 0.25 + 0.2 * br2 );
+          vec3 tip = mix( base * vec3( 1.16, 1.18, 0.92 ), vec3( 0.7, 0.78, 0.42 ), 0.2 + 0.18 * br2 );
           // Each tuft a little lighter or darker; roots in shadow.
           float tuftTone = 0.82 + 0.36 * tr;
           vec3 rootCol = base * 0.38;

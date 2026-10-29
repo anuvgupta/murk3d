@@ -219,9 +219,9 @@ export class Environment {
     const u = this.sky.material.uniforms;
     u.sunPosition.value.copy(sunDir).multiplyScalar(450000);
     // Clear, deep-blue zenith by day; hazier and redder toward the horizon at low sun.
-    u.turbidity.value = THREE.MathUtils.lerp(2.2, 5.0, golden);
-    u.rayleigh.value = THREE.MathUtils.lerp(1.7, 2.8, golden);
-    u.mieCoefficient.value = THREE.MathUtils.lerp(0.0032, 0.0048, golden);
+    u.turbidity.value = THREE.MathUtils.lerp(2.0, 5.0, golden);
+    u.rayleigh.value = THREE.MathUtils.lerp(1.9, 2.8, golden);
+    u.mieCoefficient.value = THREE.MathUtils.lerp(0.0022, 0.0048, golden);
 
     // Direct light: the sun by day, a dim cool moon by night. Their intensities
     // both pass through ~0 around the horizon, hiding the swap in direction.
