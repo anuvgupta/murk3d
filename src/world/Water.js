@@ -126,11 +126,19 @@ export class Water {
         indices.push(base + k, base + k1, next + k, base + k1, next + k1, next + k);
       }
     }
-    return this.finish(positions, uvs, flow, depth, indices);
+    return this.finish(positions, uvs, flow, depth, indices, LAKE.tint);
   }
 
-  finish(positions, uvs, flow, depth, indices) {
+  finish(positions, uvs, flow, depth, indices, tint = null) {
     const g = new THREE.BufferGeometry();
+    const n = positions.length / 3;
+    const tints = new Float32Array(n * 3);
+    for (let i = 0; i < n; i++) {
+      tints[i * 3] = tint ? tint[0] : 1;
+      tints[i * 3 + 1] = tint ? tint[1] : 1;
+      tints[i * 3 + 2] = tint ? tint[2] : 1;
+    }
+    g.setAttribute('aTint', new THREE.BufferAttribute(tints, 3));
     g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
     g.setAttribute('normal', new THREE.Float32BufferAttribute(positions.map((_, i) => (i % 3 === 1 ? 1 : 0)), 3));
     g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
@@ -160,6 +168,8 @@ export class Water {
           ${WIND_GLSL}
           attribute vec3 aFlow;
           attribute float aDepth;
+          attribute vec3 aTint;
+          varying vec3 vTint;
           varying vec3 vWPos;
           varying vec3 vFlow;
           varying float vDepth;
@@ -176,6 +186,7 @@ export class Water {
           vWPos = wp;
           vFlow = aFlow;
           vDepth = aDepth;
+          vTint = aTint;
           vWaterUv = uv;`
         );
 
@@ -190,6 +201,7 @@ export class Water {
           varying vec3 vFlow;
           varying float vDepth;
           varying vec2 vWaterUv;
+          varying vec3 vTint;
           float waterFoam;`
         )
         .replace(
@@ -198,7 +210,7 @@ export class Water {
           float depth = max( vDepth, 0.0 );
           vec3 shallow = vec3( 0.12, 0.2, 0.15 );
           vec3 deep = vec3( 0.02, 0.05, 0.05 );
-          vec3 waterCol = mix( shallow, deep, smoothstep( 0.1, 3.5, depth ) );
+          vec3 waterCol = mix( shallow, deep, smoothstep( 0.1, 3.5, depth ) ) * vTint;
 
           // Foam: a broken band along the shore, and streaks in fast water.
           vec2 fdir = vFlow.z > 0.01 ? vFlow.xy : uWindDir;

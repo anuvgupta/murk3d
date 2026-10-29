@@ -178,7 +178,7 @@ for (const R of REGIONS) {
   if (!R.lake) continue;
   const L = R.lake;
   LAKES.push({
-    x: R.x + (L.dx || 0), z: R.z + (L.dz || 0), radius: L.r, depth: L.depth, ring: L.ring || 0, steep: !!L.steep,
+    x: R.x + (L.dx || 0), z: R.z + (L.dz || 0), radius: L.r, depth: L.depth, ring: L.ring || 0, steep: !!L.steep, tint: L.tint || null,
     level: R.floor + L.level, region: R.id,
     radiusAt(angle) {
       return this.radius * (1 + 0.1 * Math.sin(angle * 3 + 1.3) + 0.06 * Math.sin(angle * 5 + 0.4) + 0.04 * Math.sin(angle * 7 + 2.6));
