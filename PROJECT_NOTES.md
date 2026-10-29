@@ -570,3 +570,8 @@ screenshot-checked.
   correctly culled → bare green. Fix: terrain classifies rock with the
   face normal from dFdx/dFdy(vWPos) (lighting keeps the smooth normal).
   Verify AY (plate foot, castle cliff, overlook cliff, overlook noon).
+- 03:05 AW (crack zones + bare soil, pre face-normal fix): contour-line
+  cracks gone, faces cleaner; cliff-foot green unchanged → confirms the
+  smoothed-normal classification as the cause (AY tests the dFdx fix).
+  Temple noon and overlook noon stable. Next candidate after AY: rock
+  faces are flat/pale at <10 m (need mid-scale relief / cavity shading).
