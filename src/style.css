@@ -187,3 +187,132 @@ body {
   font-weight: 600;
   margin-right: 4px;
 }
+
+/* ---------- Feedback ---------- */
+
+#feedback {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 4, 3, 0.45);
+  z-index: 20;
+  padding: 16px;
+}
+
+.fb-panel {
+  width: min(560px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  background: rgba(24, 19, 14, 0.94);
+  border: 1px solid rgba(244, 228, 188, 0.35);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 16px;
+}
+
+.fb-panel h2 {
+  font-family: 'Cinzel', serif;
+  font-weight: 600;
+  font-size: 20px;
+  letter-spacing: 0.08em;
+}
+
+#fb-shot {
+  width: 100%;
+  max-height: 34vh;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1px solid rgba(244, 228, 188, 0.2);
+}
+
+#fb-meta {
+  font-size: 14px;
+  opacity: 0.75;
+  font-style: italic;
+}
+
+.fb-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.fb-panel textarea,
+.fb-panel select,
+.fb-panel input {
+  font: inherit;
+  color: #f1e6cf;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(244, 228, 188, 0.3);
+  padding: 8px 10px;
+}
+
+.fb-panel textarea {
+  width: 100%;
+  min-height: 5.5em;
+  flex-shrink: 0;
+  resize: vertical;
+}
+
+.fb-panel input {
+  flex: 1;
+  min-width: 0;
+}
+
+.fb-panel button {
+  font-family: 'Cinzel', serif;
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  padding: 8px 16px;
+  color: #f4e4bc;
+  background: rgba(60, 45, 30, 0.6);
+  border: 1px solid rgba(244, 228, 188, 0.4);
+  cursor: pointer;
+}
+
+.fb-panel button.primary {
+  background: rgba(120, 80, 30, 0.75);
+}
+
+.fb-panel button:focus-visible,
+.fb-panel textarea:focus-visible,
+.fb-panel input:focus-visible,
+.fb-panel select:focus-visible {
+  outline: 2px solid #e8c37a;
+  outline-offset: 1px;
+}
+
+.fb-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+#fb-status {
+  flex: 1;
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+#fb-status a {
+  color: #e8c37a;
+}
+
+#fb-token-row summary {
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.75;
+}
+
+#fb-token-row[data-state='missing'] summary {
+  color: #e8c37a;
+  opacity: 1;
+}
+
+#fb-token-row .fb-row {
+  margin-top: 8px;
+}

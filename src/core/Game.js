@@ -21,6 +21,7 @@ import { Input } from '../player/Input.js';
 import { Player } from '../player/Player.js';
 import { HUD } from '../ui/HUD.js';
 import { settings } from './settings.js';
+import { Feedback } from '../ui/Feedback.js';
 
 export class Game {
   constructor(container) {
@@ -111,6 +112,8 @@ export class Game {
     this.player = new Player(this.camera, this.input, this.terrain, colliders);
     this.player.surfaces.push((x, z) => this.village.surfaceAt(x, z));
     this.player.spawn(SPAWN.x, SPAWN.z, SPAWN.yaw);
+    this.applyViewLink();
+    this.feedback = new Feedback(this);
 
     this.setupPostProcessing();
 
@@ -119,6 +122,32 @@ export class Game {
     this.renderer.compile(scene, this.camera);
     this.render();
     mark('ready');
+  }
+
+  // ?at=x,z,yaw,pitch,time drops you at a saved view (used by feedback notes).
+  applyViewLink() {
+    const at = new URLSearchParams(location.search).get('at');
+    if (!at) return;
+    const [x, z, yaw = 0, pitch = 0, time] = at.split(',').map(Number);
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return;
+    this.player.spawn(x, z, yaw);
+    this.player.pitch = pitch;
+    if (Number.isFinite(time)) {
+      this.environment.setTime(time);
+      this.environment.paused = true;
+    }
+  }
+
+  openFeedback() {
+    this.feedbackOpen = true;
+    this.feedback.show();
+    if (document.pointerLockElement) document.exitPointerLock();
+  }
+
+  onFeedbackClosed() {
+    this.feedbackOpen = false;
+    if (this.input.dragMode) this.setActive(true);
+    else this.input.lock();
   }
 
   setupPostProcessing() {
@@ -152,6 +181,7 @@ export class Game {
       if (input.wasPressed('BracketRight')) this.environment.setTime(this.environment.timeOfDay + 0.5);
       if (input.wasPressed('BracketLeft')) this.environment.setTime(this.environment.timeOfDay - 0.5);
       if (input.wasPressed('KeyT')) this.environment.paused = !this.environment.paused;
+      if (input.wasPressed('KeyF')) this.openFeedback();
       this.player.update(dt);
     }
 

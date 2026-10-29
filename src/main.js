@@ -27,6 +27,11 @@ game.input.on('lock', () => {
 });
 
 function showMenu() {
+  // Writing a note releases the mouse too; that isn't a pause.
+  if (game.feedbackOpen) {
+    game.setActive(false);
+    return;
+  }
   menu.classList.remove('hidden');
   play.textContent = 'Resume';
   game.setActive(false);

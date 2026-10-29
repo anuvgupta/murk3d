@@ -26,7 +26,39 @@
         <span><b>Space</b> jump</span>
         <span><b>[ ]</b> change time</span>
         <span><b>T</b> pause time</span>
+        <span><b>F</b> leave a note</span>
         <span><b>Esc</b> menu</span>
+      </div>
+    </div>
+
+    <div id="feedback" class="hidden">
+      <div class="fb-panel">
+        <h2>Leave a note</h2>
+        <img id="fb-shot" alt="Screenshot of the current view" />
+        <p id="fb-meta"></p>
+        <div class="fb-row">
+          <label for="fb-kind">Kind</label>
+          <select id="fb-kind">
+            <option value="idea">Idea</option>
+            <option value="art">Looks wrong</option>
+            <option value="bug">Bug</option>
+            <option value="world">World design</option>
+          </select>
+        </div>
+        <textarea id="fb-text" rows="4" placeholder="What do you see? e.g. &ldquo;Put a castle on this hill&rdquo; or &ldquo;this door looks odd&rdquo;"></textarea>
+        <div class="fb-actions">
+          <span id="fb-status" role="status"></span>
+          <button id="fb-cancel" type="button">Cancel</button>
+          <button id="fb-send" type="button" class="primary">Post note</button>
+        </div>
+        <details id="fb-token-row">
+          <summary id="fb-token-label"></summary>
+          <div class="fb-row">
+            <input id="fb-token" type="password" autocomplete="off" placeholder="github_pat_…" />
+            <button id="fb-token-save" type="button">Save</button>
+            <button id="fb-token-clear" type="button">Forget</button>
+          </div>
+        </details>
       </div>
     </div>
 
