@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
-import { createNoise3D, fbm3, mulberry32 } from '../util/noise.js';
+import { createNoise3D, fbm3, mulberry32, smoothstep } from '../util/noise.js';
 import { createRockMaterial } from './Rocks.js';
 import { PLATES } from './plan.js';
 
@@ -9,7 +9,7 @@ import { PLATES } from './plan.js';
 // itself (Terrain.plateHeight) makes the grassy wedge; this adds the part a
 // height field can't: the overhang.
 export class Plates {
-  constructor({ terrain, noise }) {
+  constructor({ terrain, noise, turf }) {
     this.terrain = terrain;
     this.group = new THREE.Group();
     this.group.name = 'plates';
@@ -39,7 +39,7 @@ export class Plates {
       yEdge += 2.5 * slope; // bring the sample back to the face line
 
       const g = this.slabGeometry(lenU, thick, w, lift, noise3, random);
-      const mesh = new THREE.Mesh(g, material);
+      const mesh = new THREE.Mesh(g, [material, turf || material]);
       // Local +x runs along the plate's rise direction; the slab is centred on
       // its own length, so offset its centre from the face line.
       const cu = (lift - back) / 2;
@@ -52,38 +52,33 @@ export class Plates {
     }
   }
 
-  // A box roughened by noise everywhere but its (walkable) top, with a
-  // ragged front edge and an underside that sags into the hollow.
+  // A slab of rock with a turf top: a box whose side and under faces are
+  // pushed about by noise (more toward the broken tip), its top kept level
+  // so it can be walked on. Displacement is a pure function of position so
+  // the box's duplicated edge vertices stay joined.
   slabGeometry(lenU, thick, w, lift, noise3, random) {
-    let g = new THREE.BoxGeometry(lenU, thick, w, Math.max(4, Math.round(lenU / 1.2)), 3, Math.max(6, Math.round(w / 1.4)));
-    g.deleteAttribute('normal');
-    g.deleteAttribute('uv');
-    g = mergeVertices(g);
+    const g = new THREE.BoxGeometry(lenU, thick, w, Math.max(6, Math.round(lenU / 0.8)), 4, Math.max(8, Math.round(w / 0.9)));
     const pos = g.attributes.position;
     const v = new THREE.Vector3();
+    const out = new THREE.Vector3();
     const seed = random() * 100;
     for (let i = 0; i < pos.count; i++) {
       v.fromBufferAttribute(pos, i);
-      const onTop = v.y > thick / 2 - 1e-3;
-      const n = fbm3(noise3, v.x * 0.35 + seed, v.y * 0.35, v.z * 0.35, 3);
-      const n2 = fbm3(noise3, v.x * 1.4 + seed, v.y * 1.4 + 9, v.z * 1.4, 2);
-      if (!onTop) {
-        // Sides and underside: jagged, with bedding steps.
-        const out = new THREE.Vector3(v.x / lenU, v.y / thick, v.z / w).normalize();
-        const amp = 0.5 + 0.25 * (1 - v.y / thick);
-        v.addScaledVector(out, (n * 1.4 + n2 * 0.4) * amp);
-        v.y += Math.sin((v.x + v.y * 0.3) * 1.7 + seed) * 0.12 * (1 - Math.abs(out.y));
-      } else {
-        // Top stays flat but the edges are nibbled.
-        const edgeX = v.x > lenU / 2 - 1e-3;
-        const edgeZ = Math.abs(v.z) > w / 2 - 1e-3;
-        if (edgeX) v.x += (n * 1.8 + n2 * 0.6) - 0.6;
-        if (edgeZ) v.z += Math.sign(v.z) * ((n * 1.2 + n2 * 0.4) - 0.4);
-      }
+      const n = fbm3(noise3, v.x * 0.22 + seed, v.y * 0.22, v.z * 0.22, 3);
+      const n2 = fbm3(noise3, v.x * 0.9 + seed, v.y * 0.9 + 9, v.z * 0.9, 2);
+      const tip = smoothstep(-lenU / 2, lenU / 2, v.x);
+      const belowTop = 1 - smoothstep(thick / 2 - 0.6, thick / 2, v.y);
+      out.set(v.x / lenU, v.y / thick, v.z / w).normalize();
+      const d = (n * 1.2 + n2 * 0.4) * (0.6 + 2.2 * tip);
+      v.x += out.x * d;
+      v.z += out.z * d;
+      v.y += out.y * d * belowTop;
+      v.y += Math.sin((v.x * 0.9 + v.y * 0.3) * 1.7 + seed) * 0.12 * belowTop * (1 - Math.abs(out.y));
       pos.setXYZ(i, v.x, v.y, v.z);
     }
     g.computeVertexNormals();
-    g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(pos.count * 2), 2));
+    // Box faces: +x, -x, +y, -y, +z, -z. The top is turf, the rest rock.
+    for (const grp of g.groups) grp.materialIndex = grp.materialIndex === 2 ? 1 : 0;
     g.computeBoundingSphere();
     return g;
   }

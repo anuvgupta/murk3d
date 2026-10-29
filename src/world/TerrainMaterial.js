@@ -50,7 +50,8 @@ export function createTerrainMaterial({ noise, mask }) {
         vec3 faceN = normalize( cross( dFdx( vWPos ), dFdy( vWPos ) ) );
         if ( faceN.y < 0.0 ) faceN = -faceN;
         vec3 wnClass = normalize( mix( wn, faceN, 0.9 ) );
-        vec3 ground = groundColor( vWPos, wnClass, wet );
+        float carpet = smoothstep( 0.56, 0.7, wn.y );
+        vec3 ground = groundColor( vWPos, wnClass, carpet, wet );
         // Cliffs and steep ground get the detailed rock shading.
         vec3 tw = triWeights( wnClass );
         float detail = 1.0 - smoothstep( 12.0, 70.0, length( vViewPosition ) );

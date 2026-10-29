@@ -154,7 +154,9 @@ export const GROUND_GLSL = /* glsl */ `
     return mix( mortar, c, joint );
   }
 
-  vec3 groundColor( vec3 p, vec3 nrm, out float wet ) {
+  // carpet: how much of the grass carpet actually stands here (the blade
+  // shader's own slope cull), so the lit under-grass colour never shows bare.
+  vec3 groundColor( vec3 p, vec3 nrm, float carpet, out float wet ) {
     vec4 m = texture( uMask, maskUv( p.xz ) );
     vec4 n = groundNoise( p.xz );
     // Under grass the ground is the turf's shaded base.
@@ -163,7 +165,7 @@ export const GROUND_GLSL = /* glsl */ `
     // Where no grass grows (rock feet, under ruins, trodden ground) the soil
     // shows: earth with a thin scatter of green, not bare meadow colour.
     vec3 bare = mix( dirtColor( n ) * 0.95, meadowColor( p.xz, n ) * 0.8, 0.35 + 0.3 * n.w );
-    vec3 c = mix( bare, meadowColor( p.xz, n ) * vec3( 1.36, 1.32, 1.05 ), smoothstep( 0.0, 0.55, m.r ) );
+    vec3 c = mix( bare, meadowColor( p.xz, n ) * vec3( 1.36, 1.32, 1.05 ), smoothstep( 0.0, 0.55, m.r ) * carpet );
     c = mix( c, dirtColor( n ), smoothstep( 0.15, 0.85, m.g ) );
     c = mix( c, bedColor( n ), m.b );
     if ( m.a > 0.01 ) c = mix( c, cobbleColor( p.xz, n ), m.a );

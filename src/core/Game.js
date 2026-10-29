@@ -106,8 +106,6 @@ export class Game {
     for (const chunk of this.terrain.buildChunks(terrainMaterial)) this.terrainGroup.add(chunk);
     scene.add(this.terrainGroup);
     scene.add(this.rocks.build(this.noiseTexture));
-    this.plates = new Plates({ terrain: this.terrain, noise: this.noiseTexture });
-    scene.add(this.plates.group);
 
     this.grass = new Grass({
       terrain: this.terrain,
@@ -125,6 +123,8 @@ export class Game {
 
     this.buildingMaterials = createBuildingMaterials(this.noiseTexture);
     this.buildingMaterials.turf = createTurfMaterial({ noise: this.noiseTexture, mask: this.groundMask.texture });
+    this.plates = new Plates({ terrain: this.terrain, noise: this.noiseTexture, turf: this.buildingMaterials.turf });
+    scene.add(this.plates.group);
     mark('textures');
     this.village = new Village({ terrain: this.terrain, materials: this.buildingMaterials });
     scene.add(this.village.group);
