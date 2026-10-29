@@ -42,7 +42,7 @@ const PALETTE = {
   hemiSkyDay: C(0xd3d8d6),
   hemiSkyGolden: C(0xf0b08a),
   hemiSkyNight: C(0x5a6fa8),
-  hemiGround: C(0x7a6240),
+  hemiGround: C(0x8a7a62),
 };
 
 export class Environment {
