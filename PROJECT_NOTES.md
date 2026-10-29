@@ -399,3 +399,10 @@ screenshot-checked.
   (telephoto renders tele_full/tele_noatmo proved it); the snow fogged to
   sky colour, leaving the dark streaks "floating". Fix: snow dusting kept
   on steep faces, snow colour cooler, fog capped at 0.82.
+- 17:35 REAL root cause of the "floating slabs": AtmospherePass treated
+  depth > 0.9999 as sky; with near=0.1 everything beyond ~1 km crossed
+  that and was painted sky colour, leaving the nearer parts of far peaks
+  hanging. Now only cleared depth (>= 0.9999995) is sky. (Proved with
+  terrain-only renders: atmosphere off → whole ridge; sky off + atmosphere
+  on → black holes where the far terrain was.) Earlier fog/snow changes
+  stay; they're improvements anyway.
