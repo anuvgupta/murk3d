@@ -96,9 +96,9 @@ export const GROUND_GLSL = /* glsl */ `
     c *= 0.92 + 0.16 * n.z;
     // Broad patchiness (tens of metres): drier straw-green sweeps and
     // richer hollows, so a distant hillside isn't one flat tone.
-    float patch = texture( uNoise, p * 0.012 + 0.37 ).r * 0.6 + texture( uNoise, p * 0.035 + 0.11 ).g * 0.4;
-    c = mix( c, c * vec3( 1.12, 1.06, 0.78 ), smoothstep( 0.55, 0.8, patch ) * 0.55 );
-    c = mix( c, c * vec3( 0.86, 0.94, 0.9 ), smoothstep( 0.45, 0.2, patch ) * 0.4 );
+    float sweep = texture( uNoise, p * 0.012 + 0.37 ).r * 0.6 + texture( uNoise, p * 0.035 + 0.11 ).g * 0.4;
+    c = mix( c, c * vec3( 1.12, 1.06, 0.78 ), smoothstep( 0.55, 0.8, sweep ) * 0.55 );
+    c = mix( c, c * vec3( 0.86, 0.94, 0.9 ), smoothstep( 0.45, 0.2, sweep ) * 0.4 );
     float snow;
     vec4 realm = realmAt( p, snow );
     c *= realm.rgb;
