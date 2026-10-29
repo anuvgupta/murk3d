@@ -594,3 +594,7 @@ screenshot-checked.
   ny 0.6–0.82 where blades were already culled but rock hadn't started →
   grass cull now smoothstep(0.56,0.7), rock by 90% face normal. Cracks
   softened (0.28). Verify BC after BB.
+- 04:35 BA4 overlook golden (with rock relief): keeper frame — rose-amber
+  haze, lamps lit, village and hills in warm light, near slab shows
+  cavities/lichen. Render queue now: BB (face-normal re-shoot) → AZ
+  (steeper Shelves) → BC (bank grass + crack softening).
