@@ -453,3 +453,12 @@ screenshot-checked.
   161,210,230 (blue at last); sky-up frame reads as a real noon sky with
   clouds. Near grass still lime (143,167,71) vs meadow (101,131,47) →
   blade tip/tuft brightness trimmed. Verify AD.
+- 19:35 Lighting checkpoint after ~10 measured rounds: dawn (golden glow,
+  valley mist, long shadows), morning (clear, blue sky, bright meadow),
+  noon (blue sky, punchier contrast, no white-out), golden hour (rose-
+  amber haze, lit lamps), dusk/night (moon, navy sky, stars) all verified
+  from the overlook; lake/bridge/castle/forest frames verified. Keeper
+  frames: Z3_lake_golden, Z4_overlook_golden, AB3_bridge_golden,
+  X3_forest_sun, AC4_dawn. Remaining nits: near grass still slightly
+  lime (AD pending), Preetham horizon pale at noon, distant tree cards
+  read as dark blobs at 300 m+.
