@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { Game } from './core/Game.js';
 import { REGIONS } from './world/regions.js';
 
@@ -7,6 +8,7 @@ const loading = document.getElementById('loading');
 
 const game = new Game(document.getElementById('app'));
 window.game = game; // handy for poking at things from the console
+window.THREE = THREE;
 
 play.disabled = true;
 

@@ -36,7 +36,7 @@ const PALETTE = {
   sunHigh: C(0xfff1d6),
   sunLow: C(0xff7a2e),
   moon: C(0x9bb2e6),
-  fogDay: C(0xd4dde6),
+  fogDay: C(0xc6d4e3),
   fogGolden: C(0xe2a383),
   fogNight: C(0x0b0f19),
   hemiSkyDay: C(0xd3d8d6),
@@ -277,7 +277,7 @@ export class Environment {
     a.fogSunColor.copy(PALETTE.fogNight).lerp(this._tmpColor.setRGB(0.86, 0.84, 0.78).lerp(this._tmpColor2.setRGB(0.82, 0.58, 0.4), low), day);
     a.fogDensity = 0.0012 + 0.001 * low * day + 0.0003 * (1 - day);
     a.fogHeight = this.focusHeight - 6;
-    a.fogFalloff = 0.025;
+    a.fogFalloff = 0.015;
     // Mist lies in the valley at dawn and dusk and thins through the day.
     a.groundMist = 0.07 + 0.14 * low * day + 0.14 * (1 - day);
     a.mistFill = 0;

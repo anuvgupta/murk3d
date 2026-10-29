@@ -149,8 +149,11 @@ const compositeShader = {
         float integral = abs( dy ) > 0.01
           ? ( exp( -f * h0 ) - exp( -f * h1 ) ) / ( f * dy )
           : exp( -f * h0 );
-        float density = uFogDensity * ( 0.35 + 0.65 * clamp( integral, 0.0, 4.0 ) );
+        // Mostly distance haze, a little thicker in the low ground: high
+        // peaks must not come out crisp while the slopes beneath them vanish.
+        float density = uFogDensity * ( 0.7 + 0.3 * clamp( integral, 0.0, 3.0 ) );
         float fog = 1.0 - exp( -density * dist );
+        fog = min( fog, 0.9 );
         // Low-lying mist pools in hollows and drifts downwind as banks and
         // wisps: sampled at a few points along the ray so it has shape.
         float mist = 0.0;
