@@ -189,7 +189,7 @@ export class Terrain {
   shapedHeight(x, z) {
     let h = this.plottedHeight(x, z);
 
-    const rq = RIVER.path.nearest(x, z, 40, this._rq || (this._rq = {}));
+    const rq = RIVER.path.nearest(x, z, 64, this._rq || (this._rq = {}));
     const riverHalf = rq ? RIVER.widthAt(rq.s) / 2 : 0;
     const inRiverBand = rq && rq.d < riverHalf + 3;
 
@@ -209,7 +209,9 @@ export class Terrain {
         h = level - 0.35 - RIVER.depth * (1 - k * k);
       } else {
         // Cut sloping banks, except where a road runs up to the bridge.
-        const bank = level - 0.35 + (rq.d - w) * 0.5;
+        // Steepening with distance, so the cut always meets the natural ground.
+        const e = rq.d - w;
+        const bank = level - 0.35 + e * 0.5 + Math.max(0, e - 8) ** 2 * 0.05;
         if (!onRoad) h = Math.min(h, bank);
         // Keep low ground beside the river from flooding.
         if (rq.d < w + 4) h = Math.max(h, level + 0.15 * smoothstep(w, w + 1.5, rq.d));
@@ -219,13 +221,14 @@ export class Terrain {
     const ldx = x - LAKE.x;
     const ldz = z - LAKE.z;
     const ld = Math.hypot(ldx, ldz);
-    if (ld < LAKE.radius * 1.8) {
+    if (ld < LAKE.radius * 3.5) {
       const R = LAKE.radiusAt(Math.atan2(ldz, ldx));
       if (ld < R) {
         const k = ld / R;
         h = Math.min(h, LAKE.level - 0.4 - LAKE.depth * smoothstep(1, 0.3, k));
       } else {
-        h = Math.min(h, LAKE.level - 0.4 + (ld - R) * 0.3);
+        const e = ld - R;
+        h = Math.min(h, LAKE.level - 0.4 + e * 0.3 + Math.max(0, e - 15) ** 2 * 0.03);
       }
     }
 

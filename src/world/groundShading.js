@@ -67,7 +67,7 @@ export const GROUND_GLSL = /* glsl */ `
 
   // Irregular cobbles: distance to the nearest two jittered cell centres.
   vec3 cobbleColor( vec2 p, vec4 n ) {
-    vec2 q = p * 2.4;
+    vec2 q = p * 1.9;
     vec2 cell = floor( q );
     vec2 f = fract( q );
     float d1 = 8.0;
@@ -85,8 +85,8 @@ export const GROUND_GLSL = /* glsl */ `
     }
     float edge = sqrt( d2 ) - sqrt( d1 );
     float stone = smoothstep( 0.04, 0.16, edge );
-    vec3 c = mix( ${lin(0x6f6a62)}, ${lin(0x9a9284)}, id ) * ( 0.85 + 0.25 * n.w );
-    return mix( ${lin(0x3b352c)}, c, stone );
+    vec3 c = mix( ${lin(0x5f574b)}, ${lin(0x8a7d68)}, id ) * ( 0.8 + 0.3 * n.w ) * ( 0.8 + 0.25 * smoothstep( 0.1, 0.4, edge ) );
+    return mix( ${lin(0x2e2922)}, c, stone );
   }
 
   vec3 groundColor( vec3 p, vec3 nrm, out float wet ) {

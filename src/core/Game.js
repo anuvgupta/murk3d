@@ -11,6 +11,9 @@ import { createNoiseTexture } from '../util/noiseTexture.js';
 import { Environment } from '../world/Environment.js';
 import { Wind } from '../world/Wind.js';
 import { Grass } from '../world/Grass.js';
+import { Water } from '../world/Water.js';
+import { createBuildingMaterials } from '../buildings/materials.js';
+import { Village } from '../buildings/Village.js';
 import { SPAWN } from '../world/plan.js';
 import { Input } from '../player/Input.js';
 import { Player } from '../player/Player.js';
@@ -86,8 +89,19 @@ export class Game {
     scene.add(this.grass.group);
     mark('grass');
 
-    const colliders = [];
+    this.water = new Water({ terrain: this.terrain, noise: this.noiseTexture, wind: this.wind });
+    scene.add(this.water.group);
+    mark('water');
+
+    this.buildingMaterials = createBuildingMaterials(this.noiseTexture);
+    mark('textures');
+    this.village = new Village({ terrain: this.terrain, materials: this.buildingMaterials });
+    scene.add(this.village.group);
+    mark('village');
+
+    const colliders = [...this.village.colliders];
     this.player = new Player(this.camera, this.input, this.terrain, colliders);
+    this.player.surfaces.push((x, z) => this.village.surfaceAt(x, z));
     this.player.spawn(SPAWN.x, SPAWN.z, SPAWN.yaw);
 
     this.setupPostProcessing();
@@ -148,6 +162,8 @@ export class Game {
     this.sunInfo.color.copy(env.sun.color).multiplyScalar(env.sun.intensity);
     this.wind.update(dt);
     this.grass.update(this.camera, this.player.position);
+    this.village.setViewport(this.renderer.getDrawingBufferSize(this._bufferSize).y, this.camera.fov);
+    this.village.update(dt, this.elapsed, this.wind, env.nightFactor, env.lightLevel);
   }
 
   render() {

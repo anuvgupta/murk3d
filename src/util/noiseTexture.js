@@ -6,7 +6,7 @@
 import * as THREE from 'three';
 import { mulberry32 } from './noise.js';
 
-function makePeriodicPerlin(seed) {
+export function makePeriodicPerlin(seed) {
   const random = mulberry32(seed);
   const perm = new Uint8Array(512);
   const p = new Uint8Array(256);
@@ -81,6 +81,51 @@ export function createNoiseTexture(size = 256, seed = 5) {
     }
   }
 
+  const tex = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.generateMipmaps = true;
+  tex.anisotropy = 8;
+  tex.colorSpace = THREE.NoColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+// Tileable normal map of small choppy wavelets, for water.
+export function createWaterNormalTexture(size = 256, seed = 11) {
+  const noise = makePeriodicPerlin(seed);
+  const heights = new Float32Array(size * size);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      let amp = 1;
+      let period = 6;
+      let sum = 0;
+      for (let o = 0; o < 5; o++) {
+        const n = noise((x / size) * period, (y / size) * period, period);
+        // Sharpened crests read as wavelets rather than blobs.
+        sum += amp * (1 - Math.abs(n * 1.6));
+        amp *= 0.5;
+        period *= 2;
+      }
+      heights[y * size + x] = sum;
+    }
+  }
+  const data = new Uint8Array(size * size * 4);
+  const at = (x, y) => heights[((y + size) % size) * size + ((x + size) % size)];
+  const strength = 2.2;
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const dx = (at(x + 1, y) - at(x - 1, y)) * strength;
+      const dy = (at(x, y + 1) - at(x, y - 1)) * strength;
+      const len = Math.hypot(dx, dy, 1);
+      const o = (y * size + x) * 4;
+      data[o] = Math.round((-dx / len) * 127.5 + 127.5);
+      data[o + 1] = Math.round((-dy / len) * 127.5 + 127.5);
+      data[o + 2] = Math.round((1 / len) * 127.5 + 127.5);
+      data[o + 3] = 255;
+    }
+  }
   const tex = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
   tex.magFilter = THREE.LinearFilter;

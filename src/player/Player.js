@@ -21,6 +21,8 @@ export class Player {
     this.input = input;
     this.terrain = terrain;
     this.colliders = colliders;
+    // Functions (x, z) -> height | null for walkable things above the terrain.
+    this.surfaces = [];
 
     this.position = new THREE.Vector3(); // feet
     this.velocity = new THREE.Vector3();
@@ -36,7 +38,7 @@ export class Player {
   }
 
   spawn(x, z, yaw = 0) {
-    this.position.set(x, this.terrain.heightAt(x, z), z);
+    this.position.set(x, this.groundAt(x, z, Infinity), z);
     this.velocity.set(0, 0, 0);
     this.yaw = yaw;
     this.pitch = 0;
@@ -109,7 +111,7 @@ export class Player {
 
     // Vertical: gravity, ground contact and sticking to downhill slopes.
     this.position.y += this.velocity.y * dt;
-    const ground = this.terrain.heightAt(this.position.x, this.position.z);
+    const ground = this.groundAt(this.position.x, this.position.z, this.position.y);
     if (this.position.y <= ground) {
       this.position.y = ground;
       this.velocity.y = 0;
@@ -122,6 +124,16 @@ export class Player {
     }
 
     this.updateCamera(dt);
+  }
+
+  // Highest walkable height at (x, z) that the feet at y can step onto.
+  groundAt(x, z, y) {
+    let h = this.terrain.heightAt(x, z);
+    for (const surface of this.surfaces) {
+      const s = surface(x, z);
+      if (s !== null && s > h && s <= y + 0.6) h = s;
+    }
+    return h;
   }
 
   resolveCollisions() {
