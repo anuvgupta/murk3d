@@ -16,14 +16,14 @@ const DAY_LENGTH = 14;
 function finishSkyFragment(fragment) {
   return fragment.replace(
     'gl_FragColor = vec4( texColor, 1.0 );',
-    `texColor = texColor / ( 1.0 + texColor * 0.9 );
+    `texColor = texColor / ( 1.0 + texColor * 0.45 );
     {
       // Golden hour: the whole horizon warms, not just the sun's side.
       float g = ( 1.0 - smoothstep( 0.02, 0.45, vSunDirection.y ) ) * smoothstep( -0.16, 0.0, vSunDirection.y );
       float hz = 1.0 - smoothstep( 0.0, 0.28, direction.y );
       texColor = mix( texColor, texColor * vec3( 1.2, 0.92, 0.78 ) + vec3( 0.16, 0.07, 0.03 ), g * hz * 0.75 );
     }
-    texColor = clamp( texColor, vec3( 0.0 ), vec3( 1.5 ) );
+    texColor = clamp( texColor, vec3( 0.0 ), vec3( 2.0 ) );
     // Night sky is deep navy, never pure black.
     texColor = max( texColor, vec3( 0.006, 0.009, 0.02 ) );
     if ( any( isnan( texColor ) ) || any( isinf( texColor ) ) ) texColor = vec3( 0.5, 0.6, 0.7 );
@@ -218,9 +218,10 @@ export class Environment {
     // Sky scattering: hazier and redder as the sun nears the horizon.
     const u = this.sky.material.uniforms;
     u.sunPosition.value.copy(sunDir).multiplyScalar(450000);
-    u.turbidity.value = THREE.MathUtils.lerp(3.0, 5.5, golden);
-    u.rayleigh.value = THREE.MathUtils.lerp(1.1, 2.6, golden);
-    u.mieCoefficient.value = THREE.MathUtils.lerp(0.0035, 0.0045, golden);
+    // Clear, deep-blue zenith by day; hazier and redder toward the horizon at low sun.
+    u.turbidity.value = THREE.MathUtils.lerp(2.2, 5.0, golden);
+    u.rayleigh.value = THREE.MathUtils.lerp(1.7, 2.8, golden);
+    u.mieCoefficient.value = THREE.MathUtils.lerp(0.0032, 0.0048, golden);
 
     // Direct light: the sun by day, a dim cool moon by night. Their intensities
     // both pass through ~0 around the horizon, hiding the swap in direction.
@@ -280,7 +281,7 @@ export class Environment {
     // Mist lies in the valley at dawn and dusk and thins through the day.
     a.groundMist = 0.07 + 0.14 * low * day + 0.14 * (1 - day);
     a.mistFill = 0;
-    a.saturation = 1.12 + 0.06 * day + 0.1 * golden;
+    a.saturation = THREE.MathUtils.lerp(0.84, 1.12 + 0.06 * day + 0.1 * golden, day);
     a.lift.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
     a.vignette = 0.22;
     // By night the pass draws the moon instead: a small pale disc, faint halo.
