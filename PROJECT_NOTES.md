@@ -238,3 +238,5 @@ impossible to run. Grass: a dense carpet, not rough thin spiky blades.
   paper; grass ideally not 2D either.
 - Trunks and branches must not be straight lines; joints between trunk and
   branches must be smoothly joined, not overlapping glitchy meshes.
+- Grass (again): still looks 2D and spiky. It should be THIN but EXTREMELY
+  dense, a bit TALLER, and NOT curved so much. Look up Breath of the Wild grass.
