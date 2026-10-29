@@ -500,3 +500,9 @@ screenshot-checked.
   cliff → rock band starts at slope 0.36 (was 0.42) with less noise
   jitter. Watchtower shot mis-aimed (nice purple-duskwood frame anyway);
   AL re-shoots chapel, tower, overlook cliff, castle cliff.
+- 22:00 AK: canyon ring gate now sits on a flat pad in the gorge (good);
+  tundra snowfield with straw tufts + ice crystals reads right; karst
+  lake overshot into an opaque pastel-cyan sheet → tint 0.55/1.5/1.35,
+  reflection tint mix 0.3; Oblivion gate blocks were featureless black
+  → obsidian 0x3a3230. Verify AM (karst ground + aerial, glade gate,
+  moonlit lake).
