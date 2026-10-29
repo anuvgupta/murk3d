@@ -240,3 +240,12 @@ impossible to run. Grass: a dense carpet, not rough thin spiky blades.
   branches must be smoothly joined, not overlapping glitchy meshes.
 - Grass (again): still looks 2D and spiky. It should be THIN but EXTREMELY
   dense, a bit TALLER, and NOT curved so much. Look up Breath of the Wild grass.
+- Clarification: grass was never meant to be perfectly vertical, just not
+  curved spikes. BotW reference: long blades leaning together as a sheet in
+  the wind, gentle curve, pale yellow-green tips, bright warm field where the
+  light hits (almost glowing), ground never visible. Unity thread on BotW
+  grass shading: https://discussions.unity.com/t/kinda-solved-stylized-grass-shading-like-in-zelda-botw/759214
+- Tree/nature references (Oblivion Remastered screenshots): oak with heavy
+  smooth-forking limbs and a crown of distinct leaf clusters with sky gaps;
+  long drooping needle boughs on conifers; deep brown bark with pale ridges;
+  soft warm hazy lighting; mossy rocks sitting in grass.
