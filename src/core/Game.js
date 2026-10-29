@@ -5,11 +5,13 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 import { Terrain } from '../world/Terrain.js';
-import { Grass } from '../world/Grass.js';
-import { House } from '../world/House.js';
-import { Rocks } from '../world/Rocks.js';
+import { GroundMask } from '../world/GroundMask.js';
+import { createTerrainMaterial } from '../world/TerrainMaterial.js';
+import { createNoiseTexture } from '../util/noiseTexture.js';
 import { Environment } from '../world/Environment.js';
-import { HOUSE, SPAWN, SPAWN_YAW } from '../world/layout.js';
+import { Wind } from '../world/Wind.js';
+import { Grass } from '../world/Grass.js';
+import { SPAWN } from '../world/plan.js';
 import { Input } from '../player/Input.js';
 import { Player } from '../player/Player.js';
 import { HUD } from '../ui/HUD.js';
@@ -44,37 +46,57 @@ export class Game {
     window.addEventListener('resize', () => this.onResize());
   }
 
-  // Builds the world. Synchronous and a little slow (terrain + grass generation).
+  // Builds the world. Synchronous and a little slow (terrain generation).
   init() {
     const scene = this.scene;
+    const t0 = performance.now();
+    this.timings = {};
+    const mark = (name) => {
+      this.timings[name] = Math.round(performance.now() - t0);
+    };
 
     this.environment = new Environment(scene, this.renderer);
+    mark('environment');
 
+    this.noiseTexture = createNoiseTexture();
     this.terrain = new Terrain();
-    scene.add(this.terrain.mesh);
+    mark('terrain');
+    this.groundMask = new GroundMask(this.terrain);
+    mark('mask');
+    this.wind = new Wind();
+    // Sun (or moon) direction and colour × intensity, for shader effects.
+    this.sunInfo = { direction: this.environment.lightDir, color: new THREE.Color() };
 
-    this.house = new House();
-    this.house.group.position.copy(HOUSE.position);
-    this.house.group.rotation.y = HOUSE.rotationY;
-    scene.add(this.house.group);
+    const terrainMesh = new THREE.Mesh(
+      this.terrain.geometry,
+      createTerrainMaterial({ noise: this.noiseTexture, mask: this.groundMask.texture })
+    );
+    terrainMesh.name = 'terrain';
+    terrainMesh.receiveShadow = true;
+    terrainMesh.castShadow = true;
+    scene.add(terrainMesh);
 
-    this.rocks = new Rocks(this.terrain);
-    scene.add(this.rocks.group);
-
-    this.grass = new Grass(this.terrain, { exclude: (x, z) => this.rocks.occupies(x, z) });
+    this.grass = new Grass({
+      terrain: this.terrain,
+      mask: this.groundMask.texture,
+      noise: this.noiseTexture,
+      wind: this.wind,
+      sun: this.sunInfo,
+    });
     scene.add(this.grass.group);
+    mark('grass');
 
-    const colliders = [...this.house.worldColliders(), ...this.rocks.colliders];
+    const colliders = [];
     this.player = new Player(this.camera, this.input, this.terrain, colliders);
-    this.player.spawn(SPAWN.x, SPAWN.z, SPAWN_YAW);
+    this.player.spawn(SPAWN.x, SPAWN.z, SPAWN.yaw);
 
     this.setupPostProcessing();
 
     // Prime shaders and the first frame behind the menu.
-    this.environment.update(0, this.player.position);
-    this.grass.update(0, this.camera, this.player.position);
+    this.updateWorld(0);
     this.renderer.compile(scene, this.camera);
     this.render();
+    mark('ready');
   }
 
   setupPostProcessing() {
@@ -111,15 +133,21 @@ export class Game {
       this.player.update(dt);
     }
 
-    this.environment.update(dt, this.player.position);
-    this.renderer.toneMappingExposure = this.environment.exposure;
-    this.grass.update(this.elapsed, this.camera, this.player.position);
-    this.house.setViewport(this.renderer.getDrawingBufferSize(this._bufferSize).y, this.camera.fov);
-    this.house.update(dt, this.elapsed, this.environment.nightFactor, this.environment.lightLevel);
+    this.updateWorld(dt);
     this.hud.update(this.player.yaw, this.environment.timeLabel());
 
     this.render();
     input.endFrame();
+  }
+
+  // Everything that animates regardless of input.
+  updateWorld(dt) {
+    const env = this.environment;
+    env.update(dt, this.player.position);
+    this.renderer.toneMappingExposure = env.exposure;
+    this.sunInfo.color.copy(env.sun.color).multiplyScalar(env.sun.intensity);
+    this.wind.update(dt);
+    this.grass.update(this.camera, this.player.position);
   }
 
   render() {

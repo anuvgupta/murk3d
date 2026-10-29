@@ -1,0 +1,208 @@
+// Rasterises the world plan into a texture covering the whole terrain:
+//   R: grass density (0 on roads, water, plots and the plaza)
+//   G: dirt road
+//   B: water bed (river and lake)
+//   A: cobbled plaza
+// Shaders sample it to shade the ground and to keep grass off roads; the CPU
+// copy answers the same questions for placing trees and rocks.
+
+import * as THREE from 'three';
+import { WORLD_SIZE, WORLD_HALF, RIVER, LAKE, PLAZA, HOUSES, ROADS, BRIDGE } from './plan.js';
+
+const SIZE = 2048;
+const PX = SIZE / WORLD_SIZE; // pixels per metre
+
+const toPx = (v) => (v + WORLD_HALF) * PX;
+
+function layer() {
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = SIZE;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  return ctx;
+}
+
+function strokePath(ctx, path, widthFn) {
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  // Constant width: one polyline. Varying width: short overlapping strokes.
+  if (typeof widthFn === 'number') {
+    ctx.lineWidth = widthFn * PX;
+    ctx.beginPath();
+    ctx.moveTo(toPx(path.x[0]), toPx(path.z[0]));
+    for (let i = 1; i < path.count; i++) ctx.lineTo(toPx(path.x[i]), toPx(path.z[i]));
+    ctx.stroke();
+    return;
+  }
+  for (let i = 0; i < path.count - 1; i += 2) {
+    const j = Math.min(path.count - 1, i + 3);
+    ctx.lineWidth = widthFn(path.s[i]) * PX;
+    ctx.beginPath();
+    ctx.moveTo(toPx(path.x[i]), toPx(path.z[i]));
+    ctx.lineTo(toPx(path.x[j]), toPx(path.z[j]));
+    ctx.stroke();
+  }
+}
+
+function fillLake(ctx, grow) {
+  ctx.beginPath();
+  for (let k = 0; k <= 96; k++) {
+    const a = (k / 96) * Math.PI * 2;
+    const r = LAKE.radiusAt(a) + grow;
+    const x = toPx(LAKE.x + Math.cos(a) * r);
+    const y = toPx(LAKE.z + Math.sin(a) * r);
+    if (k === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.fill();
+}
+
+function fillRotRect(ctx, x, z, hx, hz, rot) {
+  ctx.save();
+  ctx.translate(toPx(x), toPx(z));
+  // Canvas y is world z; a yaw of rot maps local +z to (sin, cos).
+  ctx.rotate(-rot);
+  ctx.fillRect(-hx * PX, -hz * PX, hx * 2 * PX, hz * 2 * PX);
+  ctx.restore();
+}
+
+// Separable 3-tap box blur over all four channels, softening edges.
+function blur(data) {
+  const tmp = new Uint8Array(data.length);
+  const row = SIZE * 4;
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) {
+      const o = y * row + x * 4;
+      const l = x > 0 ? o - 4 : o;
+      const r = x < SIZE - 1 ? o + 4 : o;
+      for (let c = 0; c < 4; c++) tmp[o + c] = (data[l + c] + data[o + c] * 2 + data[r + c] + 2) >> 2;
+    }
+  }
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) {
+      const o = y * row + x * 4;
+      const u = y > 0 ? o - row : o;
+      const d = y < SIZE - 1 ? o + row : o;
+      for (let c = 0; c < 4; c++) data[o + c] = (tmp[u + c] + tmp[o + c] * 2 + tmp[d + c] + 2) >> 2;
+    }
+  }
+}
+
+export class GroundMask {
+  constructor(terrain) {
+    const grass = layer();
+    const road = layer();
+    const water = layer();
+    const cobble = layer();
+
+    // Grass everywhere, then cut out everything that isn't meadow.
+    grass.fillStyle = '#fff';
+    grass.fillRect(0, 0, SIZE, SIZE);
+    grass.fillStyle = grass.strokeStyle = '#000';
+    for (const r of ROADS) strokePath(grass, r.path, r.width + 0.8);
+    strokePath(grass, RIVER.path, (s) => RIVER.widthAt(s) + 1.5);
+    fillLake(grass, 2);
+    grass.beginPath();
+    grass.arc(toPx(PLAZA.x), toPx(PLAZA.z), (PLAZA.radius + 0.5) * PX, 0, Math.PI * 2);
+    grass.fill();
+    for (const h of HOUSES) fillRotRect(grass, h.x, h.z, h.footprint.hx + 0.6, h.footprint.hz + 0.6, h.rotationY);
+    fillRotRect(grass, BRIDGE.x, BRIDGE.z, BRIDGE.width / 2 + 0.5, BRIDGE.length / 2 + 0.5, BRIDGE.rotationY);
+
+    // Roads, with soft verges.
+    road.fillStyle = '#000';
+    road.fillRect(0, 0, SIZE, SIZE);
+    road.strokeStyle = road.fillStyle = '#fff';
+    for (const r of ROADS) strokePath(road, r.path, r.width);
+    for (const h of HOUSES) fillRotRect(road, h.x, h.z, h.footprint.hx + 0.6, h.footprint.hz + 0.6, h.rotationY);
+
+    // Water beds.
+    water.fillStyle = '#000';
+    water.fillRect(0, 0, SIZE, SIZE);
+    water.strokeStyle = water.fillStyle = '#fff';
+    strokePath(water, RIVER.path, (s) => RIVER.widthAt(s) + 0.6);
+    fillLake(water, 0.5);
+
+    // The cobbled plaza.
+    cobble.fillStyle = '#000';
+    cobble.fillRect(0, 0, SIZE, SIZE);
+    cobble.fillStyle = '#fff';
+    cobble.beginPath();
+    cobble.arc(toPx(PLAZA.x), toPx(PLAZA.z), PLAZA.radius * PX, 0, Math.PI * 2);
+    cobble.fill();
+
+    const g = grass.getImageData(0, 0, SIZE, SIZE).data;
+    const r = road.getImageData(0, 0, SIZE, SIZE).data;
+    const w = water.getImageData(0, 0, SIZE, SIZE).data;
+    const c = cobble.getImageData(0, 0, SIZE, SIZE).data;
+    this.data = new Uint8Array(SIZE * SIZE * 4);
+    for (let i = 0; i < SIZE * SIZE; i++) {
+      const o = i * 4;
+      this.data[o] = g[o];
+      this.data[o + 1] = r[o];
+      this.data[o + 2] = w[o];
+      this.data[o + 3] = c[o];
+    }
+    this.bakeTerrain(terrain);
+    blur(this.data);
+
+    // Canvas rows run north to south, which matches texture v = (z + half) / size
+    // once flipY is off.
+    this.texture = new THREE.DataTexture(this.data, SIZE, SIZE, THREE.RGBAFormat);
+    this.texture.flipY = false;
+    this.texture.wrapS = this.texture.wrapT = THREE.ClampToEdgeWrapping;
+    this.texture.magFilter = THREE.LinearFilter;
+    this.texture.minFilter = THREE.LinearMipmapLinearFilter;
+    this.texture.generateMipmaps = true;
+    this.texture.anisotropy = 8;
+    this.texture.colorSpace = THREE.NoColorSpace;
+    this.texture.needsUpdate = true;
+  }
+
+  // No grass on cliffs, scree or high ground: thin it by slope and altitude.
+  bakeTerrain(terrain) {
+    const side = terrain.segments + 1;
+    const ny = terrain.geometry.attributes.normal.array;
+    const heights = terrain.heights;
+    const smooth = (a, b, x) => {
+      const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+      return t * t * (3 - 2 * t);
+    };
+    // Grid index for every texel column/row (the terrain grid is warped).
+    const toGrid = new Int32Array(SIZE);
+    for (let p = 0; p < SIZE; p++) {
+      const world = (p + 0.5) / PX - WORLD_HALF;
+      toGrid[p] = Math.min(side - 1, Math.max(0, Math.round(terrain.worldToGrid(world))));
+    }
+    for (let y = 0; y < SIZE; y++) {
+      const j = toGrid[y];
+      for (let x = 0; x < SIZE; x++) {
+        const v = j * side + toGrid[x];
+        const slope = 1 - ny[v * 3 + 1];
+        const rock = Math.max(smooth(0.26, 0.42, slope), smooth(105, 150, heights[v]));
+        const o = (y * SIZE + x) * 4;
+        this.data[o] = Math.round(this.data[o] * (1 - rock));
+      }
+    }
+  }
+
+  // Channel value 0..1 at world (x, z), bilinear.
+  sample(x, z, channel = 0) {
+    const fx = toPx(x) - 0.5;
+    const fz = toPx(z) - 0.5;
+    const x0 = Math.max(0, Math.min(SIZE - 2, Math.floor(fx)));
+    const z0 = Math.max(0, Math.min(SIZE - 2, Math.floor(fz)));
+    const tx = Math.min(1, Math.max(0, fx - x0));
+    const tz = Math.min(1, Math.max(0, fz - z0));
+    const d = this.data;
+    const at = (xx, zz) => d[(zz * SIZE + xx) * 4 + channel];
+    const a = at(x0, z0) + (at(x0 + 1, z0) - at(x0, z0)) * tx;
+    const b = at(x0, z0 + 1) + (at(x0 + 1, z0 + 1) - at(x0, z0 + 1)) * tx;
+    return (a + (b - a) * tz) / 255;
+  }
+
+  grassAt(x, z) {
+    return this.sample(x, z, 0);
+  }
+}
+
+// Shader-side mapping from world xz to mask uv.
+export const MASK_UV_GLSL = `( ( p.xz + ${WORLD_HALF.toFixed(1)} ) / ${WORLD_SIZE.toFixed(1)} )`;

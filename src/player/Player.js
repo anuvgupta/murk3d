@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { WORLD_HALF } from '../world/layout.js';
+import { WORLD_HALF } from '../world/plan.js';
 
 const EYE_HEIGHT = 1.68;
 const RADIUS = 0.35;

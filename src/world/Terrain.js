@@ -1,106 +1,267 @@
 import * as THREE from 'three';
 import { createNoise2D, fbm, ridged, smoothstep, lerp } from '../util/noise.js';
-import { WORLD_SIZE, WORLD_HALF, HOUSE, distanceToPath, PATH_WIDTH } from './layout.js';
+import {
+  WORLD_HALF,
+  RIVER,
+  LAKE,
+  PLAZA,
+  HOUSES,
+  ROADS,
+  HILL,
+  BRIDGE,
+  nearestRoad,
+} from './plan.js';
 
-const SEGMENTS = 400; // grid cells per side (4 m cells)
+// The terrain grid is warped so cells are ~1.5 m wide around the village and
+// widen to ~7 m out at the mountains: x = H * sinh(k u) / sinh(k), u in [-1, 1].
+const SEGMENTS = 512;
+const WARP = 2.2;
+const SINH_K = Math.sinh(WARP);
 
-const COLORS = {
-  grassA: new THREE.Color(0x34521a),
-  grassB: new THREE.Color(0x4f6a24),
-  grassDry: new THREE.Color(0x7d7238),
-  dirt: new THREE.Color(0x5e4a33),
-  rock: new THREE.Color(0x77736c),
-  rockDark: new THREE.Color(0x504d49),
-  snow: new THREE.Color(0xf2f4f7),
-};
+const gridToWorld = (i) => (WORLD_HALF * Math.sinh(WARP * ((2 * i) / SEGMENTS - 1))) / SINH_K;
+const worldToGrid = (x) => ((Math.asinh((x * SINH_K) / WORLD_HALF) / WARP + 1) * SEGMENTS) / 2;
+
+export const TERRAIN_GRID = { segments: SEGMENTS, warp: WARP, half: WORLD_HALF };
 
 export class Terrain {
   constructor(seed = 7) {
     this.noiseHills = createNoise2D(seed);
     this.noiseRoll = createNoise2D(seed + 1);
     this.noiseMount = createNoise2D(seed + 2);
-    this.noiseColor = createNoise2D(seed + 3);
+    this.noiseDetail = createNoise2D(seed + 3);
 
-    this.size = WORLD_SIZE;
     this.segments = SEGMENTS;
-    this.cell = WORLD_SIZE / SEGMENTS;
+    this.coords = new Float32Array(SEGMENTS + 1);
+    for (let i = 0; i <= SEGMENTS; i++) this.coords[i] = gridToWorld(i);
 
-    this.houseHeight = this.rawHeight(HOUSE.position.x, HOUSE.position.z);
-    HOUSE.position.y = this.houseHeight;
+    this.preparePlan();
 
     this.heights = new Float32Array((SEGMENTS + 1) * (SEGMENTS + 1));
-    this.mesh = this.build();
+    this.geometry = this.buildGeometry();
+    this.heightTexture = this.buildHeightTexture();
   }
 
-  // Height before any gameplay shaping (levelled plots, paths).
-  rawHeight(x, z) {
+  // -------------------------------------------------------------------------
+  // Height functions.
+
+  // Natural landform: hills in the vale, a ring of peaks, the overlook hill.
+  baseHeight(x, z) {
     const r = Math.hypot(x, z * 0.85);
 
-    // Gentle rolling hills, quieter in the middle of the vale.
-    const hillMask = 0.35 + 0.65 * smoothstep(30, 170, r);
+    const hillMask = 0.3 + 0.7 * smoothstep(40, 190, r);
     const hills = fbm(this.noiseHills, x * 0.0035, z * 0.0035, 5) * 16 * hillMask;
-    const rolling = fbm(this.noiseRoll, x * 0.013, z * 0.013, 3) * 2.2;
+    const rolling = fbm(this.noiseRoll, x * 0.013, z * 0.013, 3) * 1.8;
 
     // A ring of jagged peaks that encloses the vale: broad massifs carved by
     // sharp ridgelines, with a domain warp so crests don't line up on a grid.
-    const mountainMask = smoothstep(200, 540, r);
-    const wx = x + fbm(this.noiseRoll, x * 0.002 + 9, z * 0.002, 3) * 120;
-    const wz = z + fbm(this.noiseRoll, x * 0.002, z * 0.002 + 9, 3) * 120;
-    const massif = fbm(this.noiseMount, wx * 0.0012, wz * 0.0012, 3) * 0.5 + 0.5;
-    const ridge = ridged(this.noiseMount, wx * 0.0021, wz * 0.0021, 6);
-    const mountains = (massif * 140 + Math.pow(ridge, 1.15) * 260 * (0.4 + massif)) * mountainMask;
+    let mountains = 0;
+    const mountainMask = smoothstep(220, 560, r);
+    if (mountainMask > 0) {
+      const wx = x + fbm(this.noiseRoll, x * 0.002 + 9, z * 0.002, 3) * 120;
+      const wz = z + fbm(this.noiseRoll, x * 0.002, z * 0.002 + 9, 3) * 120;
+      const massif = fbm(this.noiseMount, wx * 0.0012, wz * 0.0012, 3) * 0.5 + 0.5;
+      const ridge = ridged(this.noiseMount, wx * 0.0021, wz * 0.0021, 6);
+      mountains = (massif * 140 + Math.pow(ridge, 1.15) * 260 * (0.4 + massif)) * mountainMask;
+    }
 
-    return hills + rolling + mountains;
+    return hills + rolling + mountains + this.hillHeight(x, z);
   }
 
-  // Shaped height used to build the mesh.
+  // The overlook: a plateau with a gentle back slope and a sheer cliff facing the village.
+  hillHeight(x, z) {
+    const dx = x - HILL.x;
+    const dz = z - HILL.z;
+    const d = Math.hypot(dx, dz);
+    const reach = HILL.radius + HILL.gentleWidth + 10;
+    if (d > reach) return 0;
+    const a = Math.atan2(dz, dx);
+    let diff = Math.abs(a - HILL.cliffDir);
+    if (diff > Math.PI) diff = Math.PI * 2 - diff;
+    const cliff = 1 - smoothstep(HILL.cliffSpread * 0.55, HILL.cliffSpread, diff);
+    const width = lerp(HILL.gentleWidth, HILL.cliffWidth, cliff);
+    // Ragged edge so the cliff line isn't a perfect arc.
+    const edge = HILL.radius + this.noiseDetail(Math.cos(a) * 2.3, Math.sin(a) * 2.3) * 5 * (0.4 + cliff);
+    const t = 1 - smoothstep(edge, edge + width, d);
+    // Steps in the cliff face read as rock strata.
+    const strata = cliff * 0.06 * Math.sin(d * 2.1) * (t > 0.05 && t < 0.95 ? 1 : 0);
+    const top = this.noiseDetail(x * 0.05, z * 0.05) * 0.8;
+    return HILL.height * (t + strata) + top * t;
+  }
+
+  preparePlan() {
+    // Level plots for the plaza and each house.
+    this.plazaHeight = this.baseHeight(PLAZA.x, PLAZA.z);
+    for (const h of HOUSES) {
+      let sum = 0;
+      for (const [ox, oz] of [[0, 0], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+        sum += this.baseHeight(h.x + ox * h.footprint.hx, h.z + oz * h.footprint.hz);
+      }
+      h.y = sum / 5;
+    }
+
+    // Road surface profiles: the levelled ground along each road, smoothed so
+    // roads climb steadily instead of following every bump.
+    for (const road of ROADS) {
+      const p = road.path;
+      const raw = new Float32Array(p.count);
+      for (let i = 0; i < p.count; i++) raw[i] = this.plottedHeight(p.x[i], p.z[i]);
+      const window = road.name === 'main' || road.name === 'overlook' ? 7 : 2;
+      road.heights = new Float32Array(p.count);
+      for (let i = 0; i < p.count; i++) {
+        let sum = 0;
+        let n = 0;
+        for (let k = -window; k <= window; k++) {
+          const j = Math.min(p.count - 1, Math.max(0, i + k));
+          sum += raw[j];
+          n++;
+        }
+        road.heights[i] = sum / n;
+      }
+    }
+
+    // Water level along the river: never above the lower bank, and always
+    // falling downstream.
+    const rp = RIVER.path;
+    RIVER.levels = new Float32Array(rp.count);
+    let level = Infinity;
+    for (let i = 0; i < rp.count; i++) {
+      const i0 = Math.max(0, i - 1);
+      const i1 = Math.min(rp.count - 1, i + 1);
+      const tx = rp.x[i1] - rp.x[i0];
+      const tz = rp.z[i1] - rp.z[i0];
+      const len = Math.hypot(tx, tz) || 1;
+      const nx = -tz / len;
+      const nz = tx / len;
+      const w = RIVER.widthAt(rp.s[i]) / 2 + 1.5;
+      const bank = Math.min(
+        this.plottedHeight(rp.x[i], rp.z[i]),
+        this.plottedHeight(rp.x[i] + nx * w, rp.z[i] + nz * w),
+        this.plottedHeight(rp.x[i] - nx * w, rp.z[i] - nz * w)
+      );
+      const ds = i > 0 ? rp.s[i] - rp.s[i - 1] : 0;
+      level = Math.min(level - ds * 0.004, bank - 1.0);
+      RIVER.levels[i] = level;
+    }
+
+    // Lake level: the river's last level, or lower if the rim dips.
+    let rim = Infinity;
+    for (let k = 0; k < 48; k++) {
+      const a = (k / 48) * Math.PI * 2;
+      const r = LAKE.radiusAt(a) + 3;
+      rim = Math.min(rim, this.plottedHeight(LAKE.x + Math.cos(a) * r, LAKE.z + Math.sin(a) * r));
+    }
+    LAKE.level = Math.min(level, rim - 0.8);
+    RIVER.levels[rp.count - 1] = Math.max(LAKE.level, RIVER.levels[rp.count - 1]);
+
+    // Bridge deck ends sit on the road at either bank.
+    const main = ROADS[0];
+    const half = BRIDGE.length / 2;
+    BRIDGE.startHeight = main.path.sampleAt(main.heights, BRIDGE.roadS - half);
+    BRIDGE.endHeight = main.path.sampleAt(main.heights, BRIDGE.roadS + half);
+    BRIDGE.waterLevel = RIVER.path.sampleAt(RIVER.levels, BRIDGE.riverS);
+  }
+
+  // Natural ground with the plaza and house plots levelled.
+  plottedHeight(x, z) {
+    let h = this.baseHeight(x, z);
+
+    const dp = Math.hypot(x - PLAZA.x, z - PLAZA.z) - PLAZA.radius;
+    if (dp < 10) h = lerp(this.plazaHeight, h, smoothstep(0, 10, dp));
+
+    for (const house of HOUSES) {
+      const dx = x - house.x;
+      const dz = z - house.z;
+      if (dx * dx + dz * dz > 400) continue;
+      // Distance from the footprint rectangle (in the house's frame).
+      const c = Math.cos(house.rotationY);
+      const s = Math.sin(house.rotationY);
+      const lx = c * dx - s * dz;
+      const lz = s * dx + c * dz;
+      const ex = Math.max(0, Math.abs(lx) - house.footprint.hx - 1.2);
+      const ez = Math.max(0, Math.abs(lz) - house.footprint.hz - 1.2);
+      const d = Math.hypot(ex, ez);
+      if (d < 7) h = lerp(house.y, h, smoothstep(0, 7, d));
+    }
+    return h;
+  }
+
+  // Final height: plots, then roads, then the river and lake carved in.
   shapedHeight(x, z) {
-    let h = this.rawHeight(x, z);
+    let h = this.plottedHeight(x, z);
 
-    // Level the cottage plot.
-    const dh = Math.hypot(x - HOUSE.position.x, z - HOUSE.position.z);
-    const t = smoothstep(HOUSE.flatRadius, HOUSE.flatRadius + HOUSE.blendRadius, dh);
-    h = lerp(this.houseHeight, h, t);
+    const rq = RIVER.path.nearest(x, z, 40, this._rq || (this._rq = {}));
+    const riverHalf = rq ? RIVER.widthAt(rq.s) / 2 : 0;
+    const inRiverBand = rq && rq.d < riverHalf + 3;
 
-    // Worn footpath sits a touch lower than the turf.
-    const dp = distanceToPath(x, z);
-    h -= 0.08 * (1 - smoothstep(PATH_WIDTH * 0.5, PATH_WIDTH * 1.2, dp));
+    const road = nearestRoad(x, z, 6);
+    const onRoad = road && !inRiverBand && road.edge < 4;
+    if (road && !inRiverBand) {
+      const rh = road.road.path.sampleAt(road.road.heights, road.q.s);
+      const f = smoothstep(0, 5, road.edge);
+      h = lerp(rh - 0.12, h, f);
+    }
+
+    if (rq) {
+      const level = RIVER.path.sampleAt(RIVER.levels, rq.s);
+      const w = riverHalf;
+      if (rq.d < w) {
+        const k = rq.d / w;
+        h = level - 0.35 - RIVER.depth * (1 - k * k);
+      } else {
+        // Cut sloping banks, except where a road runs up to the bridge.
+        const bank = level - 0.35 + (rq.d - w) * 0.5;
+        if (!onRoad) h = Math.min(h, bank);
+        // Keep low ground beside the river from flooding.
+        if (rq.d < w + 4) h = Math.max(h, level + 0.15 * smoothstep(w, w + 1.5, rq.d));
+      }
+    }
+
+    const ldx = x - LAKE.x;
+    const ldz = z - LAKE.z;
+    const ld = Math.hypot(ldx, ldz);
+    if (ld < LAKE.radius * 1.8) {
+      const R = LAKE.radiusAt(Math.atan2(ldz, ldx));
+      if (ld < R) {
+        const k = ld / R;
+        h = Math.min(h, LAKE.level - 0.4 - LAKE.depth * smoothstep(1, 0.3, k));
+      } else {
+        h = Math.min(h, LAKE.level - 0.4 + (ld - R) * 0.3);
+      }
+    }
 
     return h;
   }
 
-  build() {
-    const n = this.segments;
-    const vertsPerSide = n + 1;
-    const count = vertsPerSide * vertsPerSide;
+  // -------------------------------------------------------------------------
+  // Mesh.
 
-    const positions = new Float32Array(count * 3);
-    const uvs = new Float32Array(count * 2);
+  buildGeometry() {
+    const n = this.segments;
+    const side = n + 1;
+    const positions = new Float32Array(side * side * 3);
 
     for (let j = 0; j <= n; j++) {
+      const z = this.coords[j];
       for (let i = 0; i <= n; i++) {
-        const idx = j * vertsPerSide + i;
-        const x = -WORLD_HALF + i * this.cell;
-        const z = -WORLD_HALF + j * this.cell;
+        const x = this.coords[i];
+        const idx = j * side + i;
         const h = this.shapedHeight(x, z);
         this.heights[idx] = h;
         positions[idx * 3] = x;
         positions[idx * 3 + 1] = h;
         positions[idx * 3 + 2] = z;
-        uvs[idx * 2] = x / 4;
-        uvs[idx * 2 + 1] = z / 4;
       }
     }
 
     // Two triangles per cell, split along the (i+1, j) – (i, j+1) diagonal.
-    // heightAt() relies on this exact split.
+    // heightAt() and the grass shader rely on this exact split.
     const indices = new Uint32Array(n * n * 6);
     let k = 0;
     for (let j = 0; j < n; j++) {
       for (let i = 0; i < n; i++) {
-        const a = j * vertsPerSide + i;
+        const a = j * side + i;
         const b = a + 1;
-        const c = a + vertsPerSide;
+        const c = a + side;
         const d = c + 1;
         indices[k++] = a;
         indices[k++] = c;
@@ -113,78 +274,34 @@ export class Terrain {
 
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
     geometry.setIndex(new THREE.BufferAttribute(indices, 1));
     geometry.computeVertexNormals();
-
-    geometry.setAttribute('color', new THREE.BufferAttribute(this.computeColors(geometry), 3));
     geometry.computeBoundingSphere();
-
-    const material = new THREE.MeshStandardMaterial({
-      vertexColors: true,
-      map: createDetailTexture(),
-      roughness: 0.95,
-      metalness: 0,
-    });
-
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.receiveShadow = true;
-    mesh.castShadow = true;
-    mesh.name = 'terrain';
-    return mesh;
+    return geometry;
   }
 
-  computeColors(geometry) {
-    const pos = geometry.attributes.position;
-    const nor = geometry.attributes.normal;
-    const colors = new Float32Array(pos.count * 3);
-    const c = new THREE.Color();
-    const tmp = new THREE.Color();
-
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i);
-      const y = pos.getY(i);
-      const z = pos.getZ(i);
-      const ny = nor.getY(i);
-      const slope = 1 - ny;
-
-      // Meadow: blend of greens with dry patches.
-      const n1 = fbm(this.noiseColor, x * 0.02, z * 0.02, 3) * 0.5 + 0.5;
-      const n2 = fbm(this.noiseColor, x * 0.004 + 50, z * 0.004 + 50, 3) * 0.5 + 0.5;
-      c.copy(COLORS.grassA).lerp(COLORS.grassB, n1);
-      c.lerp(COLORS.grassDry, smoothstep(0.55, 0.85, n2) * 0.6);
-
-      // Footpath and the trampled yard around the cottage.
-      const dp = distanceToPath(x, z) + this.noiseColor(x * 0.4, z * 0.4) * 0.35;
-      const pathMix = 1 - smoothstep(PATH_WIDTH * 0.45, PATH_WIDTH * 1.1, dp);
-      c.lerp(COLORS.dirt, pathMix);
-
-      // Exposed rock on steep slopes and high ground.
-      const rockMix = Math.max(smoothstep(0.22, 0.42, slope), smoothstep(110, 170, y) * 0.85);
-      tmp.copy(COLORS.rock).lerp(COLORS.rockDark, n1);
-      c.lerp(tmp, rockMix);
-
-      // Snow caps on gentler faces of the peaks.
-      const snowLine = 200 + this.noiseColor(x * 0.01, z * 0.01) * 25;
-      const snowMix = smoothstep(snowLine, snowLine + 30, y) * (1 - smoothstep(0.45, 0.75, slope));
-      c.lerp(COLORS.snow, snowMix);
-
-      colors[i * 3] = c.r;
-      colors[i * 3 + 1] = c.g;
-      colors[i * 3 + 2] = c.b;
-    }
-    return colors;
+  // Heights as a float texture so shaders (grass) can find the ground.
+  buildHeightTexture() {
+    const side = this.segments + 1;
+    const tex = new THREE.DataTexture(this.heights, side, side, THREE.RedFormat, THREE.FloatType);
+    tex.magFilter = THREE.NearestFilter;
+    tex.minFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false;
+    tex.needsUpdate = true;
+    return tex;
   }
 
   // Exact height of the rendered surface at (x, z).
   heightAt(x, z) {
     const n = this.segments;
-    const fx = (x + WORLD_HALF) / this.cell;
-    const fz = (z + WORLD_HALF) / this.cell;
-    const i = Math.min(n - 1, Math.max(0, Math.floor(fx)));
-    const j = Math.min(n - 1, Math.max(0, Math.floor(fz)));
-    const u = Math.min(1, Math.max(0, fx - i));
-    const v = Math.min(1, Math.max(0, fz - j));
+    const gi = Math.min(n - 1e-4, Math.max(0, worldToGrid(x)));
+    const gj = Math.min(n - 1e-4, Math.max(0, worldToGrid(z)));
+    const i = Math.floor(gi);
+    const j = Math.floor(gj);
+    const x0 = this.coords[i];
+    const z0 = this.coords[j];
+    const u = Math.min(1, Math.max(0, (x - x0) / (this.coords[i + 1] - x0)));
+    const v = Math.min(1, Math.max(0, (z - z0) / (this.coords[j + 1] - z0)));
 
     const side = n + 1;
     const ha = this.heights[j * side + i];
@@ -192,14 +309,16 @@ export class Terrain {
     const hc = this.heights[(j + 1) * side + i];
     const hd = this.heights[(j + 1) * side + i + 1];
 
-    if (u + v <= 1) {
-      return ha + (hb - ha) * u + (hc - ha) * v;
-    }
+    if (u + v <= 1) return ha + (hb - ha) * u + (hc - ha) * v;
     return hd + (hc - hd) * (1 - u) + (hb - hd) * (1 - v);
   }
 
+  worldToGrid(x) {
+    return worldToGrid(x);
+  }
+
   normalAt(x, z, target = new THREE.Vector3()) {
-    const e = 0.5;
+    const e = 0.75;
     const hl = this.heightAt(x - e, z);
     const hr = this.heightAt(x + e, z);
     const hd = this.heightAt(x, z - e);
@@ -208,42 +327,31 @@ export class Terrain {
   }
 }
 
-// Fine grain multiplied over the vertex colours so the ground does not look
-// flat-shaded up close. Values are linear multipliers around 0.8–1.0.
-function createDetailTexture() {
-  const size = 256;
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  const img = ctx.createImageData(size, size);
-  const noise = createNoise2D(99);
+// GLSL that mirrors Terrain.heightAt(), for vertex shaders. Needs
+// `uniform sampler2D uHeightMap;` declared by the including shader.
+export const TERRAIN_HEIGHT_GLSL = /* glsl */ `
+  const float T_SEG = ${SEGMENTS.toFixed(1)};
+  const float T_WARP = ${WARP.toFixed(6)};
+  const float T_HALF = ${WORLD_HALF.toFixed(1)};
+  const float T_SINHK = ${SINH_K.toFixed(6)};
 
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      // Tileable noise: sample a torus.
-      const a = (x / size) * Math.PI * 2;
-      const b = (y / size) * Math.PI * 2;
-      const nx = Math.cos(a) * 3;
-      const ny = Math.sin(a) * 3;
-      const nz = Math.cos(b) * 3;
-      const nw = Math.sin(b) * 3;
-      const v =
-        noise(nx + nz * 0.7, ny + nw * 0.7) * 0.5 +
-        noise(nx * 3 + nz * 2.1, ny * 3 + nw * 2.1) * 0.3 +
-        noise(nx * 8 + nz * 6, ny * 8 + nw * 6) * 0.2;
-      const g = Math.round(225 + v * 30);
-      const o = (y * size + x) * 4;
-      img.data[o] = g;
-      img.data[o + 1] = g;
-      img.data[o + 2] = g;
-      img.data[o + 3] = 255;
-    }
+  float terrainCoord( float i ) {
+    return T_HALF * sinh( T_WARP * ( 2.0 * i / T_SEG - 1.0 ) ) / T_SINHK;
   }
-  ctx.putImageData(img, 0, 0);
 
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.colorSpace = THREE.NoColorSpace;
-  tex.anisotropy = 8;
-  return tex;
-}
+  float terrainHeight( vec2 p ) {
+    vec2 g = ( asinh( p * T_SINHK / T_HALF ) / T_WARP + 1.0 ) * T_SEG * 0.5;
+    g = clamp( g, vec2( 0.0 ), vec2( T_SEG - 0.0001 ) );
+    vec2 cell = floor( g );
+    vec2 c0 = vec2( terrainCoord( cell.x ), terrainCoord( cell.y ) );
+    vec2 c1 = vec2( terrainCoord( cell.x + 1.0 ), terrainCoord( cell.y + 1.0 ) );
+    vec2 f = clamp( ( p - c0 ) / ( c1 - c0 ), 0.0, 1.0 );
+    ivec2 ic = ivec2( cell );
+    float ha = texelFetch( uHeightMap, ic, 0 ).r;
+    float hb = texelFetch( uHeightMap, ic + ivec2( 1, 0 ), 0 ).r;
+    float hc = texelFetch( uHeightMap, ic + ivec2( 0, 1 ), 0 ).r;
+    float hd = texelFetch( uHeightMap, ic + ivec2( 1, 1 ), 0 ).r;
+    if ( f.x + f.y <= 1.0 ) return ha + ( hb - ha ) * f.x + ( hc - ha ) * f.y;
+    return hd + ( hc - hd ) * ( 1.0 - f.x ) + ( hb - hd ) * ( 1.0 - f.y );
+  }
+`;
