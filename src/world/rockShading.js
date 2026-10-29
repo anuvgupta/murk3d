@@ -28,8 +28,11 @@ export const ROCK_GLSL = /* glsl */ `
   float rockHeight( vec3 p, vec3 w, float detail ) {
     float warp = tri( p, w, 0.03, 1 );
     float strata = sin( p.y * 2.2 + warp * 9.0 ) * 0.5 + 0.5;
+    // Cracks: iso-lines of a noise field, but only inside broken zones so
+    // they don't read as a contour map drawn over the whole face.
     float crackN = tri( p, w, 0.07, 2 );
-    float cracks = ( 1.0 - smoothstep( 0.0, 0.03 + 0.04 * ( 1.0 - detail ), abs( crackN - 0.5 ) ) ) * detail;
+    float zone = smoothstep( 0.42, 0.62, tri( p, w, 0.018, 3 ) );
+    float cracks = ( 1.0 - smoothstep( 0.0, 0.02 + 0.03 * ( 1.0 - detail ), abs( crackN - 0.5 ) ) ) * detail * zone;
     float grain = mix( 0.5, tri( p, w, 0.45, 3 ), detail );
     float lumps = tri( p, w, 0.16, 1 );
     // Macro relief: buttresses and gullies tens of metres across.
