@@ -445,3 +445,7 @@ screenshot-checked.
   clamp 1.6. Far meadow 93→102 after the 1.22 lift; pushed to 1.36.
   Verify AC (noon overlook, sky-up, golden, dawn) — the clip change
   touches every time of day.
+- 19:15 AB: river-bridge at dusk is a keeper frame (warm light on the
+  tavern and castle hill). Lake at golden hour looking NE reflects the
+  pale east sky — correct, if not dramatic. Willow bark read concrete-grey
+  → warm grey-brown.
