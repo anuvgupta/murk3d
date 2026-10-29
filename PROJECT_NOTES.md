@@ -556,3 +556,9 @@ screenshot-checked.
   (b) rock cracks were one continuous iso-line network at 14 m scale =
   "contour map" → confined to broken zones (second noise mask) and
   thinner. Verify AW (cliff foot, Shelves, temple, overlook).
+- 02:30 Shelves bald-green investigation: terrain-only render = bright
+  under-grass meadow on the slope; grass-only render = no blades there
+  (only in the first 20 m). In-page probe: tiles visible, counts full,
+  in frustum, baked slope 0.92–0.99, blade placement math correct
+  (world - tileOrigin). Still unexplained; AX re-shoots from plate top /
+  up-slope / foot-with-lip, plus a CPU ray-cast of the foot view.
