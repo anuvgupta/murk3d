@@ -562,3 +562,11 @@ screenshot-checked.
   in frustum, baked slope 0.92–0.99, blade placement math correct
   (world - tileOrigin). Still unexplained; AX re-shoots from plate top /
   up-slope / foot-with-lip, plus a CPU ray-cast of the foot view.
+- 02:50 ROOT CAUSE of bald green cliff faces (Shelves face, castle cliff
+  "camo", overlook): CPU ray-cast showed the green band is a 9–12 m-away
+  wall with true ny 0.18–0.52; the terrain shader classified it by the
+  smoothed vertex normal, which on a 2-cell-wide cliff blends toward the
+  flat ground (ny≈0.7 → meadow), while the grass (baked grid slope)
+  correctly culled → bare green. Fix: terrain classifies rock with the
+  face normal from dFdx/dFdy(vWPos) (lighting keeps the smooth normal).
+  Verify AY (plate foot, castle cliff, overlook cliff, overlook noon).
