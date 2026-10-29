@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Kit } from './Kit.js';
 import { CHESTS } from './items.js';
-import { createFurnitureMaterials, rowboat } from './furniture.js';
+import { createFurnitureMaterials, rowboat, canoe } from './furniture.js';
 import { RUINS, ISLETS, PITS, LAKE, CREVASSE } from '../world/plan.js';
 import { mulberry32 } from '../util/noise.js';
 
@@ -152,7 +152,24 @@ function jetty(kit, m, len, width, deckY, waterY, random) {
     const z = (i + 0.5) * (len / planks);
     kit.box(m.planks, width * (0.96 + random() * 0.04), 0.05, 0.22, { y: deckY + (random() - 0.5) * 0.02, z, ry: (random() - 0.5) * 0.02 }, { metres: 1.5, grain: true });
   }
-  for (const z of [len - 0.3]) for (const s of [-1, 1]) kit.cylinder(m.logs, 0.07, 0.08, 1.0, { x: s * (width / 2 - 0.12), y: deckY + 0.5, z }, { segments: 7 });
+  // Mooring posts with coiled rope, a lantern post, a broken crate.
+  for (const z of [len - 0.3, len * 0.45]) {
+    for (const s of [-1, 1]) {
+      kit.cylinder(m.logs, 0.07, 0.08, 1.0, { x: s * (width / 2 - 0.12), y: deckY + 0.5, z }, { segments: 7 });
+      kit.add(m.rope, new THREE.TorusGeometry(0.1, 0.03, 6, 12), { x: s * (width / 2 - 0.12), y: deckY + 0.7 + (s > 0 ? 0.12 : 0), z, rx: Math.PI / 2 });
+    }
+  }
+  kit.cylinder(m.timber, 0.05, 0.06, 2.3, { x: -(width / 2 - 0.3), y: deckY + 1.15, z: len - 1.2 }, { segments: 7 });
+  kit.box(m.timber, 0.5, 0.06, 0.06, { x: -(width / 2 - 0.3) + 0.2, y: deckY + 2.25, z: len - 1.2 });
+  kit.frame({ x: -(width / 2 - 0.3) + 0.4, y: deckY + 2.0, z: len - 1.2 }, () => {
+    kit.box(m.iron, 0.2, 0.03, 0.2, { y: -0.15 });
+    kit.add(m.iron, new THREE.ConeGeometry(0.16, 0.14, 4), { y: 0.2, ry: Math.PI / 4 });
+    kit.box(m.lamp, 0.15, 0.24, 0.15);
+  });
+  kit.frame({ x: width / 2 - 0.45, y: deckY, z: len * 0.3, ry: 0.4 }, () => {
+    kit.box(m.planks, 0.5, 0.35, 0.5, { y: 0.175, rz: 0.08 }, { metres: 0.6 });
+    kit.box(m.planks, 0.5, 0.04, 0.5, { y: 0.4, x: 0.15, rz: 0.5 }, { metres: 0.6 });
+  });
   return deckY;
 }
 
@@ -225,6 +242,8 @@ export class Ruins {
       // A rowing boat moored beside the jetty.
       const fm = createFurnitureMaterials(m, items);
       kit.frame({ x: -1.4, y: LAKE.level - y + 0.02, z: D / 2 + 11, ry: 0.25, rz: 0.03 }, () => rowboat(kit, m, items, fm));
+      // A canoe drawn up on the shore beside the quay.
+      kit.frame({ x: -5.5, y: 0.55, z: D / 2 + 2.5, ry: 0.9, rx: -0.12 }, () => canoe(kit, m, items));
       this.decks.push(this.worldRect(site, ry, 1.5, D / 2 + 8, 1.0, 8.2, y + deckY + 0.03));
       this.decks.push(this.worldRect(site, ry, 0, 0, W / 2 + 0.4, D / 2 + 0.4, y + 0.66));
     });

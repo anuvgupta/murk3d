@@ -185,6 +185,48 @@ export function mug(kit, m, t = {}) {
   });
 }
 
+export function meatSkewer(kit, im, fm, t = {}) {
+  kit.frame(t, () => {
+    kit.cylinder(im.woodLight, 0.006, 0.006, 0.42, { rz: Math.PI / 2 }, { segments: 5 });
+    for (let i = 0; i < 4; i++) {
+      const g = new THREE.SphereGeometry(0.03, 7, 5);
+      g.scale(1.3, 0.8, 0.8);
+      kit.add(i % 2 ? fm.ham : fm.crust, g, { x: -0.12 + i * 0.075 });
+    }
+  });
+}
+export function pie(kit, fm, t = {}) {
+  kit.frame(t, () => {
+    kit.cylinder(fm.crust, 0.13, 0.11, 0.05, { y: 0.025 }, { segments: 14 });
+    kit.cylinder(fm.bread, 0.12, 0.12, 0.03, { y: 0.06 }, { segments: 14 });
+    for (let i = 0; i < 6; i++) kit.box(fm.crust, 0.26, 0.012, 0.02, { y: 0.077, ry: (i / 6) * Math.PI });
+  });
+}
+export function fish(kit, im, fm, t = {}) {
+  kit.frame(t, () => {
+    const body = new THREE.SphereGeometry(0.05, 8, 6);
+    body.scale(2.6, 0.9, 0.5);
+    kit.add(im.steel, body, {});
+    kit.add(fm.clothBlue, new THREE.ConeGeometry(0.035, 0.07, 4), { x: -0.15, rz: Math.PI / 2 });
+    kit.add(fm.clothBlue, new THREE.ConeGeometry(0.02, 0.04, 4), { y: 0.05 });
+  });
+}
+// A clump of mushrooms: stems and caps, red-capped or brown.
+export function mushrooms(kit, fm, random = Math.random, t = {}) {
+  kit.frame(t, () => {
+    const n = 2 + Math.floor(random() * 4);
+    const red = random() < 0.4;
+    for (let i = 0; i < n; i++) {
+      const s = 0.5 + random() * 0.9;
+      const x = (random() - 0.5) * 0.3;
+      const z = (random() - 0.5) * 0.3;
+      kit.cylinder(fm.wax, 0.012 * s, 0.016 * s, 0.09 * s, { x, y: 0.045 * s, z }, { segments: 6 });
+      kit.add(red ? fm.apple : fm.crust, new THREE.SphereGeometry(0.045 * s, 8, 5, 0, TAU, 0, Math.PI / 2), { x, y: 0.085 * s, z });
+      if (red) for (let k = 0; k < 3; k++) kit.box(fm.wax, 0.012 * s, 0.006, 0.012 * s, { x: x + (random() - 0.5) * 0.05 * s, y: 0.11 * s + (random() - 0.5) * 0.02, z: z + (random() - 0.5) * 0.05 * s });
+    }
+  });
+}
+
 // --- Furniture --------------------------------------------------------------
 
 export function bench(kit, m, len = 1.6) {
@@ -356,6 +398,7 @@ export function smithy(kit, m, im, fm, random = mulberry32(5)) {
   kit.frame({ x: -2.3, z: 1.3, ry: 0.5 }, () => crate(kit, m, 0.6));
   kit.frame({ x: -2.3, y: 0.6, z: 1.3 }, () => kit.box(fm.coal, 0.5, 0.1, 0.5, { y: 0.05 }));
   kit.frame({ x: 2.1, z: 1.4 }, () => bucket(kit, m, im, fm));
+  kit.frame({ x: W / 2 + 2.2, z: -1.2 }, () => smelter(kit, m, im, fm));
   // Grindstone: a wheel on a frame with a treadle.
   kit.frame({ x: -2.2, z: -0.4, ry: Math.PI / 2 }, () => {
     kit.cylinder(m.ashlar, 0.4, 0.4, 0.12, { y: 0.7, rx: Math.PI / 2 }, { segments: 18, metres: 1 });
@@ -372,8 +415,22 @@ export function smithy(kit, m, im, fm, random = mulberry32(5)) {
       { cx: -0.3, cz: 1.2, hx: 0.7, hz: 0.2 },
       { cx: 0, cz: -D / 2, hx: W / 2, hz: 0.15 },
       { cx: -2.2, cz: -0.4, hx: 0.3, hz: 0.45 },
+      { cx: W / 2 + 2.2, cz: -1.2, hx: 1.0, hz: 1.0 },
     ],
   };
+}
+
+// A smelter: a squat stone furnace with a brick stack, a crucible and a
+// pour spout, coals glowing in the mouth.
+export function smelter(kit, m, im, fm) {
+  kit.cylinder(m.stone, 0.8, 1.0, 1.4, { y: 0.7 }, { segments: 12, metres: 2 });
+  kit.cylinder(m.ashlar, 0.5, 0.55, 1.6, { y: 2.2 }, { segments: 10, metres: 1.5 });
+  kit.cylinder(fm.coal, 0.4, 0.4, 0.05, { y: 1.42 }, { segments: 10 });
+  kit.box(fm.embers, 0.45, 0.3, 0.1, { y: 0.5, z: 0.82 });
+  kit.box(m.stone, 0.7, 0.5, 0.12, { y: 0.95, z: 0.86 }, { metres: 1.5 });
+  kit.cylinder(im.steelDark, 0.16, 0.14, 0.22, { y: 1.55, x: 0.3 }, { segments: 10, open: true });
+  kit.box(im.steelDark, 0.3, 0.05, 0.08, { x: 0.55, y: 0.35, z: 0.6, ry: -0.5 });
+  return { hx: 1.0, hz: 1.0 };
 }
 
 // --- Alchemy ----------------------------------------------------------------
@@ -539,10 +596,36 @@ export function tavernTable(kit, m, im, fm, random = mulberry32(3)) {
   appleBasket(kit, m, fm, random, { x: 0.35, y, z: 0.05 });
   ham(kit, fm, { x: 0.9, y, z: -0.1, ry: 0.5 });
   for (let i = 0; i < 4; i++) mug(kit, m, { x: -0.9 + i * 0.55 + (random() - 0.5) * 0.1, y, z: 0.3 - (i % 2) * 0.5, ry: random() * TAU });
+  pie(kit, fm, { x: -0.55, y, z: -0.2 });
+  meatSkewer(kit, im, fm, { x: 0.15, y: y + 0.02, z: 0.32, ry: 0.3 });
+  meatSkewer(kit, im, fm, { x: 0.2, y: y + 0.02, z: 0.38, ry: 0.15 });
+  fish(kit, im, fm, { x: 1.05, y: y + 0.03, z: 0.25, ry: 1.1 });
   kit.frame({ x: 0.0, y, z: -0.32 }, () => bottle(kit, fm, 'clearGlass', 0));
   candle(kit, fm, im, { x: -0.55, y, z: 0.3 });
   kit.frame({ x: 0.6, y: y + 0.01, z: 0.3 }, () => coinPurse(kit, m, im, { fill: 0.6, seed: 7 }));
   return { hx: 1.3, hz: 1.0, colliders: [{ cx: 0, cz: 0, hx: 1.2, hz: 0.45 }, { cx: 0, cz: 0.75, hx: 1.1, hz: 0.17 }, { cx: 0, cz: -0.75, hx: 1.1, hz: 0.17 }] };
+}
+
+// A dugout canoe: a hollowed log, pointed both ends, a paddle inside.
+export function canoe(kit, m, im) {
+  const L = 3.2;
+  const segs = 8;
+  for (let i = 0; i < segs; i++) {
+    const t0 = i / segs;
+    const t1 = (i + 1) / segs;
+    const w = (t) => 0.3 * Math.sin(Math.PI * t) + 0.05;
+    for (const side of [-1, 1]) {
+      const x0 = side * w(t0);
+      const x1 = side * w(t1);
+      const z0 = -L / 2 + t0 * L;
+      const z1 = -L / 2 + t1 * L;
+      kit.box(m.logs, 0.06, 0.32, Math.hypot(x1 - x0, z1 - z0) + 0.02, { x: (x0 + x1) / 2, y: 0.2, z: (z0 + z1) / 2, ry: Math.atan2(x1 - x0, z1 - z0), rz: side * -0.3 }, { metres: 1.2 });
+    }
+  }
+  kit.box(m.logs, 0.5, 0.06, L * 0.8, { y: 0.05 }, { metres: 1.2, grain: true });
+  kit.box(im.woodLight, 0.04, 0.04, 1.6, { x: 0.1, y: 0.25, z: 0.2, ry: 0.1 });
+  kit.box(im.woodLight, 0.15, 0.02, 0.4, { x: 0.12, y: 0.25, z: 1.1 });
+  return { hx: 0.4, hz: L / 2 };
 }
 
 // --- A rowing boat ----------------------------------------------------------

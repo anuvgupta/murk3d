@@ -5,7 +5,7 @@ import { BARRELS, crate, well } from './props.js';
 import { Bridge } from './Bridge.js';
 import { Smoke } from './Smoke.js';
 import { createItemMaterials, displayTable, weaponRack, CHESTS } from './items.js';
-import { createFurnitureMaterials, smithy, alchemyStall, armoury, tavernTable } from './furniture.js';
+import { createFurnitureMaterials, smithy, alchemyStall, armoury, tavernTable, mushrooms } from './furniture.js';
 import { windmillSails, waterWheel } from './landmarks.js';
 import { HOUSES, PLAZA, WELL, LAKES } from '../world/plan.js';
 import { REGIONS } from '../world/regions.js';
@@ -106,6 +106,14 @@ export class Village {
     place(PLAZA.x + PLAZA.radius - 1.2, PLAZA.z - 3.4, -Math.PI / 2, () => armoury(kit, m, im, fm), 'armoury');
     place(-40, 40, Math.atan2(PLAZA.x + 40, PLAZA.z - 40), () => smithy(kit, m, im, fm), 'smithy');
     place(74, -30, 0.3, () => tavernTable(kit, m, im, fm), 'tavern tables');
+    // Mushroom clumps on the floor of the Elder Wood and along the river.
+    for (let i = 0; i < 70; i++) {
+      const a = random() * Math.PI * 2;
+      const d = Math.sqrt(random()) * 85;
+      const x = -215 + Math.cos(a) * d;
+      const z = 128 + Math.sin(a) * d;
+      mushrooms(kit, fm, random, { x, y: terrain.heightAt(x, z) - 0.01, z, ry: random() * 6 });
+    }
     const chestSpots = [
       { x: 4.5, z: 14.5, ry: 0.4, kind: 0 },    // south edge of the plaza
       { x: -86, z: -88, ry: 2.2, kind: 1 },    // the overlook
