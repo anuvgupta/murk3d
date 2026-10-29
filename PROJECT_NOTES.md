@@ -520,3 +520,7 @@ screenshot-checked.
 - 23:00 Container restarted mid-render (AN3/AN4 + AO batch lost; repo,
   dist, scratchpad scripts and 373 renders survived). Preview server
   relaunched; AN3/AN4 + AO re-queued as batch35.
+- 23:10 Measured AL→AN: tower (65,78,51)→(72,84,55) only; cliff unchanged.
+  Rubble texture is intrinsically dark (~0.3 albedo), so colour multipliers
+  can't rescue it → ruinDark now ashlar-based 0xbdb7ab. Rock rumple
+  0.05@2.8 → 0.14@1.6, slab fracture planes 7–10 → 5–7. Verify AP.
