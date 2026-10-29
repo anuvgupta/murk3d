@@ -388,3 +388,10 @@ screenshot-checked.
   Daytime sky still pale near horizon → lowered turbidity, softer HDR knee
   (verify in batch Q). Open: a tall thin white column north of the plaza
   at noon (chimney smoke?), willow branches read black, lake water milky.
+- 17:10 "Floating slabs" seen SE from the overlook were NOT geometry: the
+  height fog (falloff 0.025, 35/65 split) fogged the low slopes of a far
+  massif into the sky while its 200 m peak stayed crisp, so the peak read
+  as a floating plate. Proven by terrain-only renders + per-chunk raycast.
+  Fog is now mostly distance haze (70/30, falloff 0.015, cap 0.9) and a
+  touch bluer by day. Round 3/4 also: brighter hemi/env light, deeper blue
+  sky (turbidity 2.2), night desaturated, lighter willow bark.
