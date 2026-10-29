@@ -538,3 +538,8 @@ screenshot-checked.
   GLSL reserved word (terrain/grass/turf fell back to magenta-less
   default). Caught by the smoke test, fixed as `sweep`. ship.sh now also
   runs smoke.cjs and refuses to push on any "Shader Error".
+- 00:30 AQ: ruins verified pale limestone (temple noon + dusk, chapel,
+  watchtower) — matches the Ayleid-stone refs. Adaptive quality shipped
+  (Game.adaptQuality: resolution → grass reach → bloom → remembered
+  lower preset after ~3 s under 28 fps); #10 closed. AP (rock rumple)
+  running, AS (meadow sweeps) and AT (cliff/rift/boulders) queued.
