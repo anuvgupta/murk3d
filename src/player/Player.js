@@ -9,6 +9,7 @@ const ACCEL_GROUND = 12;
 const ACCEL_AIR = 2.5;
 const GRAVITY = 24;
 const JUMP_SPEED = 7.2;
+const SWIM_DEPTH = 1.25; // feet this far below the surface when afloat
 const MOUSE_SENSITIVITY = 0.0022;
 const MAX_WALK_SLOPE = 0.62; // normal.y below this is too steep to climb
 const WORLD_MARGIN = 20;
@@ -23,6 +24,8 @@ export class Player {
     this.colliders = colliders;
     // Functions (x, z) -> height | null for walkable things above the terrain.
     this.surfaces = [];
+    this.waterLevelAt = null; // set by the game: water surface height at (x, z), or -Infinity
+    this.swimming = false;
 
     this.position = new THREE.Vector3(); // feet
     this.velocity = new THREE.Vector3();
@@ -69,7 +72,7 @@ export class Player {
     if (wish.lengthSq() > 0) wish.normalize().applyAxisAngle(THREE.Object3D.DEFAULT_UP, this.yaw);
 
     const sprinting = (input.down('ShiftLeft') || input.down('ShiftRight')) && fz < 0;
-    const targetSpeed = sprinting ? SPRINT_SPEED : WALK_SPEED;
+    const targetSpeed = (sprinting ? SPRINT_SPEED : WALK_SPEED) * (this.swimming ? 0.45 : 1);
     const accel = this.onGround ? ACCEL_GROUND : ACCEL_AIR;
     const k = 1 - Math.exp(-accel * dt);
     this.velocity.x += (wish.x * targetSpeed - this.velocity.x) * k;
@@ -113,7 +116,14 @@ export class Player {
 
     // Vertical: gravity, ground contact and sticking to downhill slopes.
     this.position.y += this.velocity.y * dt;
-    const ground = this.groundAt(this.position.x, this.position.z, this.position.y);
+    let ground = this.groundAt(this.position.x, this.position.z, this.position.y);
+    // Deep water: float with the head above the surface instead of walking the bed.
+    const water = this.waterLevelAt ? this.waterLevelAt(this.position.x, this.position.z) : -Infinity;
+    this.swimming = water - ground > SWIM_DEPTH;
+    if (this.swimming) {
+      ground = water - SWIM_DEPTH;
+      if (this.velocity.y < -2) this.velocity.y = -2; // no plunging
+    }
     if (this.position.y <= ground) {
       this.position.y = ground;
       this.velocity.y = 0;

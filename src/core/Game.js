@@ -159,6 +159,7 @@ export class Game {
 
     const colliders = [...this.village.colliders, ...this.castles.flatMap((c) => c.worldColliders()), ...this.ruins.colliders, ...this.portals.colliders, ...this.crystals.colliders, ...this.arches.colliders, ...this.rocks.colliders, ...this.forest.colliders];
     this.player = new Player(this.camera, this.input, this.terrain, colliders);
+    this.player.waterLevelAt = (x, z) => this.water.levelAt(x, z);
     this.player.surfaces.push((x, z) => this.village.surfaceAt(x, z));
     for (const c of this.castles) this.player.surfaces.push((x, z) => c.surfaceAt(x, z));
     this.player.surfaces.push((x, z) => this.islands.surfaceAt(x, z));
