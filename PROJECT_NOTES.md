@@ -295,3 +295,17 @@ file.
 - Instruction: use Oblivion to reference how rocks are shaped and textured,
   the road textures, and anything else; imitate its style so our own
   interpretation holds up to the same standard of quality and audience.
+
+## 16. Progress log (2026-10-29, later)
+
+Done and pushed to main: visual overhaul (grass carpet, grown trees, stone
+and bark textures), atmosphere pass (aerial perspective, sun disc + corona +
+light shafts, grade), drifting mist, ambient motes, three cloud styles (C),
+map (M), bridge fix, perf overlay (F3), items (3 chests, purses, 12 weapons
+on a plaza display), landmarks (windmill with turning sails, town hall,
+lumber mill with water wheel). Still to do, in order: castle on a plateau,
+tilted rock plates, lakeside ruins + jetty + other ruins, item library,
+portals + 10 reference worlds, then the long screenshot-critique loop.
+Known open issues: dusk mist still a touch bright toward the sun; ghibli
+clouds sparse; chests placed at (4.5,14.5), (-86,-88), (-210,122) not yet
+screenshot-checked.
