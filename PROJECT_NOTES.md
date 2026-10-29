@@ -549,3 +549,10 @@ screenshot-checked.
 - 01:05 AT: meadow sweeps show as natural straw/rich patches on the far
   hills (good); forest edge with oaks + giants good; rift arcade pale.
   "Boulders" camera missed its subject — re-aiming from RockField data.
+- 01:45 AV (cliff foot close-ups): boulders rounded with lichen tones
+  (good); slab silhouettes irregular now. Two defects: (a) ground inside
+  grass cutouts (rock feet, ruins) rendered as flat untextured meadow
+  green → bare soil mix (dirt + sparse green) where mask.r < 0.55;
+  (b) rock cracks were one continuous iso-line network at 14 m scale =
+  "contour map" → confined to broken zones (second noise mask) and
+  thinner. Verify AW (cliff foot, Shelves, temple, overlook).
