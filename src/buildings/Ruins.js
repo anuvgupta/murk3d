@@ -16,6 +16,27 @@ const TAU = Math.PI * 2;
 
 // --- Vocabulary -------------------------------------------------------------
 
+// A weathered block: a box whose faces are pushed about by noise so no
+// edge is dead straight and no face dead flat. For monoliths and lintels.
+function roughBlock(kit, mat, w, h, d, t, random, rough = 0.12) {
+  const g = new THREE.BoxGeometry(w, h, d, Math.max(2, Math.round(w / 0.3)), Math.max(2, Math.round(h / 0.3)), Math.max(2, Math.round(d / 0.3)));
+  const pos = g.attributes.position;
+  const seed = random() * 100;
+  const v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i);
+    const n = Math.sin(v.x * 7.1 + seed) * Math.cos(v.y * 5.3 - seed) + Math.sin(v.z * 6.7 + v.y * 3.1 + seed * 0.5) * 0.7;
+    const k = 1 + n * rough * 0.5;
+    // Shrink toward the top a little so blocks taper like worn stone.
+    const taper = 1 - 0.08 * Math.max(0, v.y / h + 0.5);
+    pos.setXYZ(i, v.x * k * taper, v.y * (1 + n * rough * 0.2), v.z * k * taper);
+  }
+  g.computeVertexNormals();
+  const uv = g.attributes.uv;
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * Math.max(w, d) / 1.6, uv.getY(i) * h / 1.6);
+  kit.add(mat, g, t);
+}
+
 // A pointed (equilateral) arch ring of inner span w, ring thickness t and
 // depth d, standing on two piers of height pierH. Local origin is on the
 // ground midway between the piers; the arch spans local x.
@@ -382,10 +403,10 @@ export class Ruins {
         const fallen = i === 2;
         kit.frame({ x, y: gy, z, ry: -a + (random() - 0.5) * 0.3 }, () => {
           if (fallen) {
-            kit.box(m.ruinDark, 1.1, 0.7, h, { y: 0.25, z: 1.2, rz: 0.1 }, { metres: 1.6 });
+            roughBlock(kit, m.ruin, 1.1, 0.7, h, { y: 0.25, z: 1.2, rz: 0.1 }, random);
             kit.box(m.moss, 0.9, 0.05, h * 0.8, { y: 0.62, z: 1.2 });
           } else {
-            kit.box(m.ruinDark, 1.1, h, 0.7, { y: h / 2 - 0.3, rx: (random() - 0.5) * 0.12, rz: (random() - 0.5) * 0.1 }, { metres: 1.6 });
+            roughBlock(kit, m.ruin, 1.1, h, 0.7, { y: h / 2 - 0.3, rx: (random() - 0.5) * 0.12, rz: (random() - 0.5) * 0.1 }, random);
             kit.box(m.moss, 0.9, 0.06, 0.5, { y: h - 0.3 });
           }
         });
@@ -398,10 +419,10 @@ export class Ruins {
         const x = (Math.cos(a0) + Math.cos(a1)) * 0.5 * R;
         const z = (Math.sin(a0) + Math.sin(a1)) * 0.5 * R;
         const len = 2 * R * Math.sin(Math.PI / n) + 0.6;
-        kit.box(m.ruinDark, len, 0.5, 0.8, { x, y: 2.55 + y * 0 + 0.0, z, ry: -(a0 + a1) / 2 + Math.PI / 2 }, { metres: 1.6 });
+        roughBlock(kit, m.ruin, len, 0.55, 0.85, { x, y: 2.55, z, ry: -(a0 + a1) / 2 + Math.PI / 2 }, random, 0.08);
       }
       // Altar stone in the middle, moss and tumbled blocks.
-      kit.box(m.ruin, 2.0, 0.8, 1.1, { y: 0.4, ry: 0.3 }, { metres: 1.6 });
+      roughBlock(kit, m.ruin, 2.0, 0.8, 1.1, { y: 0.4, ry: 0.3 }, random, 0.08);
       kit.box(m.moss, 1.6, 0.05, 0.8, { y: 0.82, ry: 0.3 });
       fallenBlocks(kit, m.ruinDark, m.moss, 6, 9, random, { size: 0.6 });
     });
