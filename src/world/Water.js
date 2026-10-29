@@ -279,6 +279,8 @@ export class Water {
           // Green-grey water, as in the reference lakes: the sky reflection is
           // tinted by the water itself rather than mirrored white.
           outgoingLight = mix( outgoingLight, outgoingLight * vec3( 0.78, 0.9, 0.88 ), 0.3 );
+          // A coloured lake (karst turquoise, moonlit teal) colours its reflection as well.
+          outgoingLight *= mix( vec3( 1.0 ), vTint / max( max( vTint.r, vTint.g ), vTint.b ), 0.6 );
           #include <opaque_fragment>`
         );
     };

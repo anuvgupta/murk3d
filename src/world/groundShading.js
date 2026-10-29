@@ -10,18 +10,22 @@ import { REGIONS } from './regions.js';
 export function regionUniforms() {
   const pos = [];
   const tint = [];
+  const grass = [];
   for (let i = 0; i < 10; i++) {
     const R = REGIONS[i];
     if (R) {
       pos.push(new THREE.Vector4(R.x, R.z, R.r, R.snow || 0));
       const g = R.palette.ground;
       tint.push(new THREE.Vector4(g[0], g[1], g[2], R.palette.grassDensity ?? 1));
+      const gt = R.palette.grassTint || [1, 1, 1];
+      grass.push(new THREE.Vector3(gt[0], gt[1], gt[2]));
     } else {
       pos.push(new THREE.Vector4(1e6, 1e6, 1, 0));
       tint.push(new THREE.Vector4(1, 1, 1, 1));
+      grass.push(new THREE.Vector3(1, 1, 1));
     }
   }
-  return { uRegions: { value: pos }, uRegionTint: { value: tint } };
+  return { uRegions: { value: pos }, uRegionTint: { value: tint }, uRegionGrass: { value: grass } };
 }
 
 const lin = (hex) => {
@@ -34,6 +38,17 @@ export const REALM_GLSL = /* glsl */ `
   // The realms: (x, z, radius, snow) and (tint rgb, grass density).
   uniform vec4 uRegions[ 10 ];
   uniform vec4 uRegionTint[ 10 ];
+  uniform vec3 uRegionGrass[ 10 ];
+  // Blade tint of whichever realm holds p (straw on the tundra).
+  vec3 realmGrassTint( vec2 p ) {
+    vec3 t = vec3( 1.0 );
+    for ( int i = 0; i < 10; i++ ) {
+      float d = distance( p, uRegions[ i ].xy );
+      float w = 1.0 - smoothstep( uRegions[ i ].z - 20.0, uRegions[ i ].z + 70.0, d );
+      t = mix( t, uRegionGrass[ i ], w );
+    }
+    return t;
+  }
 
   // Tint, snow and grass density from whichever realm holds p.
   vec4 realmAt( vec2 p, out float snow ) {

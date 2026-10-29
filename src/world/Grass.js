@@ -307,7 +307,7 @@ export class Grass {
           vec3 rootCol = base * 0.38;
           vec3 col = mix( rootCol, tip * tuftTone, smoothstep( 0.0, 0.9, hy ) );
           col = mix( col, mix( vec3( 0.25, 0.2, 0.08 ), vec3( 0.62, 0.52, 0.28 ), hy ), dry );
-          vColor.rgb = col * ( 0.96 + 0.08 * br );`
+          vColor.rgb = col * ( 0.96 + 0.08 * br ) * realmGrassTint( root );`
         );
 
       shader.fragmentShader = shader.fragmentShader

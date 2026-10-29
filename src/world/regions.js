@@ -141,7 +141,7 @@ export const REGIONS = [
     tagline: 'Ice and starlight on the high waste',
     ...at(7), r: 150,
     floor: 30,
-    palette: { ground: [1.3, 1.32, 1.4], grass: [1.1, 1.1, 1.2], fog: [0.86, 0.9, 0.98], fogDensity: 1.2, saturation: 0.85, grassDensity: 0.35 },
+    palette: { ground: [1.3, 1.32, 1.4], grass: [1.1, 1.1, 1.2], fog: [0.86, 0.9, 0.98], fogDensity: 1.2, saturation: 0.85, grassDensity: 0.1, grassTint: [0.95, 0.82, 0.55] },
     snow: 1,
     rocks: 30,
     crystals: { colour: 0x9fd8ff, count: 70, big: true },

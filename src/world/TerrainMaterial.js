@@ -90,7 +90,9 @@ export function createTurfMaterial({ noise, mask }) {
         `#include <color_fragment>
         {
           vec4 gn = groundNoise( vWPos.xz );
-          diffuseColor.rgb = meadowColor( vWPos.xz, gn ) * 0.78;
+          // Fine tuft noise stands in for blades on built turf.
+          float tuft = texture( uNoise, vWPos.xz * 1.7 ).g * 0.6 + texture( uNoise, vWPos.xz * 6.0 + 3.0 ).a * 0.4;
+          diffuseColor.rgb = meadowColor( vWPos.xz, gn ) * ( 0.95 + 0.5 * ( tuft - 0.5 ) );
         }`
       );
   };
