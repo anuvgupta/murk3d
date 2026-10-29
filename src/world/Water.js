@@ -155,7 +155,7 @@ export class Water {
       roughness: 0.06,
       metalness: 0,
       transparent: true,
-      envMapIntensity: 1.6,
+      envMapIntensity: 1.0,
     });
     const uniforms = this.uniforms;
     material.onBeforeCompile = (shader) => {
@@ -208,8 +208,8 @@ export class Water {
           '#include <color_fragment>',
           `#include <color_fragment>
           float depth = max( vDepth, 0.0 );
-          vec3 shallow = vec3( 0.12, 0.2, 0.15 );
-          vec3 deep = vec3( 0.02, 0.05, 0.05 );
+          vec3 shallow = vec3( 0.1, 0.18, 0.14 );
+          vec3 deep = vec3( 0.015, 0.045, 0.045 );
           vec3 waterCol = mix( shallow, deep, smoothstep( 0.1, 3.5, depth ) ) * vTint;
 
           // Foam: a broken band along the shore, and streaks in fast water.
@@ -263,6 +263,9 @@ export class Water {
           `// Glancing views reflect more and see less of the bed.
           float fres = pow( 1.0 - saturate( dot( normal, normalize( vViewPosition ) * -1.0 ) ), 5.0 );
           diffuseColor.a = mix( diffuseColor.a, 1.0, fres * 0.7 * smoothstep( -0.03, 0.12, vDepth ) );
+          // Green-grey water, as in the reference lakes: the sky reflection is
+          // tinted by the water itself rather than mirrored white.
+          outgoingLight = mix( outgoingLight, outgoingLight * vec3( 0.78, 0.9, 0.88 ), 0.6 );
           #include <opaque_fragment>`
         );
     };
