@@ -186,7 +186,8 @@ export const cobbleStone = (seed = 2) =>
 
 // Dressed blocks for corners, door frames and the bridge: courses of
 // rectangular stones with chamfered edges.
-export function ashlarStone(seed = 3) {
+// `pale` gives the limestone of the white castle: light blocks, soft joints.
+export function ashlarStone(seed = 3, pale = false) {
   const random = mulberry32(seed);
   const rows = 6;
   const rowData = [];
@@ -216,14 +217,17 @@ export function ashlarStone(seed = 3) {
     const fine = nz(3, u * 8, v * 8);
     const t = row.tints[k] * (0.85 + 0.25 * nz(2, u * 8, v * 4)) * (0.6 + 0.4 * smooth(0.03, 0.12, edge));
     if (joint) {
-      out[0] = 0.45 * (0.8 + 0.3 * fine);
-      out[1] = 0.42 * (0.8 + 0.3 * fine);
-      out[2] = 0.38 * (0.8 + 0.3 * fine);
+      const j = pale ? 0.68 : 1.0;
+      out[0] = 0.45 * j * (0.8 + 0.3 * fine) + (pale ? 0.2 : 0);
+      out[1] = 0.42 * j * (0.8 + 0.3 * fine) + (pale ? 0.2 : 0);
+      out[2] = 0.38 * j * (0.8 + 0.3 * fine) + (pale ? 0.19 : 0);
       out[3] = 0.1;
     } else {
-      out[0] = clamp01(0.62 * t);
-      out[1] = clamp01(0.58 * t);
-      out[2] = clamp01(0.52 * t);
+      const base = pale ? [0.9, 0.88, 0.84] : [0.62, 0.58, 0.52];
+      const tt = pale ? 0.88 + 0.12 * t : t;
+      out[0] = clamp01(base[0] * tt);
+      out[1] = clamp01(base[1] * tt);
+      out[2] = clamp01(base[2] * tt);
       out[3] = 0.4 + 0.5 * smooth(0.03, 0.15, edge) + 0.1 * fine;
     }
   });

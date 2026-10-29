@@ -19,7 +19,7 @@ export function createBuildingMaterials(noiseTexture) {
   const slate = tex.slate();
   const clay = tex.clayTiles();
   const thatch = tex.thatch();
-  const whiteAshlar = tex.ashlarStone(9);
+  const whiteAshlar = tex.ashlarStone(9, true);
   const whiteCobble = tex.cobbleStone(12);
 
   const std = (t, bumpScale, roughness, extra = {}) =>
@@ -56,8 +56,8 @@ export function createBuildingMaterials(noiseTexture) {
     }),
     lamp: new THREE.MeshStandardMaterial({ color: 0x302418, emissive: 0xffb060, emissiveIntensity: 0.2, roughness: 0.3 }),
     // Castle: pale limestone, a slightly warmer dressed stone, blue-grey slate, gilt.
-    white: std(whiteAshlar, 1.2, 0.8, { color: 0xf2eee6 }),
-    whiteDark: std(whiteAshlar, 1.6, 0.85, { color: 0xd9d2c4 }),
+    white: std(whiteAshlar, 1.2, 0.8, { color: 0xfaf7f0 }),
+    whiteDark: std(whiteAshlar, 1.6, 0.85, { color: 0xe4ddd0 }),
     cobbleWhite: std(whiteCobble, 2.5, 0.9, { color: 0xe6e0d4 }),
     slateBlue: std(slate, 2, 0.7, { color: 0x6f7f96 }),
     gilt: new THREE.MeshStandardMaterial({ color: 0xe8c45a, roughness: 0.25, metalness: 1.0 }),
