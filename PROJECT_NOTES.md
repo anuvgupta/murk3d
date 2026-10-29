@@ -416,3 +416,6 @@ screenshot-checked.
   1.6–2.0 + pale limestone texture. Horizon still milky → mie 0.0022,
   rayleigh 1.9. Near grass was a yellow band vs the far meadow → tips
   less yellow. Verifying in batches W (castle) and X (overlook/road/forest).
+- 18:10 Castle now pale white at noon (good). Found: wading into the river
+  made the water vanish (single-sided) with no underwater look → water
+  DoubleSide + Water.levelAt() + uUnderwater murk in the atmosphere pass.
