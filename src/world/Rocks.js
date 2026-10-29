@@ -30,7 +30,7 @@ export function rockGeometry(seed, kind = 'boulder', detail = 5) {
   }
   planes.push({ n: new THREE.Vector3(0, -1, 0), d: 0.35 }); // flat base to sit in the ground
   const stretch = slab
-    ? new THREE.Vector3(0.9 + random() * 0.5, 1.2 + random() * 0.8, 0.55 + random() * 0.35)
+    ? new THREE.Vector3(0.9 + random() * 0.5, 1.2 + random() * 0.8, 0.8 + random() * 0.4)
     : new THREE.Vector3(0.9 + random() * 0.4, 0.6 + random() * 0.35, 0.8 + random() * 0.4);
   const tilt = (random() - 0.5) * 0.6;
 
@@ -49,6 +49,12 @@ export function rockGeometry(seed, kind = 'boulder', detail = 5) {
     const rumple = fbm3(noise, v.x * 1.6 + 3, v.y * 1.6, v.z * 1.6 + 5, 2);
     v.multiplyScalar(1 + rumple * 0.14);
     v.multiply(stretch);
+    // Wobble the long edges sideways: a tall slab's silhouette must not be
+    // a pair of ruled lines.
+    const wx = fbm3(noise, v.y * 1.1 + 11, v.z * 0.9, v.x * 0.7 + 2, 2);
+    const wz = fbm3(noise, v.y * 1.1 + 23, v.x * 0.9, v.z * 0.7 + 4, 2);
+    v.x += wx * 0.11 * stretch.x;
+    v.z += wz * 0.11 * stretch.z;
     // Bedding layers: small horizontal steps, tilted per rock.
     const layer = v.y + v.x * tilt;
     v.addScaledVector(v.clone().setY(0).normalize(), Math.sin(layer * 11 + big * 3) * 0.025);
