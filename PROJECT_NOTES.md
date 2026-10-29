@@ -449,3 +449,7 @@ screenshot-checked.
   tavern and castle hill). Lake at golden hour looking NE reflects the
   pale east sky — correct, if not dramatic. Willow bark read concrete-grey
   → warm grey-brown.
+- 19:25 Hue-preserving sky clip verified: noon sky region 200,221,233 →
+  161,210,230 (blue at last); sky-up frame reads as a real noon sky with
+  clouds. Near grass still lime (143,167,71) vs meadow (101,131,47) →
+  blade tip/tuft brightness trimmed. Verify AD.
