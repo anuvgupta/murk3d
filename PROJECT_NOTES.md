@@ -480,3 +480,7 @@ screenshot-checked.
   in flight); standing stones were literally black boxes → roughBlock()
   noise-displaced monoliths in m.ruin (pale) with tapered tops; lintels
   and altar too. ship.sh now gates commit+push on a clean build.
+- 20:40 AG: giant bark brown (fixed); village night = moon + stars + lit
+  windows over navy hills (good); castle at 19:00 in warm side light is
+  a keeper frame. Realms haven't been re-rendered since the lighting
+  overhaul → batch AI (karst, moonlit, tundra, canyon, floating isles).
