@@ -495,3 +495,8 @@ screenshot-checked.
   canyon: the ring gate's dais hung 4 m over the gorge floor → PADS
   (levelled after every cut) under every gate + the glade; rock strata
   weight 0.2→0.1 (contour-line look on big walls). Verify AK.
+- 21:40 AJ: standing stones now pale weathered rock at dusk and noon
+  (good). Chapel shot showed green camo blotches on the castle plateau
+  cliff → rock band starts at slope 0.36 (was 0.42) with less noise
+  jitter. Watchtower shot mis-aimed (nice purple-duskwood frame anyway);
+  AL re-shoots chapel, tower, overlook cliff, castle cliff.
