@@ -80,6 +80,7 @@ const compositeShader = {
     uSaturation: { value: 1.08 },
     uLift: { value: new THREE.Color(0.02, 0.015, 0.01) },
     uVignette: { value: 0.25 },
+    uUnderwater: { value: 0 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -120,6 +121,7 @@ const compositeShader = {
     uniform float uSaturation;
     uniform vec3 uLift;
     uniform float uVignette;
+    uniform float uUnderwater;
     varying vec2 vUv;
 
     vec3 worldPosition( vec2 uv, float depth ) {
@@ -216,6 +218,11 @@ const compositeShader = {
       color += uLift * ( 1.0 - smoothstep( 0.0, 0.5, lum ) );
       vec2 v = ( vUv - 0.5 ) * vec2( uAspect, 1.0 );
       color *= 1.0 - uVignette * smoothstep( 0.45, 1.1, length( v ) );
+      // Under the surface: murky green-blue, nothing far visible.
+      if ( uUnderwater > 0.0 ) {
+        float uw = 1.0 - exp( -dist * 0.09 );
+        color = mix( color * vec3( 0.55, 0.8, 0.8 ), vec3( 0.06, 0.2, 0.2 ), uUnderwater * max( uw, 0.35 ) );
+      }
 
       if ( any( isnan( color ) ) || any( isinf( color ) ) ) color = vec3( 0.0 );
       gl_FragColor = vec4( max( color, vec3( 0.0 ) ), src.a );
@@ -257,7 +264,7 @@ export class AtmospherePass extends Pass {
   }
 
   // Called by the game each frame with the current lighting state.
-  update({ sunDir, sunColor, sunVisible, fogColor, fogSunColor, fogDensity, fogHeight, fogFalloff, groundMist, mistFill, shaft, glow, disc, saturation, lift, vignette }, wind, noise, time) {
+  update({ sunDir, sunColor, sunVisible, fogColor, fogSunColor, fogDensity, fogHeight, fogFalloff, groundMist, mistFill, shaft, glow, disc, saturation, lift, vignette, underwater }, wind, noise, time) {
     const u = this.material.uniforms;
     if (wind) {
       u.uWindDir.value.copy(wind.direction);
@@ -283,6 +290,7 @@ export class AtmospherePass extends Pass {
     u.uSaturation.value = saturation;
     u.uLift.value.copy(lift);
     u.uVignette.value = vignette;
+    u.uUnderwater.value = underwater || 0;
 
     // Sun's screen position; shafts only when it's in front of the camera.
     // The camera has usually moved since the last render, so refresh its matrices.

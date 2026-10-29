@@ -322,6 +322,11 @@ export class Game {
   updateWorld(dt) {
     const env = this.environment;
     env.update(dt, this.player.position, this.wind);
+    // Eyes below the water surface: the view goes murky.
+    if (this.water) {
+      const level = this.water.levelAt(this.camera.position.x, this.camera.position.z);
+      env.atmosphere.underwater = this.camera.position.y < level ? 1 : 0;
+    }
     this.renderer.toneMappingExposure = env.exposure;
     if (this.atmosphere) this.atmosphere.update(env.atmosphere, this.wind, this.noiseTexture, this.elapsed);
     // Water reflects the sky at full strength, independent of the scene's ambient level.

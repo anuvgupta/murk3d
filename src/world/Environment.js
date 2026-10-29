@@ -73,6 +73,7 @@ export class Environment {
       fogFalloff: 0.02,
       groundMist: 0,
       mistFill: 0,
+      underwater: 0,
       shaft: 0,
       glow: 0,
       disc: 0,

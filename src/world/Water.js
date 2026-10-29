@@ -41,6 +41,18 @@ export class Water {
     }
   }
 
+  // Water surface height at (x, z), or -Infinity where there is none.
+  levelAt(x, z) {
+    for (const L of LAKES) {
+      const d = Math.hypot(x - L.x, z - L.z);
+      const R = L.radiusAt(Math.atan2(z - L.z, x - L.x));
+      if (d < R && !(L.ring && d < L.ring)) return L.level;
+    }
+    const q = RIVER.path.nearest(x, z, 20, this._lq || (this._lq = {}));
+    if (q && q.d < RIVER.widthAt(q.s) / 2 + 0.5) return RIVER.path.sampleAt(RIVER.levels, q.s);
+    return -Infinity;
+  }
+
   buildRiver() {
     const p = RIVER.path;
     const positions = [];
@@ -156,6 +168,7 @@ export class Water {
       metalness: 0,
       transparent: true,
       envMapIntensity: 1.0,
+      side: THREE.DoubleSide, // seen from beneath when wading
     });
     const uniforms = this.uniforms;
     material.onBeforeCompile = (shader) => {
