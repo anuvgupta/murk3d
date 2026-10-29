@@ -23,7 +23,7 @@ export function rockGeometry(seed, kind = 'boulder', detail = 5) {
   const slab = kind === 'slab';
   // Fracture planes flatten parts of the surface into facets.
   const planes = [];
-  const nPlanes = slab ? 7 + Math.floor(random() * 4) : 3 + Math.floor(random() * 4);
+  const nPlanes = slab ? 5 + Math.floor(random() * 3) : 3 + Math.floor(random() * 4);
   for (let i = 0; i < nPlanes; i++) {
     const n = new THREE.Vector3(random() * 2 - 1, (random() * 2 - 1) * (slab ? 0.5 : 1), random() * 2 - 1).normalize();
     planes.push({ n, d: (slab ? 0.55 : 0.68) + random() * 0.25 });
@@ -46,8 +46,8 @@ export function rockGeometry(seed, kind = 'boulder', detail = 5) {
       if (t > 0) v.addScaledVector(p.n, -t * 0.9);
     }
     // Rumple the cut faces so no facet edge is dead straight.
-    const rumple = fbm3(noise, v.x * 2.8 + 3, v.y * 2.8, v.z * 2.8 + 5, 2);
-    v.multiplyScalar(1 + rumple * 0.05);
+    const rumple = fbm3(noise, v.x * 1.6 + 3, v.y * 1.6, v.z * 1.6 + 5, 2);
+    v.multiplyScalar(1 + rumple * 0.14);
     v.multiply(stretch);
     // Bedding layers: small horizontal steps, tilted per rock.
     const layer = v.y + v.x * tilt;

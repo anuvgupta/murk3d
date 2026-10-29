@@ -67,7 +67,7 @@ export function createBuildingMaterials(noiseTexture) {
     // Ruins: weathered grey ashlar and rubble, moss and turf.
     // Weathered limestone, as pale as Oblivion's Ayleid stone.
     ruin: std(ashlar, 2.8, 0.92, { color: 0xd2cec4, envMapIntensity: 1.4 }),
-    ruinDark: std(rubble, 3.2, 0.95, { color: 0xcfc9bc, envMapIntensity: 1.3 }),
+    ruinDark: std(ashlar, 3.2, 0.95, { color: 0xbdb7ab, envMapIntensity: 1.3 }),
     moss: new THREE.MeshStandardMaterial({ color: 0x55703a, roughness: 1 }),
     turf: new THREE.MeshStandardMaterial({ color: 0x5e7d38, roughness: 1 }),
     // Portal gates: black glassy stone and the ember seams in it.
