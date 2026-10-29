@@ -529,3 +529,8 @@ screenshot-checked.
   limestone. Both ruin materials now use ashlarStone(5, pale) with
   weathered-grey multipliers. Verify AQ (temple noon/golden, chapel,
   tower) after AO/AP.
+- 23:45 AO: smithy, alchemist stall (with portals in the distance),
+  alpine waterfall into a blue lake, river-town island + causeway all
+  read well; jungle floor dark and lush. Shelves: mid-distance slopes
+  were one flat saturated green beyond the blade draw distance →
+  meadowColor gains 20–60 m straw/rich patchiness. Verify AR.
