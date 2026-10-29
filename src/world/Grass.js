@@ -231,7 +231,8 @@ export class Grass {
           // Tall lush patches, shorter dry patches, short at the verges.
           float density = smoothstep( 0.12, 0.85, gmask.r );
           // Nothing grows on cliff faces: thin out as the ground steepens.
-          density *= smoothstep( 0.6, 0.82, terrainSlope( root ) );
+          // Blades hold on until the ground is steep enough to be bare rock.
+          density *= smoothstep( 0.56, 0.7, terrainSlope( root ) );
           { float snowAmt; vec4 realm = realmAt( root, snowAmt ); density *= realm.a; }
           float lush = smoothstep( 0.3, 0.8, gn.y );
           float dryPatch = smoothstep( 0.62, 0.9, 1.0 - gn.x );
