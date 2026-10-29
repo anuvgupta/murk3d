@@ -471,3 +471,8 @@ screenshot-checked.
   Forest noon: giant trunks flat maroon, canopy undersides black →
   bark [0.52,0.4,0.3], +sky ambient on leaves. Verify AF (forest, forest
   edge, standing stones at dusk).
+- 20:10 Pushed a broken build for ~5 min (template literal eaten by a
+  comment line in the leaf-shader patch); fixed in 16f9f0e. Lesson: run
+  the build check BEFORE commit in the one-liner (it was in the same
+  chain but the commit didn't gate on it). AF renders the pre-fix build;
+  AG re-verifies forest + night village + castle dusk.
