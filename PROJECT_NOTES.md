@@ -488,3 +488,10 @@ screenshot-checked.
   material (createRockMaterial) for standing stones/lintels/altar.
   AH2/AH3 cameras were mis-aimed; AJ re-shoots stones (dusk, noon),
   chapel, watchtower.
+- 21:20 Realm re-check under new lighting (AI): karst lake read as a white
+  band (reflection untinted) → reflection takes the lake tint; tundra
+  grass was white spikes → grassTint straw + density 0.1; floating-isle
+  tops flat green (blades follow terrain height) → turf tuft noise;
+  canyon: the ring gate's dais hung 4 m over the gorge floor → PADS
+  (levelled after every cut) under every gate + the glade; rock strata
+  weight 0.2→0.1 (contour-line look on big walls). Verify AK.
