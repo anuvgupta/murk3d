@@ -318,3 +318,16 @@ screenshot-checked.
   facing the plateau so the bridge is level over a ~40 m gorge, castle road
   climbs the knoll's far side. Sawmill now on a stone pier at the river
   with the wheel in the water; plots ease into riverbanks (plotWeight).
+- The Shelves (tilted rock plates, SW at ~(-160,295)): Terrain.plateHeight
+  wedges + Plates.js overhanging rock lips (walkable, surfaceAt) + scree.
+- Ruins (Ruins.js): gothic-arch / column / ragged-wall / fallen-block /
+  flagstone / jetty vocabulary. Sites: drowned temple on the lake's SW shore
+  (quay plot, jetty, islet arches via ISLETS terrain bumps), barrow crypt
+  (sunken PIT, vault + turf, stair, reliquary, torch light), standing stones
+  in the Elder Wood, watchtower stump on the overlook top, roofless chapel
+  below the castle, sunken arcade on the floor of The Rift (CREVASSE: deep
+  gash SW of the village with a 75 m entry ramp).
+- Grass slope cull now reads a baked slope channel (height texture is RG)
+  instead of four extra height lookups per vertex.
+- Headless renders are now ~3-5 min per frame in this container; batches
+  run in the background at 800x450 while coding continues.
