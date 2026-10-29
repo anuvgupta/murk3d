@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { regionAt } from './regions.js';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { smoothstep, mulberry32 } from '../util/noise.js';
 import { settings } from '../core/settings.js';
@@ -182,7 +183,12 @@ export class Environment {
     this.skyTime = (this.skyTime || 0) + dt * (0.6 + (wind ? wind.uniforms.uWindStrength.value * 2.5 : 1.0));
     this.focusHeight = focus.y;
 
-    const sunDir = this.computeSunDirection(this.timeOfDay, this.sunDir);
+    // Inside a realm, its palette takes over; the moonlit realm is always night.
+    const realm = regionAt(focus.x, focus.z);
+    const rw = realm.region ? realm.weight : 0;
+    const nightRealm = realm.region && realm.region.night ? rw : 0;
+    const sunTime = nightRealm > 0 ? THREE.MathUtils.lerp(this.timeOfDay, 0.5, nightRealm) : this.timeOfDay;
+    const sunDir = this.computeSunDirection(sunTime, this.sunDir);
     const elev = sunDir.y;
     if (this.sky.material.uniforms.time) this.sky.material.uniforms.time.value = this.skyTime || 0;
 
@@ -257,6 +263,15 @@ export class Environment {
     a.saturation = 1.1 + 0.05 * day;
     a.lift.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
     a.vignette = 0.22;
+    if (rw > 0) {
+      const P = realm.region.palette;
+      const k = rw * (0.35 + 0.5 * day);
+      a.fogColor.lerp(this._tmpColor.setRGB(P.fog[0], P.fog[1], P.fog[2]), k);
+      a.fogSunColor.lerp(this._tmpColor.setRGB(P.fog[0] * 1.05, P.fog[1] * 1.02, P.fog[2] * 0.95), k * 0.6);
+      a.fogDensity *= THREE.MathUtils.lerp(1, P.fogDensity, rw);
+      a.saturation = THREE.MathUtils.lerp(a.saturation, P.saturation, rw);
+      if (realm.region.mist) a.groundMist = Math.max(a.groundMist, 0.9 * rw);
+    }
 
     this.lightLevel = 0.12 + 0.88 * day;
 

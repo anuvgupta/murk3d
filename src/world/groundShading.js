@@ -4,6 +4,25 @@
 
 import * as THREE from 'three';
 import { WORLD_HALF, WORLD_SIZE } from './plan.js';
+import { REGIONS } from './regions.js';
+
+// Uniform values for the realm tints (same for every ground material).
+export function regionUniforms() {
+  const pos = [];
+  const tint = [];
+  for (let i = 0; i < 10; i++) {
+    const R = REGIONS[i];
+    if (R) {
+      pos.push(new THREE.Vector4(R.x, R.z, R.r, R.snow || 0));
+      const g = R.palette.ground;
+      tint.push(new THREE.Vector4(g[0], g[1], g[2], R.palette.grassDensity ?? 1));
+    } else {
+      pos.push(new THREE.Vector4(1e6, 1e6, 1, 0));
+      tint.push(new THREE.Vector4(1, 1, 1, 1));
+    }
+  }
+  return { uRegions: { value: pos }, uRegionTint: { value: tint } };
+}
 
 const lin = (hex) => {
   const c = new THREE.Color(hex);
@@ -13,6 +32,24 @@ const lin = (hex) => {
 export const GROUND_GLSL = /* glsl */ `
   uniform sampler2D uNoise;
   uniform sampler2D uMask;
+  // The realms: (x, z, radius, snow) and (tint rgb, grass density).
+  uniform vec4 uRegions[ 10 ];
+  uniform vec4 uRegionTint[ 10 ];
+
+  // Tint, snow and grass density from whichever realm holds p.
+  vec4 realmAt( vec2 p, out float snow ) {
+    vec4 best = vec4( 1.0, 1.0, 1.0, 1.0 );
+    snow = 0.0;
+    for ( int i = 0; i < 10; i++ ) {
+      float d = distance( p, uRegions[ i ].xy );
+      float w = 1.0 - smoothstep( uRegions[ i ].z - 20.0, uRegions[ i ].z + 70.0, d );
+      if ( w > 0.0 ) {
+        best = mix( best, uRegionTint[ i ], w );
+        snow += w * uRegions[ i ].w;
+      }
+    }
+    return best;
+  }
 
   vec2 maskUv( vec2 p ) {
     return ( p + ${WORLD_HALF.toFixed(1)} ) / ${WORLD_SIZE.toFixed(1)};
@@ -37,6 +74,10 @@ export const GROUND_GLSL = /* glsl */ `
     c = mix( c, ${lin(0x47682a)}, smoothstep( 0.55, 0.85, n.x ) * 0.45 );
     c = mix( c, ${lin(0xa3a052)}, smoothstep( 0.62, 0.9, 1.0 - n.x ) * 0.35 );
     c *= 0.92 + 0.16 * n.z;
+    float snow;
+    vec4 realm = realmAt( p, snow );
+    c *= realm.rgb;
+    c = mix( c, vec3( 0.84, 0.88, 0.96 ) * ( 0.9 + 0.1 * n.z ), clamp( snow, 0.0, 1.0 ) * 0.92 );
     return c;
   }
 
@@ -99,10 +140,10 @@ export const GROUND_GLSL = /* glsl */ `
 
     float slope = 1.0 - nrm.y;
     // Banks: worn earth on moderate slopes, bare rock where it steepens or climbs.
-    float bank = smoothstep( 0.22, 0.4, slope + ( n.z - 0.5 ) * 0.1 );
-    c = mix( c, dirtColor( n ) * 0.9, bank * 0.7 );
+    float bank = smoothstep( 0.3, 0.46, slope + ( n.z - 0.5 ) * 0.1 );
+    c = mix( c, dirtColor( n ) * 0.9, bank * 0.6 );
     float rockAmt = max(
-      smoothstep( 0.36, 0.52, slope + ( n.z - 0.5 ) * 0.1 ),
+      smoothstep( 0.42, 0.58, slope + ( n.z - 0.5 ) * 0.1 ),
       smoothstep( 95.0, 150.0, p.y + n.x * 40.0 ) * 0.9
     );
     c = mix( c, rockColor( p, nrm ), rockAmt );

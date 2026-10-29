@@ -2,7 +2,8 @@ import * as THREE from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createNoise3D, fbm3, mulberry32 } from '../util/noise.js';
 import { ROCK_GLSL } from './rockShading.js';
-import { HILL, HOUSES, PLAZA, RIVER, LAKE, nearestRoad } from './plan.js';
+import { HILL, HOUSES, PLAZA, RIVER, LAKE, LAKES, CASTLES, PLATES, RUINS, GLADE, nearestRoad } from './plan.js';
+import { REGIONS, regionWeight } from './regions.js';
 
 // Generated rock meshes: fractured, faceted and layered, so cliffs and
 // boulders read as real stone rather than smooth blobs. A handful of variants
@@ -121,6 +122,55 @@ export class RockField {
     this.placeBoulders();
     this.placeRiverStones();
     this.placeFoothills();
+    this.extraFootprints = [];
+    this.placePlates();
+    this.placeRealms();
+  }
+
+  // Boulders and slabs strewn about the realms that ask for them.
+  placeRealms() {
+    const r = this.random;
+    for (const R of REGIONS) {
+      if (!R.rocks) continue;
+      for (let i = 0; i < R.rocks; i++) {
+        const a = r() * Math.PI * 2;
+        const d = Math.sqrt(r()) * (R.r - 24);
+        const x = R.x + Math.cos(a) * d;
+        const z = R.z + Math.sin(a) * d;
+        const s = 1 + Math.pow(r(), 2) * 5;
+        if (!this.clear(x, z, s)) continue;
+        if (this.terrain.normalAt(x, z).y < 0.5) continue;
+        const slab = r() < 0.5;
+        this.add(slab ? 5 + Math.floor(r() * 5) : Math.floor(r() * 5), x, z, new THREE.Vector3(s, s * (slab ? 1.3 : 0.75), s), { sink: 0.35 });
+      }
+    }
+  }
+
+  // Fallen blocks and scree at the foot of each plate's broken face, and a
+  // bare floor (no grass) in the hollow under its lip.
+  placePlates() {
+    const r = this.random;
+    const t = this.terrain;
+    for (const p of PLATES) {
+      const c = Math.cos(p.dir);
+      const s = Math.sin(p.dir);
+      const at = (u, v) => [p.x + u * c - v * s, p.z + u * s + v * c];
+      for (let v = -p.width / 2 + 3; v <= p.width / 2 - 3; v += 4.5) {
+        const [fx, fz] = at(p.length / 2 + p.lift * 0.55, v);
+        this.extraFootprints.push({ x: fx, z: fz, r: 4.5 });
+      }
+      const n = 3 + Math.floor(r() * 4);
+      for (let k = 0; k < n; k++) {
+        const v = (r() - 0.5) * (p.width - 4);
+        const u = p.length / 2 + p.lift + 1 + r() * 9;
+        const [x, z] = at(u, v);
+        const sz = 1.2 + r() * 3.2;
+        const slab = r() < 0.6;
+        this.add(slab ? 5 + Math.floor(r() * 5) : Math.floor(r() * 5), x, z, new THREE.Vector3(sz, sz * (slab ? 0.9 : 0.7), sz * 0.8), {
+          sink: 0.3, tilt: 0.7, ry: -p.dir + Math.PI / 2 + (r() - 0.5) * 1.2,
+        });
+      }
+    }
   }
 
   clear(x, z, r) {
@@ -129,7 +179,14 @@ export class RockField {
     for (const h of HOUSES) if (Math.hypot(x - h.x, z - h.z) < Math.max(h.footprint.hx, h.footprint.hz) + r + 3) return false;
     const rq = RIVER.path.nearest(x, z, 20);
     if (rq && rq.d < RIVER.widthAt(rq.s) / 2 + r + 1) return false;
-    if (Math.hypot(x - LAKE.x, z - LAKE.z) < LAKE.radius * 1.3 + r) return false;
+    for (const L of LAKES) if (Math.hypot(x - L.x, z - L.z) < L.radius * 1.3 + r && !(L.ring && Math.hypot(x - L.x, z - L.z) < L.ring - 3)) return false;
+    for (const C of CASTLES) if (Math.hypot(x - C.plateau.x, z - C.plateau.z) < C.plateau.radius + 8 + r) return false;
+    if (Math.hypot(x - GLADE.x, z - GLADE.z) < GLADE.r + 4 + r) return false;
+    for (const R of REGIONS) {
+      const g = R.gate || { dx: 50, dz: 50 };
+      if (Math.hypot(x - R.x - g.dx, z - R.z - g.dz) < 8 + r) return false;
+    }
+    for (const s of RUINS) if (Math.hypot(x - s.x, z - s.z) < s.r + r) return false;
     return true;
   }
 
@@ -222,6 +279,7 @@ export class RockField {
       const x = Math.cos(a) * d;
       const z = Math.sin(a) * d * 1.15;
       if (!this.clear(x, z, 4)) continue;
+      if (REGIONS.some((R) => regionWeight(R, x, z) > 0.2)) continue;
       const s = 2 + r() * 5;
       const slab = r() < 0.5;
       this.add(slab ? 5 + Math.floor(r() * 5) : Math.floor(r() * 5), x, z, new THREE.Vector3(s, s * (slab ? 1.4 : 0.8), s), { sink: 0.35 });
@@ -230,7 +288,7 @@ export class RockField {
 
   // Footprints for keeping grass off rocks: { x, z, r }.
   get footprints() {
-    return this.instances.map((i) => ({ x: i.x, z: i.z, r: Math.max(i.sx, i.sz) * 0.85 }));
+    return [...this.instances.map((i) => ({ x: i.x, z: i.z, r: Math.max(i.sx, i.sz) * 0.85 })), ...this.extraFootprints];
   }
 
   // Colliders for rocks big enough to block the player.

@@ -6,7 +6,8 @@ import { Bridge } from './Bridge.js';
 import { Smoke } from './Smoke.js';
 import { createItemMaterials, displayTable, weaponRack, CHESTS } from './items.js';
 import { windmillSails, waterWheel } from './landmarks.js';
-import { HOUSES, PLAZA, WELL } from '../world/plan.js';
+import { HOUSES, PLAZA, WELL, LAKES } from '../world/plan.js';
+import { REGIONS } from '../world/regions.js';
 import { mulberry32 } from '../util/noise.js';
 
 // Transform a footprint-local box into a world-space oriented box.
@@ -33,10 +34,12 @@ export class Village {
     const chimneys = [];
     const random = mulberry32(77);
 
+    // White-town houses: pale plaster and blue slate in place of the Vale's palette.
+    const whiteMats = { ...m, plasterCream: m.plasterWhite, plasterOchre: m.plasterWhite, plasterRose: m.plasterWhite, thatch: m.slateBlue, shingles: m.slateBlue, clay: m.slateBlue, stone: m.white, stoneWarm: m.white, logs: m.white };
     for (const h of HOUSES) {
       let info;
       kit.frame({ x: h.x, y: h.y, z: h.z, ry: h.rotationY }, () => {
-        info = buildHouse(kit, m, h.design, h.seed);
+        info = buildHouse(kit, h.white ? whiteMats : m, h.design, h.seed);
         for (const lamp of info.lamps) this.lantern(kit, m, lamp);
         this.scatterProps(kit, m, h, random);
       });
@@ -99,6 +102,29 @@ export class Village {
       });
       this.colliders.push({ cx: c.x, cz: c.z, hx: info.r, hz: info.r * 0.7, rot: c.ry });
       this.landmarks.push({ name: info.name, x: c.x, z: c.z, r: info.r + 0.5 });
+    }
+
+    // Causeways over the realms' moats, toward each realm's gate.
+    for (const L of LAKES) {
+      if (!L.ring) continue;
+      const R = REGIONS.find((r) => r.id === L.region);
+      const g = R.gate || { dx: 50, dz: 50 };
+      const a = Math.atan2(g.dz, g.dx);
+      const len = L.radius * 1.12 - L.ring + 4;
+      const mid = L.ring - 2 + len / 2;
+      const cx = L.x + Math.cos(a) * mid;
+      const cz = L.z + Math.sin(a) * mid;
+      const ry = -a + Math.PI / 2;
+      const y = L.level + 0.7;
+      kit.frame({ x: cx, y, z: cz, ry }, () => {
+        kit.box(m.white, 4.4, 1.6, len, { y: -0.8 }, { metres: 2.4 });
+        kit.box(m.cobbleWhite, 4.0, 0.12, len, { y: 0.06 }, { metres: 1.6 });
+        for (const s of [-1, 1]) kit.box(m.white, 0.35, 0.9, len, { x: s * 2.0, y: 0.45 }, { metres: 2 });
+        // Arches through the causeway so the water reads as one.
+        for (let k = -2; k <= 2; k++) kit.cylinder(m.white, 1.1, 1.1, 5.0, { y: -1.2, z: (k * len) / 5.5, rz: Math.PI / 2 }, { segments: 12, metres: 2 });
+      });
+      this.decks.push({ cx, cz, hx: 2.0, hz: len / 2, rot: ry, y: y + 0.12 });
+      for (const s of [-1, 1]) this.colliders.push({ cx: cx + s * 2.0 * Math.cos(ry), cz: cz - s * 2.0 * Math.sin(ry), hx: 0.18, hz: len / 2, rot: ry });
     }
 
     this.bridge = new Bridge();

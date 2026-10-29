@@ -4,7 +4,8 @@ import { generateTree } from './TreeGen.js';
 import { bark as barkTexture, birchBark } from '../../buildings/textures.js';
 import { WIND_GLSL } from '../Wind.js';
 import { mulberry32, createNoise2D } from '../../util/noise.js';
-import { HOUSES, PLAZA, RIVER, LAKE, HILL, WELL, BRIDGE, nearestRoad } from '../plan.js';
+import { HOUSES, PLAZA, RIVER, LAKE, LAKES, HILL, WELL, BRIDGE, CASTLES, RUINS, PITS, GLADE, nearestRoad } from '../plan.js';
+import { REGIONS, regionWeight } from '../regions.js';
 
 const VARIANTS = 5;
 
@@ -153,6 +154,19 @@ export class Forest {
     for (const t of VILLAGE_TREES) this.tryPlace(t.species, t.x, t.z, 3, true);
     for (const t of riverWillows(this.random)) this.tryPlace(t.species, t.x, t.z, 6);
     for (const zone of ZONES) this.fillZone(zone);
+    // The realms' own woods.
+    for (const R of REGIONS) {
+      for (const f of R.flora) this.fillZone({ species: f.species, x: R.x, z: R.z, r: R.r - 12, density: f.density, spacing: f.spacing, region: R });
+      // A few trees on each floating island, at the island's height.
+      for (const isl of R.islands || []) {
+        const n = 2 + Math.floor(this.random() * 3);
+        for (let k = 0; k < n; k++) {
+          const a = this.random() * Math.PI * 2;
+          const d = Math.sqrt(this.random()) * isl.r * 0.6;
+          this.placeFixed(this.random() < 0.5 ? 'birch' : 'oak', R.x + isl.x + Math.cos(a) * d, R.z + isl.z + Math.sin(a) * d, 20 + isl.y);
+        }
+      }
+    }
 
     this.build();
   }
@@ -184,6 +198,9 @@ export class Forest {
       // Patchy: forests have clearings.
       if (this.noise(x * 0.012, z * 0.012) < -0.35) continue;
       if (zone.maxHeight && this.terrain.heightAt(x, z) > zone.maxHeight) continue;
+      // The Vale's forests stop at the realms' rims; a realm's wood stays in its bowl.
+      const inRealm = REGIONS.some((R) => regionWeight(R, x, z) > 0.25);
+      if (zone.region ? regionWeight(zone.region, x, z) < 0.6 : inRealm) continue;
       if (this.tryPlace(zone.species, x, z, zone.spacing)) placed++;
     }
   }
@@ -194,15 +211,40 @@ export class Forest {
     if (Math.hypot(x - PLAZA.x, z - PLAZA.z) < PLAZA.radius + r + 1) return false;
     if (Math.hypot(x - WELL.x, z - WELL.z) < 4) return false;
     if (Math.hypot(x - BRIDGE.x, z - BRIDGE.z) < BRIDGE.length / 2 + 4) return false;
+    for (const C of CASTLES) {
+      if (Math.hypot(x - C.plateau.x, z - C.plateau.z) < C.plateau.radius + 12) return false;
+      if (Math.hypot(x - C.bridgeFrom.x, z - C.bridgeFrom.z) < 10) return false;
+    }
+    if (Math.hypot(x - GLADE.x, z - GLADE.z) < GLADE.r + 6 + r) return false;
+    for (const R of REGIONS) {
+      const g = R.gate || { dx: 50, dz: 50 };
+      if (Math.hypot(x - R.x - g.dx, z - R.z - g.dz) < 9 + r) return false;
+    }
     for (const h of HOUSES) if (Math.hypot(x - h.x, z - h.z) < Math.max(h.footprint.hx, h.footprint.hz) + r + 1.5) return false;
     const rq = RIVER.path.nearest(x, z, 30);
     if (rq && rq.d < RIVER.widthAt(rq.s) / 2 + 1.5) return false;
-    const ld = Math.hypot(x - LAKE.x, z - LAKE.z);
-    if (ld < LAKE.radiusAt(Math.atan2(z - LAKE.z, x - LAKE.x)) + 2) return false;
+    for (const L of LAKES) {
+      const ld = Math.hypot(x - L.x, z - L.z);
+      if (ld < L.radiusAt(Math.atan2(z - L.z, x - L.x)) + 2 && !(L.ring && ld < L.ring - 2)) return false;
+    }
     for (const s of this.rockSpots) if (Math.hypot(x - s.x, z - s.z) < s.r + 0.5) return false;
+    for (const s of RUINS) if (Math.hypot(x - s.x, z - s.z) < s.r + r) return false;
+    // The Shelves stay open grassland: only the odd tree on a plate.
+    if (this.terrain.plateHeight(x, z) > 0.5 && this.random() > 0.1) return false;
+    for (const s of PITS) if (Math.hypot(x - s.x, z - s.z) < s.hz + 3 + r) return false;
     const n = this.terrain.normalAt(x, z);
     if (n.y < 0.82) return false;
     return true;
+  }
+
+  // A tree at a given height (on a floating island), no checks.
+  placeFixed(species, x, z, y) {
+    const variant = Math.floor(this.random() * VARIANTS);
+    const t = { species, variant, x, z, spacing: 4, y: y - 0.15, ry: this.random() * Math.PI * 2, s: 0.8 + this.random() * 0.25 };
+    this.placed.push(t);
+    const model = this.models[species][variant];
+    const r = model.trunkRadius * t.s * 1.1;
+    this.colliders.push({ cx: x, cz: z, hx: r, hz: r, rot: 0 });
   }
 
   tryPlace(species, x, z, spacing, force = false) {

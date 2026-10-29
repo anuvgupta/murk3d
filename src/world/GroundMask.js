@@ -7,7 +7,7 @@
 // copy answers the same questions for placing trees and rocks.
 
 import * as THREE from 'three';
-import { WORLD_SIZE, WORLD_HALF, RIVER, LAKE, PLAZA, HOUSES, ROADS, BRIDGE } from './plan.js';
+import { WORLD_SIZE, WORLD_HALF, RIVER, LAKES, PLAZA, HOUSES, ROADS, BRIDGE, CASTLES } from './plan.js';
 
 const SIZE = 2048;
 const PX = SIZE / WORLD_SIZE; // pixels per metre
@@ -44,16 +44,29 @@ function strokePath(ctx, path, widthFn) {
 }
 
 function fillLake(ctx, grow) {
-  ctx.beginPath();
-  for (let k = 0; k <= 96; k++) {
-    const a = (k / 96) * Math.PI * 2;
-    const r = LAKE.radiusAt(a) + grow;
-    const x = toPx(LAKE.x + Math.cos(a) * r);
-    const y = toPx(LAKE.z + Math.sin(a) * r);
-    if (k === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
+  for (const LAKE of LAKES) {
+    ctx.beginPath();
+    for (let k = 0; k <= 96; k++) {
+      const a = (k / 96) * Math.PI * 2;
+      const r = LAKE.radiusAt(a) + grow;
+      const x = toPx(LAKE.x + Math.cos(a) * r);
+      const y = toPx(LAKE.z + Math.sin(a) * r);
+      if (k === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    if (LAKE.ring) {
+      // A moat: leave the island in the middle.
+      for (let k = 0; k <= 96; k++) {
+        const a = -(k / 96) * Math.PI * 2;
+        const r = LAKE.ring - grow;
+        const x = toPx(LAKE.x + Math.cos(a) * r);
+        const y = toPx(LAKE.z + Math.sin(a) * r);
+        if (k === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+    }
+    ctx.fill('evenodd');
   }
-  ctx.fill();
 }
 
 function fillRotRect(ctx, x, z, hx, hz, rot) {
@@ -106,6 +119,16 @@ export class GroundMask {
     grass.fill();
     for (const h of HOUSES) fillRotRect(grass, h.x, h.z, h.footprint.hx + 0.6, h.footprint.hz + 0.6, h.rotationY);
     fillRotRect(grass, BRIDGE.x, BRIDGE.z, BRIDGE.width / 2 + 0.5, BRIDGE.length / 2 + 0.5, BRIDGE.rotationY);
+    // The castle wards are paved.
+    for (const C of CASTLES) {
+      grass.beginPath();
+      grass.arc(toPx(C.plateau.x), toPx(C.plateau.z), (C.plateau.radius + 1) * PX, 0, Math.PI * 2);
+      grass.fill();
+      cobble.fillStyle = '#fff';
+      cobble.beginPath();
+      cobble.arc(toPx(C.plateau.x), toPx(C.plateau.z), (C.plateau.radius - 1) * PX, 0, Math.PI * 2);
+      cobble.fill();
+    }
     // Rocks and other objects sitting on the ground.
     for (const c of cutouts) {
       grass.beginPath();
@@ -183,7 +206,7 @@ export class GroundMask {
       for (let x = 0; x < SIZE; x++) {
         const v = j * side + toGrid[x];
         const slope = 1 - ny[v * 3 + 1];
-        const rock = Math.max(smooth(0.34, 0.5, slope), smooth(105, 150, heights[v]));
+        const rock = Math.max(smooth(0.4, 0.56, slope), smooth(105, 150, heights[v]));
         const o = (y * SIZE + x) * 4;
         this.data[o] = Math.round(this.data[o] * (1 - rock));
       }

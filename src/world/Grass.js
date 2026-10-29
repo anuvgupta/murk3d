@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mulberry32 } from '../util/noise.js';
 import { TERRAIN_HEIGHT_GLSL } from './Terrain.js';
-import { GROUND_GLSL } from './groundShading.js';
+import { regionUniforms, GROUND_GLSL } from './groundShading.js';
 import { WIND_GLSL } from './Wind.js';
 import { settings } from '../core/settings.js';
 
@@ -96,6 +96,7 @@ export class Grass {
     this.uniforms = {
       uHeightMap: { value: terrain.heightTexture },
       uMask: { value: mask },
+      ...regionUniforms(),
       uNoise: { value: noise },
       uPlayer: { value: new THREE.Vector3(1e5, 0, 1e5) },
       uFullRadius: { value: this.fullRadius },
@@ -228,6 +229,9 @@ export class Grass {
 
           // Tall lush patches, shorter dry patches, short at the verges.
           float density = smoothstep( 0.12, 0.85, gmask.r );
+          // Nothing grows on cliff faces: thin out as the ground steepens.
+          density *= smoothstep( 0.6, 0.82, terrainSlope( root ) );
+          { float snowAmt; vec4 realm = realmAt( root, snowAmt ); density *= realm.a; }
           float lush = smoothstep( 0.3, 0.8, gn.y );
           float dryPatch = smoothstep( 0.62, 0.9, 1.0 - gn.x );
           float tall = 0.6 + 0.6 * lush - 0.3 * dryPatch;

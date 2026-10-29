@@ -299,8 +299,9 @@ export function lumberMill(kit, m) {
   const W = 9;
   const D = 6;
   const postH = 3.4;
-  // Stone footing and plank floor.
-  kit.box(m.stone, W + 0.4, 0.5, D + 0.4, { y: 0.1 }, { metres: 2.6 });
+  // Stone undercroft (the mill stands on a pier above the riverbank) and plank floor.
+  kit.box(m.stone, W + 0.4, 7.0, D + 0.4, { y: 0.4 - 3.5 }, { metres: 2.6 });
+  kit.box(m.ashlar, W + 0.8, 0.3, D + 0.8, { y: 0.25 }, { metres: 2 });
   kit.box(m.planks, W, 0.08, D, { y: 0.39 }, { metres: 1.2 });
   // Posts and beams.
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) kit.box(m.timber, 0.26, postH, 0.26, { x: sx * (W / 2 - 0.2), y: 0.4 + postH / 2, z: sz * (D / 2 - 0.2) }, { metres: 1.2, grain: true });
@@ -345,6 +346,9 @@ export function lumberMill(kit, m) {
     kit.box(m.iron, 0.02, 1.1, 0.12, { x: 0.3, y: 1.6 });
     kit.box(m.timber, 0.08, 0.08, 0.7, { x: 0.3, y: 2.15 }, { metres: 1.2, grain: true });
   });
+  // Axle beam and its trestle out to the wheel.
+  kit.box(m.timber, 9.0, 0.3, 0.3, { x: -W / 2 - 4.3, y: -1.2, z: -0.5 }, { metres: 1.2, grain: true });
+  kit.box(m.stone, 1.2, 6.5, 1.6, { x: -W / 2 - 7.2, y: -3.9, z: -0.5 }, { metres: 2.6 });
   // Plank stack and log pile outside.
   kit.frame({ x: W / 2 + 1.4, z: 1.0 }, () => {
     for (let r = 0; r < 6; r++) {
@@ -370,7 +374,8 @@ export function lumberMill(kit, m) {
     lamps: [new THREE.Vector3(0, 0.4 + postH - 0.3, D / 2 - 0.1)],
     decks: [{ cx: 0, cz: 0, hx: W / 2, hz: D / 2, y: 0.43 }],
     // Water wheel on the west side, axle along z.
-    animated: [{ kind: 'wheel', position: new THREE.Vector3(-W / 2 - 4.2, 1.9, -0.5), axis: 'z' }],
+    // Wheel hangs off the river side on a long axle beam, rim dipping into the water.
+    animated: [{ kind: 'wheel', position: new THREE.Vector3(-W / 2 - 8.6, -1.2, -0.5), axis: 'z' }],
     name: 'lumber mill',
   };
 }

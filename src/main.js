@@ -1,4 +1,5 @@
 import { Game } from './core/Game.js';
+import { REGIONS } from './world/regions.js';
 
 const menu = document.getElementById('menu');
 const play = document.getElementById('play');
@@ -20,6 +21,20 @@ requestAnimationFrame(() => {
 });
 
 play.addEventListener('click', () => game.input.lock());
+
+// Realm select: step straight through to a realm's gate.
+const worlds = document.getElementById('worlds');
+for (const R of [{ id: 'vale', name: 'The Vale', tagline: 'Home' }, ...REGIONS]) {
+  const b = document.createElement('button');
+  b.className = 'world';
+  b.innerHTML = `<b>${R.name}</b><span>${R.tagline}</span>`;
+  b.addEventListener('click', () => {
+    if (!game.player) return;
+    game.travelTo(R.id);
+    game.input.lock();
+  });
+  worlds.appendChild(b);
+}
 
 game.input.on('lock', () => {
   menu.classList.add('hidden');

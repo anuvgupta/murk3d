@@ -374,3 +374,51 @@ body {
   color: #f1e6cf;
   opacity: 0.8;
 }
+
+/* Realm select in the menu. */
+.worlds {
+  margin-top: 22px;
+  font-size: 15px;
+}
+.worlds summary {
+  cursor: pointer;
+  opacity: 0.75;
+  letter-spacing: 0.12em;
+  font-family: 'Cinzel', serif;
+}
+#worlds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  max-width: 760px;
+}
+#menu button.world {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 12px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+#menu button.world span {
+  font-family: 'Cormorant Garamond', 'EB Garamond', Georgia, serif;
+  font-style: italic;
+  font-size: 13px;
+  opacity: 0.7;
+}
+/* Portal travel flash. */
+#flash {
+  position: fixed;
+  inset: 0;
+  background: #fff3e0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease-out;
+  z-index: 50;
+}
+#flash.on {
+  opacity: 1;
+  transition: opacity 0.05s;
+}

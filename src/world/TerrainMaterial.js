@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { GROUND_GLSL } from './groundShading.js';
+import { regionUniforms, GROUND_GLSL } from './groundShading.js';
 import { ROCK_GLSL } from './rockShading.js';
 
 // MeshStandardMaterial whose albedo is computed per pixel from world position:
@@ -10,6 +10,7 @@ export function createTerrainMaterial({ noise, mask }) {
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uNoise = { value: noise };
     shader.uniforms.uMask = { value: mask };
+    Object.assign(shader.uniforms, regionUniforms());
 
     shader.vertexShader = shader.vertexShader
       .replace(
@@ -48,7 +49,7 @@ export function createTerrainMaterial({ noise, mask }) {
         float detail = 1.0 - smoothstep( 12.0, 70.0, length( vViewPosition ) );
         rockDetail = detail;
         rockHOut = rockHeight( vWPos, tw, detail );
-        rockAmtOut = smoothstep( 0.36, 0.52, 1.0 - wn.y + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.1 );
+        rockAmtOut = smoothstep( 0.42, 0.58, 1.0 - wn.y + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.1 );
         ground = mix( ground, rockAlbedo( vWPos, wn, tw, rockHOut ), rockAmtOut );
         diffuseColor.rgb *= ground;`
       )

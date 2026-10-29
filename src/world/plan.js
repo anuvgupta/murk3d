@@ -5,6 +5,8 @@
 // Axes: +x is east, -z is north. The village well sits at the origin.
 
 import * as THREE from 'three';
+import { REGIONS } from './regions.js';
+import { mulberry32 } from '../util/noise.js';
 
 export const WORLD_SIZE = 1600; // metres, edge length of the terrain square
 export const WORLD_HALF = WORLD_SIZE / 2;
@@ -170,6 +172,20 @@ export const LAKE = {
 // ---------------------------------------------------------------------------
 // The village.
 
+// Every lake: the Vale's (level found from the river) and the realms' (fixed).
+export const LAKES = [LAKE];
+for (const R of REGIONS) {
+  if (!R.lake) continue;
+  const L = R.lake;
+  LAKES.push({
+    x: R.x + (L.dx || 0), z: R.z + (L.dz || 0), radius: L.r, depth: L.depth, ring: L.ring || 0,
+    level: R.floor + L.level, region: R.id,
+    radiusAt(angle) {
+      return this.radius * (1 + 0.1 * Math.sin(angle * 3 + 1.3) + 0.06 * Math.sin(angle * 5 + 0.4) + 0.04 * Math.sin(angle * 7 + 2.6));
+    },
+  });
+}
+
 export const PLAZA = { x: 0, z: 0, radius: 11 };
 export const WELL = { x: 0, z: 0 };
 
@@ -199,9 +215,21 @@ export const HOUSES = [
   { design: 2, x: 12, z: -50, face: [4, -30], seed: 9 },
   { design: 4, x: -78, z: 34, face: [-78, 16], seed: 10 },
   { design: 5, x: -44, z: -64, face: [-20, -40], seed: 11 },
-  { design: 7, x: 29, z: 74, face: [60, 74], seed: 12 },
+  { design: 7, x: 27, z: 72, face: [27, 40], seed: 12 },
 ];
 
+// The white river town: houses ringing the island inside the moat.
+for (const R of REGIONS) {
+  if (!R.town) continue;
+  const n = 7;
+  for (let i = 0; i < n; i++) {
+    const a = (i / n) * Math.PI * 2 + 0.3;
+    const x = R.x + Math.cos(a) * 14.5;
+    const z = R.z + Math.sin(a) * 14.5;
+    HOUSES.push({ design: [0, 2, 4, 1, 0, 6, 2][i], x, z, face: [R.x, R.z], seed: 40 + i, white: true, noLane: true });
+  }
+  HOUSES.push({ design: 4, x: R.x, z: R.z + 2, face: [R.x + 20, R.z + 20], seed: 48, white: true, noLane: true });
+}
 for (const h of HOUSES) {
   h.rotationY = Math.atan2(h.face[0] - h.x, h.face[1] - h.z);
   h.footprint = HOUSE_FOOTPRINTS[h.design];
@@ -248,27 +276,205 @@ const OVERLOOK_ROAD = new Path(
   { spacing: 2 }
 );
 
-export const HILL = {
-  // Plateau centre and radius; the cliff faces the village (south-east).
-  x: -104,
-  z: -100,
-  radius: 30,
-  height: 24,
-  gentleWidth: 80, // slope width on the back side
-  cliffWidth: 5, // slope width on the cliff side
-  cliffDir: Math.atan2(100, 104), // angle (atan2(dz, dx)) pointing toward the village
-  cliffSpread: 1.0, // radians either side of cliffDir that are cliff
+// Mesas: flat-topped rises with a ragged edge. Each has a gentle slope on
+// most sides and, within `cliffSpread` radians of `cliffDir`, a sheer cliff;
+// cliffSpread >= PI makes the whole rim cliff, <= 0 none.
+export const MESAS = [
+  {
+    // The overlook: a low plateau whose cliff faces the village (south-east).
+    name: 'overlook',
+    x: -104, z: -100, radius: 30, height: 24,
+    gentleWidth: 80, cliffWidth: 5,
+    cliffDir: Math.atan2(100, 104), cliffSpread: 1.0,
+  },
+  {
+    // A tall knoll the castle road spirals up; the bridge leaves from its rim.
+    // Sheer where it faces the plateau (the bridge leaves from that rim);
+    // the road climbs the gentle far side.
+    name: 'castle-knoll',
+    x: 135, z: -135, radius: 28, height: 52,
+    gentleWidth: 46, cliffWidth: 7,
+    cliffDir: Math.atan2(-200 + 135, 185 - 135), cliffSpread: 0.75,
+  },
+  {
+    // The castle plateau: sheer all round, a saddle on the south-west where the gate is.
+    name: 'castle-plateau',
+    x: 185, z: -200, radius: 36, height: 50,
+    gentleWidth: 30, cliffWidth: 9,
+    cliffDir: 0, cliffSpread: 4,
+  },
+];
+// Region mesas: the citadel's rock, the overgrown cliff, the karst spires.
+for (const R of REGIONS) {
+  for (const m of R.mesas || []) MESAS.push({ ...m, name: R.id, x: R.x + m.dx, z: R.z + m.dz });
+  if (R.spires) {
+    const rnd = mulberry32(R.spires.seed);
+    const S = R.spires;
+    for (let i = 0; i < S.count; i++) {
+      const a = rnd() * Math.PI * 2;
+      const d = (R.lake ? R.lake.r + 8 : 10) + rnd() * (R.r - 30 - (R.lake ? R.lake.r + 8 : 10));
+      const radius = S.rMin + rnd() * (S.rMax - S.rMin);
+      const g = R.gate || { dx: 50, dz: 50 };
+      if (Math.hypot(Math.cos(a) * d - g.dx, Math.sin(a) * d - g.dz) < radius + 18) continue;
+      MESAS.push({
+        name: `${R.id}-spire`, x: R.x + Math.cos(a) * d, z: R.z + Math.sin(a) * d,
+        radius, height: S.hMin + rnd() * (S.hMax - S.hMin),
+        gentleWidth: radius * 0.8, cliffWidth: radius * 0.45, cliffDir: 0, cliffSpread: 4, rag: 0.35,
+      });
+    }
+  }
+}
+// The citadel's knoll (its plateau is the region's own mesa).
+for (const R of REGIONS) {
+  if (!R.castle) continue;
+  const K = R.castle.knoll;
+  MESAS.push({
+    name: `${R.id}-knoll`, x: R.x + K.dx, z: R.z + K.dz, radius: 22, height: 62,
+    gentleWidth: 40, cliffWidth: 7, cliffDir: Math.atan2(-K.dz, -K.dx), cliffSpread: 0.75,
+  });
+}
+export const HILL = MESAS[0];
+export const CASTLE = {
+  knoll: MESAS[1],
+  plateau: MESAS[2],
+  // Bridge from the knoll's rim to the plateau's gate notch.
+  bridgeFrom: { x: 152, z: -157 },
+  bridgeTo: { x: 163, z: -171.5 },
+  gateDir: Math.atan2(-135 + 200, 135 - 185), // angle (atan2(dz, dx)) from plateau centre toward the knoll
 };
 
+export const CASTLES = [CASTLE];
+for (const R of REGIONS) {
+  if (!R.castle) continue;
+  const plateau = MESAS.find((m) => m.name === R.id);
+  const knoll = MESAS.find((m) => m.name === `${R.id}-knoll`);
+  const dx = plateau.x - knoll.x;
+  const dz = plateau.z - knoll.z;
+  const d = Math.hypot(dx, dz);
+  const ux = dx / d;
+  const uz = dz / d;
+  CASTLES.push({
+    knoll, plateau, dark: true,
+    bridgeFrom: { x: knoll.x + ux * (knoll.radius - 1), z: knoll.z + uz * (knoll.radius - 1) },
+    bridgeTo: { x: plateau.x - ux * 36, z: plateau.z - uz * 36 },
+    gateDir: Math.atan2(-uz, -ux),
+  });
+}
 export const OVERLOOK = { x: -86, z: -86 }; // a viewpoint near the cliff edge
+
+// The portal glade east of the village: a dais ringed by the realm gates.
+export const GLADE = { x: 92, z: 34, r: 15 };
+
+// The Shelves: a region of tilted grassy rock plates. Each plate is a wedge
+// of ground rising along `dir` (radians, atan2(dz, dx)) over `length` metres
+// to `rise`, then breaking off in a sheer face; a lip of bare rock overhangs
+// the face by `lift` metres with a hollow beneath it.
+export const PLATES = [
+  { x: -150, z: 265, dir: 0.4, length: 46, width: 30, rise: 14, lift: 9 },
+  { x: -108, z: 300, dir: -0.5, length: 38, width: 24, rise: 11, lift: 7 },
+  { x: -178, z: 312, dir: 1.1, length: 52, width: 34, rise: 17, lift: 10 },
+  { x: -118, z: 243, dir: 2.3, length: 34, width: 22, rise: 9, lift: 6 },
+  { x: -202, z: 262, dir: -1.2, length: 40, width: 26, rise: 12, lift: 8 },
+  { x: -148, z: 342, dir: 2.9, length: 44, width: 28, rise: 13, lift: 9 },
+  { x: -230, z: 318, dir: 0.2, length: 36, width: 24, rise: 10, lift: 7 },
+];
+export const SHELVES = { x: -160, z: 295 };
+
+// A crevasse: a deep, narrow gash in the ground south-west of the village,
+// grassy at the bottom, entered by a long ramp at its northern end.
+export const CREVASSES = [];
+export const CREVASSE = {
+  path: new Path([[-18, 100], [-44, 138], [-64, 182], [-60, 228], [-42, 262]], { spacing: 2 }),
+  width: 22,
+  depth: 26,
+  rampLength: 75, // the first stretch descends gently
+  tailLength: 30,
+};
+CREVASSES.push(CREVASSE);
+for (const R of REGIONS) {
+  if (!R.canyon) continue;
+  CREVASSES.push({
+    path: new Path([[R.x - 150, R.z + 6], [R.x - 80, R.z + 18], [R.x - 10, R.z - 12], [R.x + 70, R.z + 10], [R.x + 150, R.z - 4]], { spacing: 2 }),
+    width: R.canyon.width, depth: R.canyon.depth, rampLength: 70, tailLength: 60, region: R.id,
+  });
+}
+
+// Islets in the lake that carry the drowned ruins' arches.
+export const ISLETS = [
+  { x: 118, z: 240, r: 7 },
+  { x: 104, z: 226, r: 5.5 },
+];
+
+// Ruin sites. `face` is the direction (radians, atan2(dz, dx)) the site faces.
+export const RUINS = [
+  { kind: 'lakeside', x: 90, z: 252, face: Math.atan2(212 - 252, 132 - 90), r: 16 },
+  { kind: 'crypt', x: 72, z: 292, face: Math.atan2(252 - 292, 90 - 72), r: 13 },
+  { kind: 'forest', x: -188, z: 152, face: 0.6, r: 13 },
+  { kind: 'hill', x: -120, z: -96, face: Math.atan2(-86 + 96, -86 + 120), r: 12 }, // on the overlook's top
+  { kind: 'chapel', x: 250, z: -215, face: Math.atan2(-200 + 215, 185 - 250), r: 13 },
+  { kind: 'crevasse', x: -62, z: 196, face: 1.2, r: 10 },
+];
+// Ruins in the realms, scattered about each region that asks for them.
+{
+  const rnd = mulberry32(404);
+  const KIND = { stones: 'forest', arcade: 'crevasse', chapel: 'chapel', tower: 'hill' };
+  for (const R of REGIONS) {
+    (R.ruins || []).forEach((kind, i) => {
+      const a = (i / R.ruins.length) * Math.PI * 2 + 2.3;
+      const d = R.lake ? R.lake.r + 24 + rnd() * 20 : 30 + rnd() * 50;
+      const mesa = (R.mesas || [])[0];
+      // Cliff-top ruins stand on the mesa.
+      const onTop = mesa && R.id === 'cliffruins';
+      const x = onTop ? R.x + mesa.dx + Math.cos(a) * mesa.radius * 0.45 : R.x + Math.cos(a) * d;
+      const z = onTop ? R.z + mesa.dz + Math.sin(a) * mesa.radius * 0.45 : R.z + Math.sin(a) * d;
+      RUINS.push({ kind: KIND[kind], x, z, face: rnd() * Math.PI * 2, r: 13, region: R.id, flat: true });
+    });
+  }
+}
+
+// Levelled floors cut into (depth > 0) or built up from (depth < 0) the
+// ground: the crypt's chamber and stair, and the temple's quay on the shore,
+// which stands a little above the lake (`lake: true` levels from LAKE.level).
+const CRYPT_FACE = Math.atan2(252 - 292, 90 - 72);
+const CRYPT_ROT = -CRYPT_FACE + Math.PI / 2;
+// The crypt's chamber sits 3.3 m behind the pit centre (see Ruins.crypt).
+const CRYPT_CHAMBER = { x: 72 + Math.cos(CRYPT_FACE) * -3.3, z: 292 + Math.sin(CRYPT_FACE) * -3.3 };
+export const PITS = [
+  // The barrow: a grassy mound heaped over the crypt (applied first)...
+  { x: CRYPT_CHAMBER.x, z: CRYPT_CHAMBER.z, rot: CRYPT_ROT, hx: 5.0, hz: 6.2, depth: -2.6, apron: 9 },
+  // ...then the chamber and stair cut down into it.
+  { x: 72, z: 292, rot: CRYPT_ROT, hx: 3.8, hz: 7.8, depth: 2.4 },
+  { x: 90, z: 252, rot: -Math.atan2(212 - 252, 132 - 90) + Math.PI / 2, hx: 7.0, hz: 5.5, depth: -1.3, lake: true, apron: 7 },
+];
+
+const CASTLE_ROAD = new Path(
+  [
+    [250, -70],
+    [228, -84],
+    [205, -92],
+    [182, -90],
+    [160, -90],
+    [138, -98],
+    [116, -110],
+    [102, -128],
+    [100, -148],
+    [110, -163],
+    [128, -167],
+    [144, -159],
+    [152, -157],
+  ],
+  { spacing: 2 }
+);
 
 export const ROADS = [
   { name: 'main', path: MAIN_ROAD, width: 4.6 },
   { name: 'overlook', path: OVERLOOK_ROAD, width: 3.4 },
+  { name: 'castle', path: CASTLE_ROAD, width: 4.0 },
 ];
 
 // Short lanes from each house door to the nearest road or the plaza.
 for (const h of HOUSES) {
+  if (h.noLane) continue;
   const q = MAIN_ROAD.nearest(h.door.x, h.door.z, 200);
   let tx = q.px;
   let tz = q.pz;

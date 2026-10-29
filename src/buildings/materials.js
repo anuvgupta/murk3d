@@ -19,6 +19,8 @@ export function createBuildingMaterials(noiseTexture) {
   const slate = tex.slate();
   const clay = tex.clayTiles();
   const thatch = tex.thatch();
+  const whiteAshlar = tex.ashlarStone(9);
+  const whiteCobble = tex.cobbleStone(12);
 
   const std = (t, bumpScale, roughness, extra = {}) =>
     new THREE.MeshStandardMaterial({ map: t.map, bumpMap: t.bump, bumpScale, roughness, metalness: 0, ...extra });
@@ -53,6 +55,22 @@ export function createBuildingMaterials(noiseTexture) {
       metalness: 0.1,
     }),
     lamp: new THREE.MeshStandardMaterial({ color: 0x302418, emissive: 0xffb060, emissiveIntensity: 0.2, roughness: 0.3 }),
+    // Castle: pale limestone, a slightly warmer dressed stone, blue-grey slate, gilt.
+    white: std(whiteAshlar, 1.2, 0.8, { color: 0xf2eee6 }),
+    whiteDark: std(whiteAshlar, 1.6, 0.85, { color: 0xd9d2c4 }),
+    cobbleWhite: std(whiteCobble, 2.5, 0.9, { color: 0xe6e0d4 }),
+    slateBlue: std(slate, 2, 0.7, { color: 0x6f7f96 }),
+    gilt: new THREE.MeshStandardMaterial({ color: 0xe8c45a, roughness: 0.25, metalness: 1.0 }),
+    glassBlue: new THREE.MeshStandardMaterial({ color: 0x1a2438, emissive: 0x6a8ad0, emissiveIntensity: 0.18, roughness: 0.1, metalness: 0.2 }),
+    banner: new THREE.MeshStandardMaterial({ color: 0x1e3a7a, roughness: 0.95, side: THREE.DoubleSide }),
+    // Ruins: weathered grey ashlar and rubble, moss and turf.
+    ruin: std(ashlar, 2.8, 0.92, { color: 0xb3b0a5 }),
+    ruinDark: std(rubble, 3.2, 0.95, { color: 0x8f8c84 }),
+    moss: new THREE.MeshStandardMaterial({ color: 0x55703a, roughness: 1 }),
+    turf: new THREE.MeshStandardMaterial({ color: 0x5e7d38, roughness: 1 }),
+    // Portal gates: black glassy stone and the ember seams in it.
+    obsidian: std(rubble, 2.5, 0.45, { color: 0x15110f, metalness: 0.15 }),
+    ember: new THREE.MeshStandardMaterial({ color: 0x2a0800, emissive: 0xff5a14, emissiveIntensity: 1.6, roughness: 0.6 }),
   };
   m.lamp.userData.noShadow = true;
   return m;

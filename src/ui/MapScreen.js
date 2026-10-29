@@ -1,4 +1,5 @@
-import { WORLD_SIZE, WORLD_HALF, HOUSES, ROADS, RIVER, LAKE, PLAZA, HILL, BRIDGE, OVERLOOK } from '../world/plan.js';
+import { WORLD_SIZE, WORLD_HALF, HOUSES, ROADS, RIVER, LAKE, PLAZA, HILL, BRIDGE, OVERLOOK, SHELVES, RUINS, CREVASSE, LAKES } from '../world/plan.js';
+import { REGIONS } from '../world/regions.js';
 import { HOUSE_NAMES } from '../buildings/houses.js';
 
 // The map (M): a parchment-style top-down view of the vale, drawn once from
@@ -8,6 +9,8 @@ import { HOUSE_NAMES } from '../buildings/houses.js';
 const MAP_PX = 2048; // base raster covers the whole world
 const PX = MAP_PX / WORLD_SIZE;
 const toPx = (v) => (v + WORLD_HALF) * PX;
+
+const RUIN_LABELS = { lakeside: 'Drowned Temple', crypt: 'Barrow Crypt', forest: 'Standing Stones', hill: 'Old Watchtower', chapel: 'Ruined Chapel', crevasse: 'Sunken Arcade' };
 
 export class MapScreen {
   constructor(game) {
@@ -76,15 +79,18 @@ export class MapScreen {
       ctx.lineTo(toPx(RIVER.path.x[j]), toPx(RIVER.path.z[j]));
       ctx.stroke();
     }
-    ctx.beginPath();
-    for (let k = 0; k <= 96; k++) {
-      const a = (k / 96) * Math.PI * 2;
-      const r = LAKE.radiusAt(a);
-      const px = toPx(LAKE.x + Math.cos(a) * r);
-      const py = toPx(LAKE.z + Math.sin(a) * r);
-      k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+    for (const L of LAKES) {
+      ctx.beginPath();
+      for (let k = 0; k <= 96; k++) {
+        const a = (k / 96) * Math.PI * 2;
+        const r = L.radiusAt(a);
+        const px = toPx(L.x + Math.cos(a) * r);
+        const py = toPx(L.z + Math.sin(a) * r);
+        k ? ctx.lineTo(px, py) : ctx.moveTo(px, py);
+      }
+      if (L.ring) ctx.arc(toPx(L.x), toPx(L.z), L.ring * PX, 0, Math.PI * 2, true);
+      ctx.fill('evenodd');
     }
-    ctx.fill();
 
     // Roads.
     for (const road of ROADS) {
@@ -162,6 +168,11 @@ export class MapScreen {
     label('The Overlook', OVERLOOK.x, OVERLOOK.z - 6);
     label('Lake', LAKE.x, LAKE.z);
     label('Elder Wood', -215, 128);
+    label('Castle Rock', 185, -200);
+    for (const R of REGIONS) label(R.name, R.x, R.z);
+    label('The Shelves', SHELVES.x, SHELVES.z);
+    label('The Rift', CREVASSE.path.x[Math.floor(CREVASSE.path.count / 2)], CREVASSE.path.z[Math.floor(CREVASSE.path.count / 2)]);
+    if (z > 1.6) for (const s of RUINS) label(RUIN_LABELS[s.kind], s.x, s.z, 16 * devicePixelRatio);
     if (z > 2.2) for (const hh of HOUSES) label(HOUSE_NAMES[hh.design], hh.x, hh.z, 16 * devicePixelRatio);
     for (const l of g.village.landmarks) if (l.name === 'bridge') label('Bridge', BRIDGE.x, BRIDGE.z - 6);
     ctx.shadowBlur = 0;

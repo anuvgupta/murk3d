@@ -238,7 +238,9 @@ export function chestOak(kit, m, im) {
   // Vaulted lid with bands.
   kit.frame({ y: h, rx: 0 }, () => {
     vaultLid(kit, m.planks, d + 0.02, w + 0.02, 0.16, { ry: Math.PI / 2 });
-    for (const x of [-w * 0.32, w * 0.32]) vaultLid(kit, im.ironBand, d + 0.04, 0.05, 0.17, { x, ry: Math.PI / 2 });
+    for (const x of [-w * 0.32, w * 0.32]) vaultLid(kit, im.ironBand, d + 0.05, 0.06, 0.175, { x, ry: Math.PI / 2 });
+    // Hinge strap across the back of the lid.
+    kit.box(im.ironBand, w * 0.9, 0.03, 0.08, { y: 0.02, z: -d / 2 + 0.02 });
   });
   // Hasp and lock plate.
   kit.box(im.ironBand, 0.07, 0.11, 0.015, { y: h - 0.03, z: d / 2 + 0.008 });
@@ -272,7 +274,7 @@ export function chestGilt(kit, m, im) {
   kit.frame({ y: h, z: -d / 2, rx: -open }, () => {
     kit.frame({ z: d / 2 }, () => {
       vaultLid(kit, dark, d + 0.02, w + 0.02, 0.15, { ry: Math.PI / 2 });
-      for (const x of [-w * 0.3, 0, w * 0.3]) vaultLid(kit, im.gold, d + 0.04, 0.035, 0.16, { x, ry: Math.PI / 2 });
+      for (const x of [-w * 0.3, 0, w * 0.3]) vaultLid(kit, im.gold, d + 0.05, 0.04, 0.165, { x, ry: Math.PI / 2 });
       // Velvet lining visible on the underside of the lid.
       kit.box(im.velvet, w - 0.06, 0.01, d - 0.06, { y: 0.006 });
     });

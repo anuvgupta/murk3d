@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { RIVER, LAKE } from './plan.js';
+import { RIVER, LAKES } from './plan.js';
 import { WIND_GLSL } from './Wind.js';
 import { createWaterNormalTexture } from '../util/noiseTexture.js';
 
@@ -32,10 +32,13 @@ export class Water {
     const river = new THREE.Mesh(this.buildRiver(), this.material);
     river.name = 'river';
     river.receiveShadow = true;
-    const lake = new THREE.Mesh(this.buildLake(), this.material);
-    lake.name = 'lake';
-    lake.receiveShadow = true;
-    this.group.add(river, lake);
+    this.group.add(river);
+    for (const L of LAKES) {
+      const lake = new THREE.Mesh(this.buildLake(L), this.material);
+      lake.name = 'lake';
+      lake.receiveShadow = true;
+      this.group.add(lake);
+    }
   }
 
   buildRiver() {
@@ -86,7 +89,7 @@ export class Water {
     return this.finish(positions, uvs, flow, depth, indices);
   }
 
-  buildLake() {
+  buildLake(LAKE) {
     const positions = [];
     const uvs = [];
     const flow = [];

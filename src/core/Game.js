@@ -15,7 +15,15 @@ import { Grass } from '../world/Grass.js';
 import { Water } from '../world/Water.js';
 import { createBuildingMaterials } from '../buildings/materials.js';
 import { Village } from '../buildings/Village.js';
+import { Castle } from '../buildings/Castle.js';
+import { CASTLES, RUINS, PITS, GLADE } from '../world/plan.js';
+import { Portals } from '../world/Portals.js';
+import { Crystals } from '../world/Crystals.js';
+import { SkyIslands } from '../world/SkyIslands.js';
+import { REGIONS } from '../world/regions.js';
 import { RockField } from '../world/Rocks.js';
+import { Plates } from '../world/Plates.js';
+import { Ruins } from '../buildings/Ruins.js';
 import { Forest } from '../world/trees/Forest.js';
 import { Motes } from '../world/Motes.js';
 import { CLOUD_STYLES, saveCloudStyle } from '../world/clouds.js';
@@ -74,7 +82,14 @@ export class Game {
     this.terrain = new Terrain();
     mark('terrain');
     this.rocks = new RockField(this.terrain);
-    this.groundMask = new GroundMask(this.terrain, { cutouts: this.rocks.footprints });
+    const cutouts = [
+      ...this.rocks.footprints,
+      ...RUINS.map((s) => ({ x: s.x, z: s.z, r: s.kind === 'forest' ? 3 : s.r * 0.6 })),
+      ...PITS.filter((p) => p.depth > 0).map((p) => ({ x: p.x, z: p.z, r: Math.max(p.hx, p.hz) * 0.75 })),
+      { x: GLADE.x, z: GLADE.z, r: GLADE.r - 6.5 },
+      ...REGIONS.map((R) => ({ x: R.x + (R.gate || { dx: 50 }).dx, z: R.z + (R.gate || { dz: 50 }).dz, r: 3.5 })),
+    ];
+    this.groundMask = new GroundMask(this.terrain, { cutouts });
     mark('mask');
     this.wind = new Wind();
     // Sun (or moon) direction and colour × intensity, for shader effects.
@@ -86,6 +101,8 @@ export class Game {
     for (const chunk of this.terrain.buildChunks(terrainMaterial)) this.terrainGroup.add(chunk);
     scene.add(this.terrainGroup);
     scene.add(this.rocks.build(this.noiseTexture));
+    this.plates = new Plates({ terrain: this.terrain, noise: this.noiseTexture });
+    scene.add(this.plates.group);
 
     this.grass = new Grass({
       terrain: this.terrain,
@@ -106,6 +123,24 @@ export class Game {
     this.village = new Village({ terrain: this.terrain, materials: this.buildingMaterials });
     scene.add(this.village.group);
     mark('village');
+    this.castles = CASTLES.map((cfg) => new Castle({ terrain: this.terrain, materials: this.buildingMaterials, castle: cfg }));
+    for (const c of this.castles) scene.add(c.group);
+    mark('castle');
+    this.islands = new SkyIslands({ noise: this.noiseTexture, materials: this.buildingMaterials });
+    scene.add(this.islands.group);
+    this.portals = new Portals({ terrain: this.terrain, materials: this.buildingMaterials, noise: this.noiseTexture, yAt: (x, z) => this.islands.surfaceAt(x, z) });
+    scene.add(this.portals.group);
+    this.crystals = new Crystals({ terrain: this.terrain });
+    scene.add(this.crystals.group);
+    mark('realms');
+    this.ruins = new Ruins({ terrain: this.terrain, materials: this.buildingMaterials, items: this.village.itemMaterials });
+    scene.add(this.ruins.group);
+    for (const l of this.ruins.lights) {
+      const light = new THREE.PointLight(l.color, l.intensity, l.distance, 1.6);
+      light.position.set(l.x, l.y, l.z);
+      scene.add(light);
+    }
+    mark('ruins');
 
     this.forest = new Forest({ terrain: this.terrain, mask: this.groundMask, noise: this.noiseTexture, wind: this.wind, rocks: this.rocks, sun: this.sunInfo });
     scene.add(this.forest.group);
@@ -114,9 +149,13 @@ export class Game {
     this.motes = new Motes({ wind: this.wind, sun: this.sunInfo });
     scene.add(this.motes.points);
 
-    const colliders = [...this.village.colliders, ...this.rocks.colliders, ...this.forest.colliders];
+    const colliders = [...this.village.colliders, ...this.castles.flatMap((c) => c.worldColliders()), ...this.ruins.colliders, ...this.portals.colliders, ...this.crystals.colliders, ...this.rocks.colliders, ...this.forest.colliders];
     this.player = new Player(this.camera, this.input, this.terrain, colliders);
     this.player.surfaces.push((x, z) => this.village.surfaceAt(x, z));
+    for (const c of this.castles) this.player.surfaces.push((x, z) => c.surfaceAt(x, z));
+    this.player.surfaces.push((x, z) => this.islands.surfaceAt(x, z));
+    this.player.surfaces.push((x, z) => this.plates.surfaceAt(x, z));
+    this.player.surfaces.push((x, z) => this.ruins.surfaceAt(x, z));
     this.player.spawn(SPAWN.x, SPAWN.z, SPAWN.yaw);
     this.applyViewLink();
     this.feedback = new Feedback(this);
@@ -143,6 +182,22 @@ export class Game {
       this.environment.setTime(time);
       this.environment.paused = true;
     }
+  }
+
+  // Step through a gate: a flash, then the player stands before the twin gate.
+  travelTo(id) {
+    const to = this.portals.arrivalFor(id);
+    const flash = document.getElementById('flash');
+    if (flash) {
+      flash.classList.add('on');
+      setTimeout(() => flash.classList.remove('on'), 700);
+    }
+    this.player.spawn(to.x, to.z, to.yaw);
+    this.portals.cooldown = 2.5;
+    const R = REGIONS.find((r) => r.id === id);
+    this.hud.toast(R ? R.name : 'The Vale');
+    // Let the grass and trees stream in around the new position.
+    this.grass.update(this.camera, this.player.position);
   }
 
   cycleClouds() {
@@ -213,6 +268,8 @@ export class Game {
         this.perf.el.classList.toggle('hidden', !this.perf.show);
       }
       if (!this.map.open) this.player.update(dt);
+      const dest = this.portals.update(dt, this.player.position);
+      if (dest) this.travelTo(dest);
     }
 
     this.updateWorld(dt);
@@ -272,6 +329,7 @@ export class Game {
     this.village.update(dt, this.elapsed, this.wind, env.nightFactor, env.lightLevel);
     this.motes.setViewport(this._bufferSize.y, this.camera.fov);
     this.motes.update(dt, this.player.position, this.terrain, env.nightFactor, env.lightLevel);
+    if (!this.active) this.portals.update(dt, { x: 1e9, y: 0, z: 1e9 });
   }
 
   render() {
