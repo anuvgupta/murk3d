@@ -357,3 +357,13 @@ screenshot-checked.
   snow ok (rocks now snow-dusted); moonlit night works (haze fixed); rift
   arcade good; temple/jetty/crypt interior good; waterfalls thin (widened).
   Portal travel verified headlessly for every realm (#19 done).
+- 14:25 Review pass over every prompt (§3–§15): all build items exist in a
+  first pass (houses, barrels, 10 species + purple, grass, water, bridge,
+  cobbles, roads, village/well, overlook, feedback, clouds, chests, purses,
+  weapons, map, windmill/town hall/mill, castle, plates, items library incl.
+  smelter/food/mushrooms/boats/canoe/staffs, mist+motes, LOD tiers, ruins
+  incl. jetty per Oblivion ref, ten realms + portals). Verified by render:
+  karst lake (turquoise, spires), river town island, citadel, glade gates,
+  smithy, temple/jetty, crypt, rift. Now entering the lighting/beauty
+  critique loop (batch L: overlook view at 7 times of day + castle, river,
+  lake).
