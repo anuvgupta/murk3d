@@ -467,3 +467,7 @@ screenshot-checked.
   Plaza afternoon frame (well, stalls, cherry, castle on the hill) is
   solid. Leaf normals now lean upward (0.55) so far canopies stop reading
   as dark blobs — verify AE.
+- 20:00 AE: leaf-normal lean works (village canopies show lit tops).
+  Forest noon: giant trunks flat maroon, canopy undersides black →
+  bark [0.52,0.4,0.3], +sky ambient on leaves. Verify AF (forest, forest
+  edge, standing stones at dusk).
