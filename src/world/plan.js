@@ -432,6 +432,15 @@ export const RUINS = [
   }
 }
 
+// Flat pads levelled after every other cut (roads, rivers, canyons): the
+// ground under each realm's home gate, and the portal glade.
+export const PADS = [{ x: GLADE.x, z: GLADE.z, r: GLADE.r + 2, apron: 10 }];
+for (const R of REGIONS) {
+  const g = R.gate || { dx: 50, dz: 50 };
+  if (g.y !== undefined) continue; // a gate on a floating island needs no pad
+  PADS.push({ x: R.x + g.dx, z: R.z + g.dz, r: 11, apron: 12 });
+}
+
 // Levelled floors cut into (depth > 0) or built up from (depth < 0) the
 // ground: the crypt's chamber and stair, and the temple's quay on the shore,
 // which stands a little above the lake (`lake: true` levels from LAKE.level).

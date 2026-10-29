@@ -18,6 +18,7 @@ import {
   LAKES,
   ISLETS,
   PITS,
+  PADS,
 } from './plan.js';
 import { REGIONS, regionWeight } from './regions.js';
 
@@ -395,8 +396,25 @@ export class Terrain {
     return h;
   }
 
-  // Final height: plots, then roads, then the river and lake carved in.
+  // Final height: plots, then roads, then the river and lake carved in,
+  // then the gate pads flattened over whatever is left.
   shapedHeight(x, z) {
+    let h = this.cutHeight(x, z);
+    if (this._noPads) return h;
+    for (const pad of PADS) {
+      const d = Math.hypot(x - pad.x, z - pad.z) - pad.r;
+      if (d > pad.apron) continue;
+      if (pad.level === undefined) {
+        this._noPads = true;
+        pad.level = this.cutHeight(pad.x, pad.z);
+        this._noPads = false;
+      }
+      h = lerp(pad.level, h, smoothstep(0, pad.apron, d));
+    }
+    return h;
+  }
+
+  cutHeight(x, z) {
     let h = this.plottedHeight(x, z);
 
     const rq = RIVER.path.nearest(x, z, 64, this._rq || (this._rq = {}));
