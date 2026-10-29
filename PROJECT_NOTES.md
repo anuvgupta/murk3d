@@ -476,3 +476,7 @@ screenshot-checked.
   the build check BEFORE commit in the one-liner (it was in the same
   chain but the commit didn't gate on it). AF renders the pre-fix build;
   AG re-verifies forest + night village + castle dusk.
+- 20:25 AF (pre-fix build): forest edge shows giant bark too orange (fix
+  in flight); standing stones were literally black boxes → roughBlock()
+  noise-displaced monoliths in m.ruin (pale) with tapered tops; lintels
+  and altar too. ship.sh now gates commit+push on a clean build.
