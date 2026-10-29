@@ -506,3 +506,8 @@ screenshot-checked.
   reflection tint mix 0.3; Oblivion gate blocks were featureless black
   → obsidian 0x3a3230. Verify AM (karst ground + aerial, glade gate,
   moonlit lake).
+- 22:20 AL: cliff camo blotches gone (overlook + castle plateau); white
+  castle frame good. Chapel/watchtower masonry read as dark mud → ruin
+  0xd2cec4 / ruinDark 0xcfc9bc with env 1.3–1.4 (Ayleid-pale). Overlook
+  cliff slabs had razor-straight facet edges → post-cut fbm rumple 5%.
+  Verify AN (tower, overlook cliff, chapel, temple).
