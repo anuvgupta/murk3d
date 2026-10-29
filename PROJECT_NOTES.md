@@ -428,3 +428,9 @@ screenshot-checked.
   swimming: Player floats with feet 1.25 m under the surface in deep
   water (waterLevelAt from Water.levelAt), 45% speed. Village-from-hill
   17:30 frame has good depth and birch/purple accents.
+- 18:50 Measured (PIL region means) rather than eyeballed: near grass
+  (153,175,72) vs far meadow (93,124,45) = 1.6x step at the grass draw
+  distance; noon sky (213,226,232) ≈ white. Fixes: terrain under grass
+  mask ×(1.22,1.2,1.0) to match lit blades; sky shader deepens blue toward
+  the zenith by day (×(0.6,0.76,1.04) up to 0.8). Verify AA batch.
+  Method note: measure regions with PIL to confirm each lighting change.
