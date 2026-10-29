@@ -154,9 +154,11 @@ export const GROUND_GLSL = /* glsl */ `
     c = mix( c, rockColor( p, nrm ), rockAmt );
 
     float snowLine = 150.0 + ( n.x - 0.5 ) * 50.0;
-    float snow = smoothstep( snowLine, snowLine + 35.0, p.y ) * ( 1.0 - smoothstep( 0.4, 0.7, slope ) );
-    snow *= 0.55 + 0.45 * smoothstep( 0.3, 0.6, n.z + ( 1.0 - slope ) * 0.2 );
-    c = mix( c, ${lin(0xeef1f5)}, snow );
+    // Steep faces keep a dusting, so a far peak reads as one snowy mass
+    // rather than bare brown streaks hanging in the haze.
+    float snow = smoothstep( snowLine, snowLine + 35.0, p.y ) * ( 1.0 - 0.65 * smoothstep( 0.45, 0.9, slope ) );
+    snow *= 0.6 + 0.4 * smoothstep( 0.3, 0.6, n.z + ( 1.0 - slope ) * 0.2 );
+    c = mix( c, ${lin(0xe4eaf1)}, snow );
 
     wet = m.b;
     return c;
