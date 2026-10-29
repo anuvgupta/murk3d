@@ -406,3 +406,8 @@ screenshot-checked.
   terrain-only renders: atmosphere off → whole ridge; sky off + atmosphere
   on → black holes where the far terrain was.) Earlier fog/snow changes
   stay; they're improvements anyway.
+- 17:50 Depth-threshold fix verified: far ridge continuous from the
+  overlook at noon and golden hour; no floating slabs. Golden hour now a
+  warm sepia haze over a lit village (closest yet to the Oblivion refs).
+  Noon still veiled → fog 0.00075 by day, bluer fogDay. White castle gets
+  a pale limestone texture (verify in U4/V4).
