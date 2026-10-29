@@ -3,7 +3,11 @@
 A browser-based high fantasy open-world RPG, built with [Three.js](https://threejs.org/).
 See [the vision issue](https://github.com/anuvgupta/murk3d/issues/1) for where it's headed.
 
-## Running
+## Playing
+
+The latest `main` is deployed to GitHub Pages: https://anuvgupta.github.io/murk3d/
+
+## Running locally
 
 ```bash
 npm install
