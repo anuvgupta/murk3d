@@ -72,7 +72,7 @@ export const SPECIES = {
     shape: conical,
     leaves: { per: 4, tipFill: 3, size: [1.4, 2.1], spread: 0.65, sprigs: 6 },
     bark: { color: [0.5, 0.33, 0.21], fissures: 6, depth: 1.2, plates: true },
-    leaf: { kind: 'needle', colors: ['#28432b', '#315232', '#3a5f38', '#223c27'] },
+    leaf: { kind: 'needle', colors: ['#2f5433', '#3b653b', '#477247', '#2a4a2e'] },
     wind: 0.45,
   },
   birch: {

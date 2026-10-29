@@ -140,7 +140,12 @@ export class Portals {
     const H = 5.6; // apex height
     kit.frame({ x: g.x, y: g.y, z: g.z, ry }, () => {
       kit.cylinder(m.obsidian, 3.6, 3.9, 0.4, { y: 0.2 }, { segments: 14, metres: 2 });
-      kit.cylinder(m.ember, 3.0, 3.0, 0.42, { y: 0.2 }, { segments: 14 });
+      // Lava seams cracking out from the gate's foot.
+      for (let i = 0; i < 9; i++) {
+        const a = (i / 9) * TAU + 0.2;
+        const len = 1.4 + rng() * 1.6;
+        kit.box(m.ember, len, 0.05, 0.1 + rng() * 0.08, { x: Math.cos(a) * (0.6 + len / 2), y: 0.41, z: Math.sin(a) * (0.6 + len / 2), ry: -a + (rng() - 0.5) * 0.5 });
+      }
       const N = 26;
       for (let i = 0; i <= N; i++) {
         const t = i / N; // 0 at the left foot, 1 at the right foot
