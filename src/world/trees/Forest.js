@@ -105,9 +105,12 @@ function addWind(material, uniforms, scale, leaf = false) {
         gl_Position = projectionMatrix * mvPosition;`
       );
     if (leaf) {
-      // Leaves: light both faces alike, and let the sun through them.
+      // Leaves: light both faces alike, and let the sun through them. A
+      // canopy takes most of its light from the sky, so leaf normals lean
+      // upward instead of following each flat card's random facing.
       shader.vertexShader = shader.vertexShader
         .replace('#include <common>', `#include <common>\nuniform vec3 uSunDir;\nvarying float vLeafTrans;`)
+        .replace('#include <beginnormal_vertex>', `#include <beginnormal_vertex>\nobjectNormal = normalize( mix( objectNormal, vec3( 0.0, 1.0, 0.0 ), 0.55 ) );`)
         .replace(
           'vec4 mvPosition = modelViewMatrix * wpos;',
           `vec4 mvPosition = modelViewMatrix * wpos;
