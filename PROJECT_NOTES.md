@@ -580,3 +580,7 @@ screenshot-checked.
   46 m ≈ 25°), lifts ×1.3, no trees on plates. Face-normal fix (AY)
   should turn the broken faces to rock. Verify AZ (wide, foot, upslope,
   golden).
+- 03:40 Rock close-range flatness (AW1/AX3): cavity term 0.8+0.4h →
+  0.5+0.75h, darker base 0x6f6a64, grit 0.2→0.28, bump 1.4→2.2 (terrain)
+  and 1.2→2.0 (rock meshes). Verify BA (cliff close, boulder foot,
+  castle cliff, overlook golden) after AY/AZ.
