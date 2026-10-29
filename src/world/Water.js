@@ -278,7 +278,7 @@ export class Water {
           diffuseColor.a = mix( diffuseColor.a, 1.0, fres * 0.7 * smoothstep( -0.03, 0.12, vDepth ) );
           // Green-grey water, as in the reference lakes: the sky reflection is
           // tinted by the water itself rather than mirrored white.
-          outgoingLight = mix( outgoingLight, outgoingLight * vec3( 0.78, 0.9, 0.88 ), 0.6 );
+          outgoingLight = mix( outgoingLight, outgoingLight * vec3( 0.78, 0.9, 0.88 ), 0.3 );
           #include <opaque_fragment>`
         );
     };
