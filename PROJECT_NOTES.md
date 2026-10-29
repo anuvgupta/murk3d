@@ -249,3 +249,33 @@ impossible to run. Grass: a dense carpet, not rough thin spiky blades.
   smooth-forking limbs and a crown of distinct leaf clusters with sky gaps;
   long drooping needle boughs on conifers; deep brown bark with pale ridges;
   soft warm hazy lighting; mossy rocks sitting in grass.
+
+## 12. Sun and lighting references (Oblivion Remastered)
+
+Three screenshots: (a) forest with warm god rays through tree canopy,
+hazy golden air, soft contact shadows; (b) daytime river with stone bridge,
+thatched timber house, bright overcast-white sky, soft diffuse light, pale
+atmospheric haze toward distance; (c) late sunrise over a lake: big soft
+white-gold sun disc with wide glow and visible rays, pink-amber mist, lake
+reflecting the sky, everything in warm sepia tones with dark silhouettes.
+Instruction: spend concentrated effort, 10–20 rounds of review and
+refinement, to get the sun and lighting looking like this.
+
+## 13. Ruins (scene (c) and more)
+
+Recreate scene (c) specifically: a large river/lake with a small wooden jetty
+on one side, and on the other side ruins with gothic arches, fallen mossy
+stones, columns, on little islands/headlands, plus an entrance that can load
+an interior. Absolutely picturesque. Then add: a ruin in the forest, a ruin
+next to the castle, a ruin on its own hill, a ruin inside a massive rocky and
+grassy crevasse/canyon (with enough walking area).
+
+## 14. Review method
+
+When reviewing screenshots, compare directly against the Oblivion Remastered
+and Breath of the Wild screenshots provided (and the fantasy landscape refs)
+and match their lighting, realism, art style and beauty, so nothing looks
+computer generated, blocky or geometric, but natural and fantastical.
+
+The /goal for this chat is the standing goal in §11 plus every prompt in this
+file.
