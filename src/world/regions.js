@@ -22,6 +22,7 @@ export const REGIONS = [
     tagline: 'Limestone towers over still water',
     ...at(0), r: 150,
     floor: 6,
+    rim: 115, // taller than the spires, so their tips don't show over the Vale's mountains
     palette: { ground: [0.92, 1.0, 0.86], grass: [0.95, 1.04, 0.86], fog: [0.72, 0.84, 0.84], fogDensity: 1.3, saturation: 1.12 },
     lake: { r: 54, depth: 7, level: 1.5, tint: [0.6, 1.9, 1.7] },
     spires: { count: 40, rMin: 5, rMax: 14, hMin: 34, hMax: 96, seed: 11 },

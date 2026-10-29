@@ -88,7 +88,7 @@ export class Terrain {
       // A crater rim closes each realm off from the Vale: the mountain ring
       // would otherwise show a notch where the bowl cuts through it.
       const base = R.floor + R.height(u, v, d, this.noiseDetail);
-      const rimTop = Math.max(R.floor + 72, 62) + 10 * this.noiseDetail(u * 0.02 + 7, v * 0.02);
+      const rimTop = (R.rim ?? Math.max(R.floor + 72, 62)) + 10 * this.noiseDetail(u * 0.02 + 7, v * 0.02);
       realm += w * lerp(base, Math.max(base, rimTop), smoothstep(R.r - 75, R.r - 12, d));
       rw = Math.min(1, rw + w);
     }

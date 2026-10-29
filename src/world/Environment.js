@@ -278,7 +278,7 @@ export class Environment {
     a.fogHeight = this.focusHeight - 6;
     a.fogFalloff = 0.025;
     // Mist lies in the valley at dawn and dusk and thins through the day.
-    a.groundMist = 0.08 + 0.22 * low * day + 0.15 * (1 - day);
+    a.groundMist = 0.07 + 0.14 * low * day + 0.14 * (1 - day);
     a.mistFill = 0;
     a.saturation = 1.12 + 0.06 * day + 0.1 * golden;
     a.lift.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
