@@ -610,3 +610,9 @@ screenshot-checked.
   Plates now built after the turf material exists. AZ1/AZ4 aerial cam
   was inside geometry (bad vantage) → BD re-shoots from player spots +
   a 70 m aerial.
+- 05:20 Probe of the ground under the Shelves: base terrain climbs from
+  ~10 m at z 230 to 60–100 m at z 350 (mountain-ring apron starts at
+  r≈220). Three plates sat on 46–74 m slope and read as hillside bumps;
+  the AZ aerial camera at y 45–70 was inside that slope. Plates moved
+  north onto 5–25 m ground (z 205–300), SHELVES label → (-165,248).
+  BD (lip/turf/bank checks) and BE (relocated Shelves) queued.
