@@ -419,3 +419,8 @@ screenshot-checked.
 - 18:10 Castle now pale white at noon (good). Found: wading into the river
   made the water vanish (single-sided) with no underwater look → water
   DoubleSide + Water.levelAt() + uUnderwater murk in the atmosphere pass.
+- 18:25 Round 7: castle verified white at 10:00 and 16:00. Noon still
+  flat → uContrast (1.14 by day, pivot 0.18, pre-tonemap); far meadow
+  under grass mask 0.72→0.84 and grass sheen 0.08→0.05 to kill the
+  near/far grass band. Pending verify (Z). Still open: milky horizon at
+  noon (Preetham), wading render (Y).
