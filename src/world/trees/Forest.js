@@ -234,7 +234,7 @@ export class Forest {
     for (const s of this.rockSpots) if (Math.hypot(x - s.x, z - s.z) < s.r + 0.5) return false;
     for (const s of RUINS) if (Math.hypot(x - s.x, z - s.z) < s.r + r) return false;
     // The Shelves stay open grassland: only the odd tree on a plate.
-    if (this.terrain.plateHeight(x, z) > 0.5 && this.random() > 0.1) return false;
+    if (this.terrain.plateHeight(x, z) > 0.5) return false;
     for (const s of PITS) if (Math.hypot(x - s.x, z - s.z) < s.hz + 3 + r) return false;
     const n = this.terrain.normalAt(x, z);
     if (n.y < 0.82) return false;
