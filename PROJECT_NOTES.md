@@ -331,3 +331,14 @@ screenshot-checked.
   instead of four extra height lookups per vertex.
 - Headless renders are now ~3-5 min per frame in this container; batches
   run in the background at 800x450 while coding continues.
+- Realms: the ten reference worlds are regions (regions.js) ringed ~585 m
+  out beyond the mountains, each a bowl with its own landform/palette/
+  flora/set pieces: karst spire lake, floating isles (SkyIslands.js),
+  mountain citadel (dark Castle variant via CASTLES), granite valley,
+  ancient jungle, white river citadel (moated island town + causeway),
+  moonlit ruins (forced night, teal crystals), crystal tundra (snow tint,
+  ice crystals), overgrown cliffs (mesa with ruins), canyon shrine (ring
+  gate on the canyon floor). Portals.js: glade at (92,34) with ten
+  Oblivion-style gates; each realm has a gate home. Menu lists realms.
+- Verified by render: castle bridge/arches, drowned temple + jetty, crypt
+  interior, the Rift arcade. Pending: realm renders, plate lips up close.
