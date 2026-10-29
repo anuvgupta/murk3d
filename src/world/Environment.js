@@ -270,7 +270,10 @@ export class Environment {
       a.fogSunColor.lerp(this._tmpColor.setRGB(P.fog[0] * 1.05, P.fog[1] * 1.02, P.fog[2] * 0.95), k * 0.6);
       a.fogDensity *= THREE.MathUtils.lerp(1, P.fogDensity, rw);
       a.saturation = THREE.MathUtils.lerp(a.saturation, P.saturation, rw);
-      if (realm.region.mist) a.groundMist = Math.max(a.groundMist, 0.9 * rw);
+      if (realm.region.mist) {
+        a.groundMist = Math.max(a.groundMist, 0.95 * rw);
+        a.fogHeight = THREE.MathUtils.lerp(a.fogHeight, realm.region.mist.top - 9, rw);
+      }
     }
 
     this.lightLevel = 0.12 + 0.88 * day;

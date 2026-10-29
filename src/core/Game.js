@@ -18,6 +18,8 @@ import { Village } from '../buildings/Village.js';
 import { Castle } from '../buildings/Castle.js';
 import { CASTLES, RUINS, PITS, GLADE } from '../world/plan.js';
 import { Portals } from '../world/Portals.js';
+import { Falls } from '../world/Falls.js';
+import { Arches } from '../world/Arches.js';
 import { Crystals } from '../world/Crystals.js';
 import { SkyIslands } from '../world/SkyIslands.js';
 import { REGIONS } from '../world/regions.js';
@@ -87,6 +89,7 @@ export class Game {
       ...RUINS.map((s) => ({ x: s.x, z: s.z, r: s.kind === 'forest' ? 3 : s.r * 0.6 })),
       ...PITS.filter((p) => p.depth > 0).map((p) => ({ x: p.x, z: p.z, r: Math.max(p.hx, p.hz) * 0.75 })),
       { x: GLADE.x, z: GLADE.z, r: GLADE.r - 6.5 },
+      ...REGIONS.map((R, i) => ({ x: GLADE.x + Math.cos((i / REGIONS.length) * Math.PI * 2) * GLADE.r, z: GLADE.z + Math.sin((i / REGIONS.length) * Math.PI * 2) * GLADE.r, r: 3.8 })),
       ...REGIONS.map((R) => ({ x: R.x + (R.gate || { dx: 50 }).dx, z: R.z + (R.gate || { dz: 50 }).dz, r: 3.5 })),
     ];
     this.groundMask = new GroundMask(this.terrain, { cutouts });
@@ -132,6 +135,10 @@ export class Game {
     scene.add(this.portals.group);
     this.crystals = new Crystals({ terrain: this.terrain });
     scene.add(this.crystals.group);
+    this.falls = new Falls({ terrain: this.terrain, noise: this.noiseTexture });
+    scene.add(this.falls.group);
+    this.arches = new Arches({ terrain: this.terrain, noise: this.noiseTexture });
+    scene.add(this.arches.group);
     mark('realms');
     this.ruins = new Ruins({ terrain: this.terrain, materials: this.buildingMaterials, items: this.village.itemMaterials });
     scene.add(this.ruins.group);
@@ -149,7 +156,7 @@ export class Game {
     this.motes = new Motes({ wind: this.wind, sun: this.sunInfo });
     scene.add(this.motes.points);
 
-    const colliders = [...this.village.colliders, ...this.castles.flatMap((c) => c.worldColliders()), ...this.ruins.colliders, ...this.portals.colliders, ...this.crystals.colliders, ...this.rocks.colliders, ...this.forest.colliders];
+    const colliders = [...this.village.colliders, ...this.castles.flatMap((c) => c.worldColliders()), ...this.ruins.colliders, ...this.portals.colliders, ...this.crystals.colliders, ...this.arches.colliders, ...this.rocks.colliders, ...this.forest.colliders];
     this.player = new Player(this.camera, this.input, this.terrain, colliders);
     this.player.surfaces.push((x, z) => this.village.surfaceAt(x, z));
     for (const c of this.castles) this.player.surfaces.push((x, z) => c.surfaceAt(x, z));
@@ -330,6 +337,7 @@ export class Game {
     this.motes.setViewport(this._bufferSize.y, this.camera.fov);
     this.motes.update(dt, this.player.position, this.terrain, env.nightFactor, env.lightLevel);
     if (!this.active) this.portals.update(dt, { x: 1e9, y: 0, z: 1e9 });
+    this.falls.update(dt);
   }
 
   render() {

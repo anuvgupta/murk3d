@@ -8,6 +8,7 @@
 
 import * as THREE from 'three';
 import { WORLD_SIZE, WORLD_HALF, RIVER, LAKES, PLAZA, HOUSES, ROADS, BRIDGE, CASTLES } from './plan.js';
+import { REGIONS } from './regions.js';
 
 const SIZE = 2048;
 const PX = SIZE / WORLD_SIZE; // pixels per metre
@@ -120,6 +121,16 @@ export class GroundMask {
     for (const h of HOUSES) fillRotRect(grass, h.x, h.z, h.footprint.hx + 0.6, h.footprint.hz + 0.6, h.rotationY);
     fillRotRect(grass, BRIDGE.x, BRIDGE.z, BRIDGE.width / 2 + 0.5, BRIDGE.length / 2 + 0.5, BRIDGE.rotationY);
     // The castle wards are paved.
+    for (const R of REGIONS) {
+      if (!R.town) continue;
+      grass.beginPath();
+      grass.arc(toPx(R.x), toPx(R.z), (R.town.r + 2) * PX, 0, Math.PI * 2);
+      grass.fill();
+      cobble.fillStyle = '#fff';
+      cobble.beginPath();
+      cobble.arc(toPx(R.x), toPx(R.z), R.town.r * PX, 0, Math.PI * 2);
+      cobble.fill();
+    }
     for (const C of CASTLES) {
       grass.beginPath();
       grass.arc(toPx(C.plateau.x), toPx(C.plateau.z), (C.plateau.radius + 1) * PX, 0, Math.PI * 2);

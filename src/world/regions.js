@@ -25,6 +25,7 @@ export const REGIONS = [
     palette: { ground: [0.92, 1.0, 0.86], grass: [0.95, 1.04, 0.86], fog: [0.72, 0.84, 0.84], fogDensity: 1.3, saturation: 1.12 },
     lake: { r: 54, depth: 7, level: 1.5 },
     spires: { count: 26, rMin: 5, rMax: 13, hMin: 28, hMax: 78, seed: 11 },
+    arches: [{ dx: 75, dz: -39, r: 13, tube: 3.6, ry: 1.1 }],
     rocks: 24,
     flora: [{ species: 'willow', density: 2.2, spacing: 8 }, { species: 'pine', density: 1.4, spacing: 8 }],
     height(u, v, d, n) {
@@ -78,6 +79,7 @@ export const REGIONS = [
     floor: 20,
     palette: { ground: [0.95, 0.97, 0.9], grass: [0.9, 1.0, 0.8], fog: [0.8, 0.86, 0.92], fogDensity: 0.8, saturation: 1.06 },
     lake: { r: 24, depth: 4, level: 0.4, dx: 10, dz: 30 },
+    falls: [{ from: { dx: 76, dz: 30 }, to: { dx: 35, dz: 30 }, w: 6 }],
     gate: { dx: 0, dz: -70 },
     rocks: 70,
     flora: [{ species: 'pine', density: 5.0, spacing: 7 }, { species: 'birch', density: 1.0, spacing: 6 }],
@@ -155,6 +157,9 @@ export const REGIONS = [
     floor: 10,
     palette: { ground: [0.9, 1.0, 0.84], grass: [0.9, 1.04, 0.8], fog: [0.78, 0.86, 0.84], fogDensity: 1.2, saturation: 1.12 },
     mesas: [{ dx: -20, dz: 0, radius: 56, height: 62, gentleWidth: 60, cliffWidth: 9, cliffDir: 0, cliffSpread: 1.4 }],
+    lake: { r: 12, depth: 3, level: 0.6, dx: 64, dz: 2, steep: true }, // plunge pool under the cliff
+    falls: [{ from: { dx: 34, dz: 2 }, to: { dx: 53, dz: 2 }, w: 5 }],
+    arches: [{ dx: 30, dz: -70, r: 13, tube: 3, ry: 0.4 }],
     ruins: ['chapel', 'tower', 'stones'],
     rocks: 26,
     flora: [{ species: 'oak', density: 3.0, spacing: 8 }, { species: 'willow', density: 1.0, spacing: 8 }, { species: 'giant', density: 0.6, spacing: 14 }],
@@ -170,6 +175,7 @@ export const REGIONS = [
     floor: 24,
     palette: { ground: [1.15, 0.9, 0.72], grass: [1.1, 0.95, 0.6], fog: [0.92, 0.82, 0.7], fogDensity: 0.7, saturation: 1.15, grassDensity: 0.45 },
     canyon: { width: 34, depth: 30 }, // a gorge running east–west through the bowl
+    arches: [{ dx: -58, dz: 8.6, r: 24, tube: 4.5, ry: -1.17 }, { dx: 44, dz: 2.9, r: 24, tube: 4.2, ry: 1.3 }], // spanning the gorge
     gate: { dx: 0, dz: 0, face: 0 }, // the shrine ring on the canyon floor
     rocks: 40,
     flora: [{ species: 'juniper', density: 1.2, spacing: 9 }, { species: 'dead', density: 0.6, spacing: 12 }],

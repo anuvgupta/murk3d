@@ -447,7 +447,9 @@ export class Terrain {
         h = lerp(Math.min(h, L.level - 0.4 - L.depth * smoothstep(1, 0.3, k)), h, quay);
       } else {
         const e = ld - R;
-        h = lerp(Math.min(h, L.level - 0.4 + e * 0.3 + Math.max(0, e - 15) ** 2 * 0.03), h, quay);
+        // A plunge pool's banks climb fast so the cliff above it survives the cut.
+        const bank = L.steep ? L.level - 0.4 + e * 1.2 + Math.max(0, e - 6) ** 2 * 0.3 : L.level - 0.4 + e * 0.3 + Math.max(0, e - 15) ** 2 * 0.03;
+        h = lerp(Math.min(h, bank), h, quay);
       }
       if (L !== LAKE) continue;
       // Islets rise out of the lake bed.
