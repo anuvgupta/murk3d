@@ -524,3 +524,8 @@ screenshot-checked.
   Rubble texture is intrinsically dark (~0.3 albedo), so colour multipliers
   can't rescue it → ruinDark now ashlar-based 0xbdb7ab. Rock rumple
   0.05@2.8 → 0.14@1.6, slab fracture planes 7–10 → 5–7. Verify AP.
+- 23:25 AN3/AN4: chapel and temple still brown even at noon — the
+  standard ashlar texture base is ~0.6 brown; multipliers can't make
+  limestone. Both ruin materials now use ashlarStone(5, pale) with
+  weathered-grey multipliers. Verify AQ (temple noon/golden, chapel,
+  tower) after AO/AP.
