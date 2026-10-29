@@ -395,3 +395,7 @@ screenshot-checked.
   Fog is now mostly distance haze (70/30, falloff 0.015, cap 0.9) and a
   touch bluer by day. Round 3/4 also: brighter hemi/env light, deeper blue
   sky (turbidity 2.2), night desaturated, lighter willow bark.
+- 17:40 Correction: the slabs were bare-rock streaks on a distant SNOW peak
+  (telephoto renders tele_full/tele_noatmo proved it); the snow fogged to
+  sky colour, leaving the dark streaks "floating". Fix: snow dusting kept
+  on steep faces, snow colour cooler, fog capped at 0.82.
