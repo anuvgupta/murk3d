@@ -534,3 +534,7 @@ screenshot-checked.
   read well; jungle floor dark and lush. Shelves: mid-distance slopes
   were one flat saturated green beyond the blade draw distance →
   meadowColor gains 20–60 m straw/rich patchiness. Verify AR.
+- 00:05 Shipped a shader that failed to compile for ~10 min: `patch` is a
+  GLSL reserved word (terrain/grass/turf fell back to magenta-less
+  default). Caught by the smoke test, fixed as `sweep`. ship.sh now also
+  runs smoke.cjs and refuses to push on any "Shader Error".
