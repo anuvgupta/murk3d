@@ -462,3 +462,8 @@ screenshot-checked.
   X3_forest_sun, AC4_dawn. Remaining nits: near grass still slightly
   lime (AD pending), Preetham horizon pale at noon, distant tree cards
   read as dark blobs at 300 m+.
+- 19:50 AD: near grass 143,167,71 → 135,162,64 (meadow 100,130,46);
+  leaving the remaining gap as the lit-carpet-vs-ground difference.
+  Plaza afternoon frame (well, stalls, cherry, castle on the hill) is
+  solid. Leaf normals now lean upward (0.55) so far canopies stop reading
+  as dark blobs — verify AE.
