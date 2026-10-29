@@ -598,3 +598,15 @@ screenshot-checked.
   haze, lamps lit, village and hills in warm light, near slab shows
   cavities/lichen. Render queue now: BB (face-normal re-shoot) → AZ
   (steeper Shelves) → BC (bank grass + crack softening).
+- 05:00 AZ/BB/BC reviewed (11 renders). Face-normal fix holds (castle
+  cliff, overlook cliff clean); BA4 golden overlook is a keeper. Still
+  wrong: (1) bald lit-green band on steep banks — the terrain lifted the
+  under-grass colour (×1.36) wherever mask.r said grass, even where the
+  blade shader had culled by slope → groundColor now takes a `carpet`
+  factor (same smoothstep(0.56,0.7, ny) as the blades) and shows bare
+  earth instead; (2) plate lips read as concrete boxes → slabGeometry
+  rebuilt: position-pure noise displacement (up to ~4 m at the tip),
+  level top, box face groups → [rock, turf] so the top is meadow turf;
+  Plates now built after the turf material exists. AZ1/AZ4 aerial cam
+  was inside geometry (bad vantage) → BD re-shoots from player spots +
+  a 70 m aerial.
