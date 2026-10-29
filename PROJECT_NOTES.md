@@ -215,3 +215,8 @@ item library, portals + world select, the 10 reference worlds.
 - Volumetric fog / mist that moves and responds to the random wind, so distant
   things are easier to draw and the air doesn't feel lifeless. Ambient
   particles always around the player: very light sparks and dust motes.
+- Grass must be much denser, a giant carpet of blades close together, but
+  engineered so it runs efficiently.
+- LOD everywhere: 3–4 versions of each object (nearby / toward edge of draw
+  distance / far / in the distance). Grass far away still rendered but in
+  greatly reduced detail.
