@@ -100,7 +100,7 @@ export const SPECIES = {
     shape: round,
     leaves: { per: 2, tipFill: 1, size: [1.0, 1.4], spread: 0.6, sprigs: 4 },
     hanging: { count: 4, length: [2.2, 3.8] },
-    bark: { color: [0.33, 0.3, 0.26], fissures: 12, depth: 1 },
+    bark: { color: [0.44, 0.4, 0.34], fissures: 12, depth: 1 },
     leaf: { kind: 'willow', colors: ['#7a983a', '#8ea648', '#688630', '#a1b45a'] },
     wind: 1.0,
   },
