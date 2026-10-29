@@ -406,8 +406,8 @@ export class Ruins {
         const fallen = i === 2;
         kit.frame({ x, y: gy, z, ry: -a + (random() - 0.5) * 0.3 }, () => {
           if (fallen) {
-            roughBlock(kit, this.rockMat, 1.1, 0.7, h, { y: 0.25, z: 1.2, rz: 0.1 }, random, 0.2);
-            kit.box(m.moss, 0.9, 0.05, h * 0.8, { y: 0.62, z: 1.2 });
+            roughBlock(kit, this.rockMat, 1.1, 0.9, h, { y: 0.4, z: 1.2, rz: 0.1 }, random, 0.2);
+            kit.box(m.moss, 0.7, 0.05, h * 0.6, { y: 0.86, z: 1.2 });
           } else {
             roughBlock(kit, this.rockMat, 1.1, h, 0.7, { y: h / 2 - 0.3, rx: (random() - 0.5) * 0.12, rz: (random() - 0.5) * 0.1 }, random, 0.2);
             kit.box(m.moss, 0.9, 0.06, 0.5, { y: h - 0.3 });

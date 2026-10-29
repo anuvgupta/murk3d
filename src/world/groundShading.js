@@ -164,8 +164,11 @@ export const GROUND_GLSL = /* glsl */ `
     // Banks: worn earth on moderate slopes, bare rock where it steepens or climbs.
     float bank = smoothstep( 0.3, 0.46, slope + ( n.z - 0.5 ) * 0.1 );
     c = mix( c, dirtColor( n ) * 0.9, bank * 0.6 );
+    // Steep ground is bare rock; on a cliff the odd flatter ledge stays rock
+    // too (no grass blotches), so the rock band starts earlier where the
+    // ground is already mostly steep.
     float rockAmt = max(
-      smoothstep( 0.42, 0.58, slope + ( n.z - 0.5 ) * 0.1 ),
+      smoothstep( 0.36, 0.52, slope + ( n.z - 0.5 ) * 0.06 ),
       smoothstep( 95.0, 150.0, p.y + n.x * 40.0 ) * 0.9
     );
     c = mix( c, rockColor( p, nrm ), rockAmt );
