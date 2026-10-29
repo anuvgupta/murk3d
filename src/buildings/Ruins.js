@@ -4,6 +4,7 @@ import { CHESTS } from './items.js';
 import { createFurnitureMaterials, rowboat, canoe } from './furniture.js';
 import { RUINS, ISLETS, PITS, LAKE, CREVASSE } from '../world/plan.js';
 import { mulberry32 } from '../util/noise.js';
+import { createRockMaterial } from '../world/Rocks.js';
 
 // Ruins: a small vocabulary of broken stonework (pointed arches, columns,
 // ragged walls, fallen mossy blocks, a plank jetty) and the sites built from
@@ -197,8 +198,10 @@ function jetty(kit, m, len, width, deckY, waterY, random) {
 // --- Sites -----------------------------------------------------------------
 
 export class Ruins {
-  constructor({ terrain, materials, items }) {
+  constructor({ terrain, materials, items, noise }) {
     const m = materials;
+    // Monoliths are raw rock, not masonry.
+    this.rockMat = noise ? createRockMaterial(noise) : m.ruin;
     this.terrain = terrain;
     this.group = new THREE.Group();
     this.group.name = 'ruins';
@@ -403,10 +406,10 @@ export class Ruins {
         const fallen = i === 2;
         kit.frame({ x, y: gy, z, ry: -a + (random() - 0.5) * 0.3 }, () => {
           if (fallen) {
-            roughBlock(kit, m.ruin, 1.1, 0.7, h, { y: 0.25, z: 1.2, rz: 0.1 }, random);
+            roughBlock(kit, this.rockMat, 1.1, 0.7, h, { y: 0.25, z: 1.2, rz: 0.1 }, random, 0.2);
             kit.box(m.moss, 0.9, 0.05, h * 0.8, { y: 0.62, z: 1.2 });
           } else {
-            roughBlock(kit, m.ruin, 1.1, h, 0.7, { y: h / 2 - 0.3, rx: (random() - 0.5) * 0.12, rz: (random() - 0.5) * 0.1 }, random);
+            roughBlock(kit, this.rockMat, 1.1, h, 0.7, { y: h / 2 - 0.3, rx: (random() - 0.5) * 0.12, rz: (random() - 0.5) * 0.1 }, random, 0.2);
             kit.box(m.moss, 0.9, 0.06, 0.5, { y: h - 0.3 });
           }
         });
@@ -419,10 +422,10 @@ export class Ruins {
         const x = (Math.cos(a0) + Math.cos(a1)) * 0.5 * R;
         const z = (Math.sin(a0) + Math.sin(a1)) * 0.5 * R;
         const len = 2 * R * Math.sin(Math.PI / n) + 0.6;
-        roughBlock(kit, m.ruin, len, 0.55, 0.85, { x, y: 2.55, z, ry: -(a0 + a1) / 2 + Math.PI / 2 }, random, 0.08);
+        roughBlock(kit, this.rockMat, len, 0.55, 0.85, { x, y: 2.55, z, ry: -(a0 + a1) / 2 + Math.PI / 2 }, random, 0.12);
       }
       // Altar stone in the middle, moss and tumbled blocks.
-      roughBlock(kit, m.ruin, 2.0, 0.8, 1.1, { y: 0.4, ry: 0.3 }, random, 0.08);
+      roughBlock(kit, this.rockMat, 2.0, 0.8, 1.1, { y: 0.4, ry: 0.3 }, random, 0.12);
       kit.box(m.moss, 1.6, 0.05, 0.8, { y: 0.82, ry: 0.3 });
       fallenBlocks(kit, m.ruinDark, m.moss, 6, 9, random, { size: 0.6 });
     });

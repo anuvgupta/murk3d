@@ -141,7 +141,7 @@ export class Game {
     this.arches = new Arches({ terrain: this.terrain, noise: this.noiseTexture });
     scene.add(this.arches.group);
     mark('realms');
-    this.ruins = new Ruins({ terrain: this.terrain, materials: this.buildingMaterials, items: this.village.itemMaterials });
+    this.ruins = new Ruins({ terrain: this.terrain, materials: this.buildingMaterials, items: this.village.itemMaterials, noise: this.noiseTexture });
     scene.add(this.ruins.group);
     for (const l of this.ruins.lights) {
       const light = new THREE.PointLight(l.color, l.intensity, l.distance, 1.6);
