@@ -20,6 +20,7 @@ export function createBuildingMaterials(noiseTexture) {
   const clay = tex.clayTiles();
   const thatch = tex.thatch();
   const whiteAshlar = tex.ashlarStone(9, true);
+  const paleAshlar = tex.ashlarStone(5, true);
   const whiteCobble = tex.cobbleStone(12);
 
   const std = (t, bumpScale, roughness, extra = {}) =>
@@ -66,8 +67,8 @@ export function createBuildingMaterials(noiseTexture) {
     banner: new THREE.MeshStandardMaterial({ color: 0x1e3a7a, roughness: 0.95, side: THREE.DoubleSide }),
     // Ruins: weathered grey ashlar and rubble, moss and turf.
     // Weathered limestone, as pale as Oblivion's Ayleid stone.
-    ruin: std(ashlar, 2.8, 0.92, { color: 0xd2cec4, envMapIntensity: 1.4 }),
-    ruinDark: std(ashlar, 3.2, 0.95, { color: 0xbdb7ab, envMapIntensity: 1.3 }),
+    ruin: std(paleAshlar, 2.8, 0.92, { color: 0xc9c4b8, envMapIntensity: 1.4 }),
+    ruinDark: std(paleAshlar, 3.2, 0.95, { color: 0xaea89c, envMapIntensity: 1.3 }),
     moss: new THREE.MeshStandardMaterial({ color: 0x55703a, roughness: 1 }),
     turf: new THREE.MeshStandardMaterial({ color: 0x5e7d38, roughness: 1 }),
     // Portal gates: black glassy stone and the ember seams in it.
