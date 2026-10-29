@@ -367,3 +367,9 @@ screenshot-checked.
   smithy, temple/jetty, crypt, rift. Now entering the lighting/beauty
   critique loop (batch L: overlook view at 7 times of day + castle, river,
   lake).
+- 15:30 Lighting round 1 found a WHITE-OUT whenever the sun was in view
+  (09:00 frame pure white). Root cause: applyCloudStyle() splices the sky
+  fragment from '// Clouds' to gl_FragColor, which discarded the HDR soft
+  clip; raw in-scatter (thousands) hit bloom. Fix: finishSkyFragment()
+  applied after the splice (+ NaN guards, horizon UV guard). Day now
+  05:30–19:30 so golden hour/sunset exist at 18:30–19:30.
