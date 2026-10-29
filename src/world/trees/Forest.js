@@ -125,7 +125,8 @@ function addWind(material, uniforms, scale, leaf = false) {
         )
         .replace(
           '#include <opaque_fragment>',
-          `outgoingLight += diffuseColor.rgb * uSunColor * vLeafTrans * 0.45;
+          // Sky light reaches the shaded underside of a canopy; keep it from going black.
+          outgoingLight += diffuseColor.rgb * uSunColor * vLeafTrans * 0.45 + diffuseColor.rgb * vec3( 0.05, 0.06, 0.07 );
           #include <opaque_fragment>`
         );
     }

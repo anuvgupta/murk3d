@@ -43,7 +43,7 @@ export const SPECIES = {
     ],
     shape: (t) => 1 - 0.5 * t,
     leaves: { per: 6, tipFill: 3, size: [3.0, 4.4], spread: 1.9, sprigs: 7 },
-    bark: { color: [0.56, 0.33, 0.2], fissures: 5, depth: 1.6 },
+    bark: { color: [0.52, 0.4, 0.3], fissures: 5, depth: 1.6 },
     leaf: { kind: 'broad', colors: ['#3d6a2c', '#4a7a33', '#35592a', '#5a8a3c'] },
     wind: 0.25,
   },
