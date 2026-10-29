@@ -220,3 +220,17 @@ item library, portals + world select, the 10 reference worlds.
 - LOD everywhere: 3–4 versions of each object (nearby / toward edge of draw
   distance / far / in the distance). Grass far away still rendered but in
   greatly reduced detail.
+
+## 11. Standing goal (set with /goal)
+
+Finish all existing tasks first (water, grass, textures, meshes, castles,
+buildings, foods, weapons, map, feedback system, clouds, lighting, grading,
+potions, fantasy items, coins, chests, …). Then review that every instruction
+was actually done. Then take screenshots at different times of day and places
+(water, rivers, lakes, mountains, hills, buildings, castle, trees, all meshes)
+and critique as a visual designer: does it look like Oblivion Remastered / AAA
+(lighting, colours, meshes sitting and blending with terrain, textures) or a
+cheap 2000s game? Do 10–30 passes of improving the look; revise lighting,
+meshes, textures, blending as needed, creating new options and replacing
+things. Target: beautiful, fantasy dreamland, super nostalgic, without being
+impossible to run. Grass: a dense carpet, not rough thin spiky blades.
