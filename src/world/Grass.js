@@ -326,7 +326,7 @@ export class Grass {
         )
         .replace(
           '#include <opaque_fragment>',
-          `outgoingLight += uSunColor * ( diffuseColor.rgb * vTrans * 0.8 + vec3( 0.9, 0.92, 0.7 ) * vSheen * 0.08 );
+          `outgoingLight += uSunColor * ( diffuseColor.rgb * vTrans * 0.7 + vec3( 0.9, 0.92, 0.7 ) * vSheen * 0.05 );
           #include <opaque_fragment>`
         );
     };

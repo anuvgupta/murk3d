@@ -81,6 +81,7 @@ const compositeShader = {
     uLift: { value: new THREE.Color(0.02, 0.015, 0.01) },
     uVignette: { value: 0.25 },
     uUnderwater: { value: 0 },
+    uContrast: { value: 1.0 },
   },
   vertexShader: /* glsl */ `
     varying vec2 vUv;
@@ -122,6 +123,7 @@ const compositeShader = {
     uniform vec3 uLift;
     uniform float uVignette;
     uniform float uUnderwater;
+    uniform float uContrast;
     varying vec2 vUv;
 
     vec3 worldPosition( vec2 uv, float depth ) {
@@ -213,6 +215,8 @@ const compositeShader = {
       }
 
       // ---- Grade.
+      // Contrast about mid grey (scene-linear), then saturation.
+      color = max( ( color - 0.18 ) * uContrast + 0.18, 0.0 );
       float lum = dot( color, vec3( 0.2126, 0.7152, 0.0722 ) );
       color = mix( vec3( lum ), color, uSaturation );
       color += uLift * ( 1.0 - smoothstep( 0.0, 0.5, lum ) );
@@ -264,7 +268,7 @@ export class AtmospherePass extends Pass {
   }
 
   // Called by the game each frame with the current lighting state.
-  update({ sunDir, sunColor, sunVisible, fogColor, fogSunColor, fogDensity, fogHeight, fogFalloff, groundMist, mistFill, shaft, glow, disc, saturation, lift, vignette, underwater }, wind, noise, time) {
+  update({ sunDir, sunColor, sunVisible, fogColor, fogSunColor, fogDensity, fogHeight, fogFalloff, groundMist, mistFill, shaft, glow, disc, saturation, lift, vignette, underwater, contrast }, wind, noise, time) {
     const u = this.material.uniforms;
     if (wind) {
       u.uWindDir.value.copy(wind.direction);
@@ -291,6 +295,7 @@ export class AtmospherePass extends Pass {
     u.uLift.value.copy(lift);
     u.uVignette.value = vignette;
     u.uUnderwater.value = underwater || 0;
+    u.uContrast.value = contrast || 1;
 
     // Sun's screen position; shafts only when it's in front of the camera.
     // The camera has usually moved since the last render, so refresh its matrices.

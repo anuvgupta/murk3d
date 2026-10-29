@@ -74,6 +74,7 @@ export class Environment {
       groundMist: 0,
       mistFill: 0,
       underwater: 0,
+      contrast: 1,
       shaft: 0,
       glow: 0,
       disc: 0,
@@ -286,6 +287,8 @@ export class Environment {
     a.saturation = THREE.MathUtils.lerp(0.84, 1.12 + 0.06 * day + 0.1 * golden, day);
     a.lift.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
     a.vignette = 0.22;
+    // Punchier by day; flat light at dusk and night stays soft.
+    a.contrast = 1.0 + 0.14 * day * (1 - 0.5 * golden);
     // By night the pass draws the moon instead: a small pale disc, faint halo.
     if (moonI > 0.0001 && sunI <= 0.0001) {
       a.sunDir.copy(this.lightDir);
