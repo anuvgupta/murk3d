@@ -209,3 +209,9 @@ atmosphere, mountains), perf pass.
 Pending: clouds ×3, dreamy daylight grading, chests/purses/weapons, map (M),
 windmill / town hall / lumber mill, white castle plateau, tilted rock plates,
 item library, portals + world select, the 10 reference worlds.
+
+## 10. Later additions
+
+- Volumetric fog / mist that moves and responds to the random wind, so distant
+  things are easier to draw and the air doesn't feel lifeless. Ambient
+  particles always around the player: very light sparks and dust motes.
