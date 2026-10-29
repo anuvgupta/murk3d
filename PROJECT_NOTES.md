@@ -546,3 +546,6 @@ screenshot-checked.
 - 00:50 AP: rift arcade good; cliff slabs unchanged (diff 5/255) because
   radial rumple bows faces but not the ruled long edges → post-stretch
   lateral wobble (11% of extent) + slabs 0.8–1.2 thick. Verify AU.
+- 01:05 AT: meadow sweeps show as natural straw/rich patches on the far
+  hills (good); forest edge with oaks + giants good; rift arcade pale.
+  "Boulders" camera missed its subject — re-aiming from RockField data.
