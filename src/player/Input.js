@@ -8,27 +8,36 @@ export class Input {
     this.mouseDX = 0;
     this.mouseDY = 0;
     this.locked = false;
-    this.listeners = { lock: [], unlock: [] };
+    // Fallback when pointer lock is unavailable (some embedded frames, phones):
+    // look around by dragging with the left mouse button.
+    this.dragMode = false;
+    this.listeners = { lock: [], unlock: [], lockfailed: [] };
 
     window.addEventListener('keydown', (e) => {
       if (!this.keys.has(e.code)) this.pressed.add(e.code);
       this.keys.add(e.code);
-      if (this.locked && ['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
+      if ((this.locked || this.dragMode) && ['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
     });
     window.addEventListener('keyup', (e) => this.keys.delete(e.code));
     window.addEventListener('blur', () => this.keys.clear());
 
     document.addEventListener('mousemove', (e) => {
-      if (!this.locked) return;
+      if (!this.locked && !(this.dragMode && e.buttons & 1)) return;
       this.mouseDX += e.movementX;
       this.mouseDY += e.movementY;
     });
 
+    document.addEventListener('pointerlockerror', () => this.emit('lockfailed'));
+
     document.addEventListener('pointerlockchange', () => {
       this.locked = document.pointerLockElement === this.element;
       if (!this.locked) this.keys.clear();
-      for (const fn of this.listeners[this.locked ? 'lock' : 'unlock']) fn();
+      this.emit(this.locked ? 'lock' : 'unlock');
     });
+  }
+
+  emit(event) {
+    for (const fn of this.listeners[event]) fn();
   }
 
   on(event, fn) {
@@ -36,9 +45,16 @@ export class Input {
   }
 
   lock() {
-    const p = this.element.requestPointerLock();
-    // Some browsers return a promise that rejects if the request is too soon after an unlock.
-    if (p && p.catch) p.catch(() => {});
+    if (!this.element.requestPointerLock) {
+      this.emit('lockfailed');
+      return;
+    }
+    try {
+      const p = this.element.requestPointerLock();
+      if (p && p.catch) p.catch(() => this.emit('lockfailed'));
+    } catch {
+      this.emit('lockfailed');
+    }
   }
 
   down(code) {
