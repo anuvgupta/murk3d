@@ -37,7 +37,7 @@ const occlusionShader = {
     varying vec2 vUv;
     void main() {
       float d = texture2D( tDepth, vUv ).r;
-      float sky = step( 0.9999, d );
+      float sky = step( 0.9999995, d );
       vec2 off = ( vUv - uSunScreen ) * vec2( uAspect, 1.0 );
       float r = length( off );
       // A soft disc round the sun; only sky counts, so trees and hills cut shafts.
@@ -133,10 +133,10 @@ const compositeShader = {
       vec4 src = texture2D( tDiffuse, vUv );
       vec3 color = src.rgb;
       float depth = texture2D( tDepth, vUv ).r;
-      bool isSky = depth > 0.9999;
+      bool isSky = depth >= 0.9999995;
 
       // ---- Aerial perspective.
-      vec3 wp = worldPosition( vUv, min( depth, 0.9999 ) );
+      vec3 wp = worldPosition( vUv, min( depth, 0.9999995 ) );
       vec3 ray = wp - uCameraPos;
       float dist = length( ray );
       vec3 dir = ray / max( dist, 1e-4 );
