@@ -279,3 +279,19 @@ computer generated, blocky or geometric, but natural and fantastical.
 
 The /goal for this chat is the standing goal in §11 plus every prompt in this
 file.
+
+## 15. More Oblivion references
+
+- Sunset over a lake: soft white sun disc with big warm glow, pink-amber
+  haze, rays, dark silhouetted treelines, rocks on a shoreline.
+- Original Oblivion jetty: weathered grey plank dock, mooring posts with
+  coiled rope, broken crate, lantern post; ruins behind with pale limestone
+  gothic arches on a pebbly shore; green-grey water.
+- Castle gatehouse on a hill against a low sun; stone bridge with tower
+  over a lake at sunset, warm amber water reflecting the sky.
+- Imperial City view across the lake with distant snowy peaks; cobbled road
+  (flat irregular flagstones with grass in joints), mossy rounded boulders
+  with lichen, pines with sparse crowns, dirt and leaf litter.
+- Instruction: use Oblivion to reference how rocks are shaped and textured,
+  the road textures, and anything else; imitate its style so our own
+  interpretation holds up to the same standard of quality and audience.
