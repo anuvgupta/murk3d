@@ -434,3 +434,8 @@ screenshot-checked.
   mask ×(1.22,1.2,1.0) to match lit blades; sky shader deepens blue toward
   the zenith by day (×(0.6,0.76,1.04) up to 0.8). Verify AA batch.
   Method note: measure regions with PIL to confirm each lighting change.
+- 18:55 Golden-hour lake (Z3) and overlook (Z4) are the best frames so
+  far: rose-amber haze, lit village, castle on the hill — close to the
+  Oblivion sunset refs. Lake surface too pale/grey at sunset → water
+  reflection tint eased 0.6→0.3. Batches AA (sky/grass) and AB (water)
+  pending.
