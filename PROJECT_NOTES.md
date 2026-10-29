@@ -234,3 +234,7 @@ cheap 2000s game? Do 10–30 passes of improving the look; revise lighting,
 meshes, textures, blending as needed, creating new options and replacing
 things. Target: beautiful, fantasy dreamland, super nostalgic, without being
 impossible to run. Grass: a dense carpet, not rough thin spiky blades.
+- Tree leaves must look lush, soft and leafy with 3D depth/body, not razors or
+  paper; grass ideally not 2D either.
+- Trunks and branches must not be straight lines; joints between trunk and
+  branches must be smoothly joined, not overlapping glitchy meshes.
