@@ -259,8 +259,8 @@ export class Environment {
     this.hemi.groundColor.copy(PALETTE.hemiGround).multiplyScalar(0.25 + 0.75 * day);
     // Twilight keeps a fair amount of sky light so dusk reads as dusk, not black.
     const twilight = smoothstep(-0.2, 0.0, elev) * (1 - day);
-    this.hemi.intensity = 0.48 + 0.12 * day + 0.45 * twilight;
-    this.scene.environmentIntensity = 0.1 + 0.18 * day;
+    this.hemi.intensity = 0.56 + 0.16 * day + 0.45 * twilight;
+    this.scene.environmentIntensity = 0.1 + 0.26 * day;
 
     // Atmosphere pass settings for this time of day.
     const a = this.atmosphere;
