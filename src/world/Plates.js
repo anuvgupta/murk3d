@@ -19,8 +19,9 @@ export class Plates {
     const random = mulberry32(77);
     for (const p of PLATES) {
       const back = 6; // how far the slab reaches back under the grass
-      const lenU = back + p.lift;
-      const thick = 3.2 + p.lift * 0.25;
+      const lift = p.lift + 4; // the lips reach well past the broken face
+      const lenU = back + lift;
+      const thick = 4.0 + lift * 0.3;
       const w = p.width - 2;
       const slope = p.rise / p.length;
       const tilt = Math.atan(slope);
@@ -37,17 +38,17 @@ export class Plates {
       yEdge /= samples;
       yEdge += 2.5 * slope; // bring the sample back to the face line
 
-      const g = this.slabGeometry(lenU, thick, w, p.lift, noise3, random);
+      const g = this.slabGeometry(lenU, thick, w, lift, noise3, random);
       const mesh = new THREE.Mesh(g, material);
       // Local +x runs along the plate's rise direction; the slab is centred on
       // its own length, so offset its centre from the face line.
-      const cu = (p.lift - back) / 2;
+      const cu = (lift - back) / 2;
       mesh.position.set(p.x + (p.length / 2 + cu) * c, yEdge + cu * slope - thick / 2 + 0.05, p.z + (p.length / 2 + cu) * s);
       mesh.rotation.set(0, -p.dir, tilt, 'YZX');
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       this.group.add(mesh);
-      this.lips.push({ p, c, s, yEdge, slope, uMin: p.length / 2 - back, uMax: p.length / 2 + p.lift - 1.5, hw: w / 2 - 0.5 });
+      this.lips.push({ p, c, s, yEdge, slope, uMin: p.length / 2 - back, uMax: p.length / 2 + lift - 1.5, hw: w / 2 - 0.5 });
     }
   }
 
