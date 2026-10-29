@@ -72,6 +72,10 @@ const compositeShader = {
     uFogHeight: { value: 0.0 },
     uFogFalloff: { value: 0.02 },
     uGroundMist: { value: 0 },
+    uNoise: { value: null },
+    uWindDir: { value: new THREE.Vector2(1, 0) },
+    uWindTravel: { value: 0 },
+    uTime: { value: 0 },
     uSaturation: { value: 1.08 },
     uLift: { value: new THREE.Color(0.02, 0.015, 0.01) },
     uVignette: { value: 0.25 },
@@ -107,6 +111,10 @@ const compositeShader = {
     uniform float uFogHeight;
     uniform float uFogFalloff;
     uniform float uGroundMist;
+    uniform sampler2D uNoise;
+    uniform vec2 uWindDir;
+    uniform float uWindTravel;
+    uniform float uTime;
     uniform float uSaturation;
     uniform vec3 uLift;
     uniform float uVignette;
@@ -141,8 +149,23 @@ const compositeShader = {
           : exp( -f * h0 );
         float density = uFogDensity * ( 0.35 + 0.65 * clamp( integral, 0.0, 4.0 ) );
         float fog = 1.0 - exp( -density * dist );
-        // Low-lying mist pools in hollows.
-        float mist = uGroundMist * exp( -max( wp.y - uFogHeight, 0.0 ) * 0.12 ) * ( 1.0 - exp( -dist * 0.004 ) );
+        // Low-lying mist pools in hollows and drifts downwind as banks and
+        // wisps: sampled at a few points along the ray so it has shape.
+        float mist = 0.0;
+        if ( uGroundMist > 0.001 ) {
+          float mistTop = uFogHeight + 9.0;
+          for ( int i = 1; i <= 6; i++ ) {
+            float t = float( i ) / 6.0;
+            vec3 sp = uCameraPos + ray * ( t * t );
+            float hgt = 1.0 - smoothstep( uFogHeight - 4.0, mistTop, sp.y );
+            vec2 q = sp.xz - uWindDir * uWindTravel * 2.2;
+            float bank = texture2D( uNoise, q * 0.004 + vec2( 0.0, uTime * 0.002 ) ).r;
+            float wisp = texture2D( uNoise, q * 0.02 + vec2( uTime * 0.01, 0.0 ) ).g;
+            float dens = smoothstep( 0.35, 0.75, bank * 0.7 + wisp * 0.45 ) * hgt;
+            mist += dens * ( 1.0 - exp( -dist * 0.5 * t * 0.02 ) );
+          }
+          mist = uGroundMist * clamp( mist / 3.0, 0.0, 1.0 );
+        }
         fog = clamp( fog + mist, 0.0, 0.97 );
         // Haze takes the sun's colour when looking toward it.
         float toward = pow( max( dot( dir, uSunDir ), 0.0 ), 6.0 );
@@ -228,8 +251,14 @@ export class AtmospherePass extends Pass {
   }
 
   // Called by the game each frame with the current lighting state.
-  update({ sunDir, sunColor, sunVisible, fogColor, fogSunColor, fogDensity, fogHeight, fogFalloff, groundMist, shaft, glow, disc, saturation, lift, vignette }) {
+  update({ sunDir, sunColor, sunVisible, fogColor, fogSunColor, fogDensity, fogHeight, fogFalloff, groundMist, shaft, glow, disc, saturation, lift, vignette }, wind, noise, time) {
     const u = this.material.uniforms;
+    if (wind) {
+      u.uWindDir.value.copy(wind.direction);
+      u.uWindTravel.value = wind.travel;
+      u.uTime.value = time;
+    }
+    if (noise) u.uNoise.value = noise;
     u.uDiscStrength.value = disc;
     // Angular radius of the drawn sun, in screen height units.
     const halfFov = THREE.MathUtils.degToRad(this.camera.fov / 2);
@@ -257,7 +286,9 @@ export class AtmospherePass extends Pass {
     const inFront = this._v.z < 1;
     this.sunScreen.set(p.x * 0.5 + 0.5, p.y * 0.5 + 0.5);
     const onScreen = inFront && this.sunScreen.x > -0.5 && this.sunScreen.x < 1.5 && this.sunScreen.y > -0.5 && this.sunScreen.y < 1.5;
-    const vis = onScreen ? sunVisible : 0;
+    // Fade the sun terms out as the disc leaves the frame.
+    const margin = Math.max(0, Math.max(-this.sunScreen.x, this.sunScreen.x - 1, -this.sunScreen.y, this.sunScreen.y - 1));
+    const vis = onScreen ? sunVisible * Math.max(0, 1 - margin / 0.35) : 0;
     u.uSunScreen.value.copy(this.sunScreen);
     u.uSunVisible.value = vis;
     this.occlusionMaterial.uniforms.uSunScreen.value.copy(this.sunScreen);

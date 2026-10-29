@@ -17,12 +17,15 @@ import { createBuildingMaterials } from '../buildings/materials.js';
 import { Village } from '../buildings/Village.js';
 import { RockField } from '../world/Rocks.js';
 import { Forest } from '../world/trees/Forest.js';
+import { Motes } from '../world/Motes.js';
+import { CLOUD_STYLES, saveCloudStyle } from '../world/clouds.js';
 import { SPAWN } from '../world/plan.js';
 import { Input } from '../player/Input.js';
 import { Player } from '../player/Player.js';
 import { HUD } from '../ui/HUD.js';
 import { settings } from './settings.js';
 import { Feedback } from '../ui/Feedback.js';
+import { MapScreen } from '../ui/MapScreen.js';
 
 export class Game {
   constructor(container) {
@@ -108,12 +111,16 @@ export class Game {
     scene.add(this.forest.group);
     mark('trees');
 
+    this.motes = new Motes({ wind: this.wind, sun: this.sunInfo });
+    scene.add(this.motes.points);
+
     const colliders = [...this.village.colliders, ...this.rocks.colliders, ...this.forest.colliders];
     this.player = new Player(this.camera, this.input, this.terrain, colliders);
     this.player.surfaces.push((x, z) => this.village.surfaceAt(x, z));
     this.player.spawn(SPAWN.x, SPAWN.z, SPAWN.yaw);
     this.applyViewLink();
     this.feedback = new Feedback(this);
+    this.map = new MapScreen(this);
 
     this.setupPostProcessing();
 
@@ -136,6 +143,14 @@ export class Game {
       this.environment.setTime(time);
       this.environment.paused = true;
     }
+  }
+
+  cycleClouds() {
+    const i = CLOUD_STYLES.indexOf(this.environment.cloudStyle);
+    const next = CLOUD_STYLES[(i + 1) % CLOUD_STYLES.length];
+    this.environment.setCloudStyle(next);
+    saveCloudStyle(next);
+    this.hud.toast(`Clouds: ${next}`);
   }
 
   openFeedback() {
@@ -191,11 +206,13 @@ export class Game {
       if (input.wasPressed('BracketLeft')) this.environment.setTime(this.environment.timeOfDay - 0.5);
       if (input.wasPressed('KeyT')) this.environment.paused = !this.environment.paused;
       if (input.wasPressed('KeyF')) this.openFeedback();
+      if (input.wasPressed('KeyC')) this.cycleClouds();
+      if (input.wasPressed('KeyM')) this.map.show(!this.map.open);
       if (input.wasPressed('F3')) {
         this.perf.show = !this.perf.show;
         this.perf.el.classList.toggle('hidden', !this.perf.show);
       }
-      this.player.update(dt);
+      if (!this.map.open) this.player.update(dt);
     }
 
     this.updateWorld(dt);
@@ -239,9 +256,9 @@ export class Game {
   // Everything that animates regardless of input.
   updateWorld(dt) {
     const env = this.environment;
-    env.update(dt, this.player.position);
+    env.update(dt, this.player.position, this.wind);
     this.renderer.toneMappingExposure = env.exposure;
-    if (this.atmosphere) this.atmosphere.update(env.atmosphere);
+    if (this.atmosphere) this.atmosphere.update(env.atmosphere, this.wind, this.noiseTexture, this.elapsed);
     // Water reflects the sky at full strength, independent of the scene's ambient level.
     if (this.water && this.water.material.envMap !== env.envTexture) {
       this.water.material.envMap = env.envTexture;
@@ -253,6 +270,8 @@ export class Game {
     this.forest.update(this.camera, this.elapsed);
     this.village.setViewport(this.renderer.getDrawingBufferSize(this._bufferSize).y, this.camera.fov);
     this.village.update(dt, this.elapsed, this.wind, env.nightFactor, env.lightLevel);
+    this.motes.setViewport(this._bufferSize.y, this.camera.fov);
+    this.motes.update(dt, this.player.position, this.terrain, env.nightFactor, env.lightLevel);
   }
 
   render() {

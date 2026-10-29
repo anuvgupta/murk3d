@@ -25,6 +25,19 @@ export class HUD {
     this.lastTime = '';
   }
 
+  toast(text) {
+    let el = document.getElementById('toast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'toast';
+      this.root.appendChild(el);
+    }
+    el.textContent = text;
+    el.classList.add('show');
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => el.classList.remove('show'), 1600);
+  }
+
   show(visible) {
     this.root.classList.toggle('hidden', !visible);
   }

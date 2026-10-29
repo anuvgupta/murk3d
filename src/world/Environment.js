@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { Sky } from 'three/addons/objects/Sky.js';
 import { smoothstep, mulberry32 } from '../util/noise.js';
 import { settings } from '../core/settings.js';
+import { applyCloudStyle, readCloudStyle } from './clouds.js';
 
 const SHADOW_EXTENT = 70; // half-size of the sun's shadow frustum, metres
 const LATITUDE_TILT = 0.6; // radians; noon sun sits ~56° up in the south (+z)
@@ -77,14 +78,18 @@ export class Environment {
         texColor = min( texColor, vec3( 1.5 ) );
         gl_FragColor = vec4( texColor, 1.0 );`
       );
+    this.cloudStyle = readCloudStyle();
+    this.baseSkyFragment = this.sky.material.fragmentShader;
+    this.sky.material.fragmentShader = applyCloudStyle(this.baseSkyFragment, this.cloudStyle);
     this.sky.material.needsUpdate = true;
     scene.add(this.sky);
     const u = this.sky.material.uniforms;
     u.mieDirectionalG.value = 0.8;
     if (u.showSunDisc) u.showSunDisc.value = 0;
     if (u.cloudCoverage) {
-      u.cloudCoverage.value = 0.42;
-      u.cloudDensity.value = 0.45;
+      u.cloudCoverage.value = 0.45;
+      u.cloudDensity.value = 0.5;
+      u.cloudScale.value = 0.00028;
     }
 
     // A second sky in its own scene, rendered into the image-based lighting.
@@ -130,6 +135,13 @@ export class Environment {
     this.refreshEnvironment();
   }
 
+  setCloudStyle(style) {
+    this.cloudStyle = style;
+    this.sky.material.fragmentShader = applyCloudStyle(this.baseSkyFragment, style);
+    this.sky.material.needsUpdate = true;
+    this.lastEnvSunDir.set(0, -5, 0); // re-render the light probe
+  }
+
   setTime(hours) {
     this.timeOfDay = ((hours % 24) + 24) % 24;
   }
@@ -164,12 +176,15 @@ export class Environment {
     this.lastEnvSunDir.copy(this.sunDir);
   }
 
-  update(dt, focus) {
+  update(dt, focus, wind = null) {
     if (!this.paused) this.setTime(this.timeOfDay + dt * this.timeScale);
+    // Clouds move with the wind, faster in gusts.
+    this.skyTime = (this.skyTime || 0) + dt * (0.6 + (wind ? wind.uniforms.uWindStrength.value * 2.5 : 1.0));
     this.focusHeight = focus.y;
 
     const sunDir = this.computeSunDirection(this.timeOfDay, this.sunDir);
     const elev = sunDir.y;
+    if (this.sky.material.uniforms.time) this.sky.material.uniforms.time.value = this.skyTime || 0;
 
     const day = smoothstep(-0.1, 0.12, elev);
     const golden = (1 - smoothstep(0.03, 0.4, elev)) * smoothstep(-0.12, 0.0, elev);
@@ -237,7 +252,8 @@ export class Environment {
     a.fogDensity = 0.0012 + 0.001 * low * day + 0.0003 * (1 - day);
     a.fogHeight = this.focusHeight - 6;
     a.fogFalloff = 0.025;
-    a.groundMist = 0.05 + 0.25 * low * day;
+    // Mist lies in the valley at dawn and dusk and thins through the day.
+    a.groundMist = 0.12 + 0.5 * low * day + 0.2 * (1 - day);
     a.saturation = 1.1 + 0.05 * day;
     a.lift.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
     a.vignette = 0.22;
@@ -248,7 +264,7 @@ export class Environment {
     const dayExposure = THREE.MathUtils.lerp(0.8, 0.6, smoothstep(0.0, 0.3, elev));
     this.exposure = THREE.MathUtils.lerp(1.45, dayExposure, smoothstep(-0.18, -0.02, elev));
 
-    const starFactor = smoothstep(-0.04, -0.2, elev);
+    const starFactor = smoothstep(-0.04, -0.2, elev) * 0.85;
     this.stars.material.opacity = starFactor;
     this.stars.visible = starFactor > 0.01;
     this.stars.rotation.y = (this.timeOfDay / 24) * Math.PI * 2 * 0.25;
@@ -312,6 +328,15 @@ function createStars() {
     depthWrite: false,
     fog: false,
   });
+  // Stars dim toward the horizon, where the air is thickest.
+  m.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nvarying float vElev;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvElev = normalize( position ).y;');
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', '#include <common>\nvarying float vElev;')
+      .replace('#include <opaque_fragment>', 'diffuseColor.a *= smoothstep( 0.02, 0.35, vElev );\n#include <opaque_fragment>');
+  };
   const points = new THREE.Points(g, m);
   points.frustumCulled = false;
   points.renderOrder = -1;
