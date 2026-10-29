@@ -584,3 +584,8 @@ screenshot-checked.
   0.5+0.75h, darker base 0x6f6a64, grit 0.2→0.28, bump 1.4→2.2 (terrain)
   and 1.2→2.0 (rock meshes). Verify BA (cliff close, boulder foot,
   castle cliff, overlook golden) after AY/AZ.
+- 04:00 BA1 (rock relief): cavities and lichen now give faces depth;
+  crack iso-lines still read as drawn lines → crack weight 0.45→0.28,
+  zone tighter (staged, ships once BA's renders finish — a concurrent
+  Chromium killed AY's shots). view2 screenshot timeout 600→1500 s.
+  Render queue: BA → AZ (steeper Shelves) → BB (AY re-shoot).
