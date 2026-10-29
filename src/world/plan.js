@@ -372,13 +372,13 @@ export const GLADE = { x: 92, z: 34, r: 15 };
 export const PLATES = [
   { x: -150, z: 265, dir: 0.4, length: 46, width: 30, rise: 21, lift: 12 },
   { x: -108, z: 300, dir: -0.5, length: 38, width: 24, rise: 16, lift: 9 },
-  { x: -178, z: 312, dir: 1.1, length: 52, width: 34, rise: 26, lift: 13 },
+  { x: -180, z: 232, dir: 1.1, length: 52, width: 34, rise: 26, lift: 13 },
   { x: -118, z: 243, dir: 2.3, length: 34, width: 22, rise: 14, lift: 8 },
   { x: -202, z: 262, dir: -1.2, length: 40, width: 26, rise: 18, lift: 10 },
-  { x: -148, z: 342, dir: 2.9, length: 44, width: 28, rise: 20, lift: 12 },
-  { x: -230, z: 318, dir: 0.2, length: 36, width: 24, rise: 15, lift: 9 },
+  { x: -126, z: 205, dir: 2.9, length: 44, width: 28, rise: 20, lift: 12 },
+  { x: -240, z: 226, dir: 0.2, length: 36, width: 24, rise: 15, lift: 9 },
 ];
-export const SHELVES = { x: -160, z: 295 };
+export const SHELVES = { x: -165, z: 248 };
 
 // A crevasse: a deep, narrow gash in the ground south-west of the village,
 // grassy at the bottom, entered by a long ramp at its northern end.
