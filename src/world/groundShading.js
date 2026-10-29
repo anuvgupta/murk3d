@@ -138,7 +138,9 @@ export const GROUND_GLSL = /* glsl */ `
     vec4 m = texture( uMask, maskUv( p.xz ) );
     vec4 n = groundNoise( p.xz );
     // Under grass the ground is the turf's shaded base.
-    vec3 c = meadowColor( p.xz, n ) * mix( 1.0, 0.84, m.r );
+    // Under grass the ground stands in for the carpet beyond the blade draw
+    // distance, so it matches the lit blades' average, not their shaded roots.
+    vec3 c = meadowColor( p.xz, n ) * mix( vec3( 1.0 ), vec3( 1.22, 1.2, 1.0 ), m.r );
     c = mix( c, dirtColor( n ), smoothstep( 0.15, 0.85, m.g ) );
     c = mix( c, bedColor( n ), m.b );
     if ( m.a > 0.01 ) c = mix( c, cobbleColor( p.xz, n ), m.a );
