@@ -75,17 +75,35 @@ export class Terrain {
     const reach = HILL.radius + HILL.gentleWidth + 10;
     if (d > reach) return 0;
     const a = Math.atan2(dz, dx);
-    let diff = Math.abs(a - HILL.cliffDir);
-    if (diff > Math.PI) diff = Math.PI * 2 - diff;
-    const cliff = 1 - smoothstep(HILL.cliffSpread * 0.55, HILL.cliffSpread, diff);
+    const cliff = this.hillCliffness(a);
     const width = lerp(HILL.gentleWidth, HILL.cliffWidth, cliff);
-    // Ragged edge so the cliff line isn't a perfect arc.
-    const edge = HILL.radius + this.noiseDetail(Math.cos(a) * 2.3, Math.sin(a) * 2.3) * 5 * (0.4 + cliff);
+    const edge = this.hillEdge(a);
     const t = 1 - smoothstep(edge, edge + width, d);
     // Steps in the cliff face read as rock strata.
     const strata = cliff * 0.06 * Math.sin(d * 2.1) * (t > 0.05 && t < 0.95 ? 1 : 0);
     const top = this.noiseDetail(x * 0.05, z * 0.05) * 0.8;
     return HILL.height * (t + strata) + top * t;
+  }
+
+  // 0..1: how much the hillside at angle a is sheer cliff.
+  hillCliffness(a) {
+    let diff = Math.abs(a - HILL.cliffDir);
+    if (diff > Math.PI) diff = Math.PI * 2 - diff;
+    return 1 - smoothstep(HILL.cliffSpread * 0.55, HILL.cliffSpread, diff);
+  }
+
+  // Radius of the plateau's edge at angle a: ragged, with buttresses and
+  // gullies on the cliff side so the line is never a clean arc.
+  hillEdge(a) {
+    const cliff = this.hillCliffness(a);
+    const c = Math.cos(a);
+    const s = Math.sin(a);
+    return (
+      HILL.radius +
+      this.noiseDetail(c * 2.3, s * 2.3) * 5 * (0.4 + cliff) +
+      this.noiseDetail(c * 7 + 40, s * 7) * 2.2 * cliff +
+      this.noiseDetail(c * 15 + 80, s * 15) * 0.9 * cliff
+    );
   }
 
   preparePlan() {

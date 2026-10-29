@@ -88,7 +88,7 @@ function blur(data) {
 }
 
 export class GroundMask {
-  constructor(terrain) {
+  constructor(terrain, { cutouts = [] } = {}) {
     const grass = layer();
     const road = layer();
     const water = layer();
@@ -106,6 +106,12 @@ export class GroundMask {
     grass.fill();
     for (const h of HOUSES) fillRotRect(grass, h.x, h.z, h.footprint.hx + 0.6, h.footprint.hz + 0.6, h.rotationY);
     fillRotRect(grass, BRIDGE.x, BRIDGE.z, BRIDGE.width / 2 + 0.5, BRIDGE.length / 2 + 0.5, BRIDGE.rotationY);
+    // Rocks and other objects sitting on the ground.
+    for (const c of cutouts) {
+      grass.beginPath();
+      grass.arc(toPx(c.x), toPx(c.z), Math.max(0.6, c.r * PX), 0, Math.PI * 2);
+      grass.fill();
+    }
 
     // Roads, with soft verges.
     road.fillStyle = '#000';

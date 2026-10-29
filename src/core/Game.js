@@ -14,6 +14,8 @@ import { Grass } from '../world/Grass.js';
 import { Water } from '../world/Water.js';
 import { createBuildingMaterials } from '../buildings/materials.js';
 import { Village } from '../buildings/Village.js';
+import { RockField } from '../world/Rocks.js';
+import { Forest } from '../world/trees/Forest.js';
 import { SPAWN } from '../world/plan.js';
 import { Input } from '../player/Input.js';
 import { Player } from '../player/Player.js';
@@ -64,7 +66,8 @@ export class Game {
     this.noiseTexture = createNoiseTexture();
     this.terrain = new Terrain();
     mark('terrain');
-    this.groundMask = new GroundMask(this.terrain);
+    this.rocks = new RockField(this.terrain);
+    this.groundMask = new GroundMask(this.terrain, { cutouts: this.rocks.footprints });
     mark('mask');
     this.wind = new Wind();
     // Sun (or moon) direction and colour × intensity, for shader effects.
@@ -78,6 +81,7 @@ export class Game {
     terrainMesh.receiveShadow = true;
     terrainMesh.castShadow = true;
     scene.add(terrainMesh);
+    scene.add(this.rocks.build(this.noiseTexture));
 
     this.grass = new Grass({
       terrain: this.terrain,
@@ -99,7 +103,11 @@ export class Game {
     scene.add(this.village.group);
     mark('village');
 
-    const colliders = [...this.village.colliders];
+    this.forest = new Forest({ terrain: this.terrain, mask: this.groundMask, noise: this.noiseTexture, wind: this.wind, rocks: this.rocks });
+    scene.add(this.forest.group);
+    mark('trees');
+
+    const colliders = [...this.village.colliders, ...this.rocks.colliders, ...this.forest.colliders];
     this.player = new Player(this.camera, this.input, this.terrain, colliders);
     this.player.surfaces.push((x, z) => this.village.surfaceAt(x, z));
     this.player.spawn(SPAWN.x, SPAWN.z, SPAWN.yaw);
@@ -162,6 +170,7 @@ export class Game {
     this.sunInfo.color.copy(env.sun.color).multiplyScalar(env.sun.intensity);
     this.wind.update(dt);
     this.grass.update(this.camera, this.player.position);
+    this.forest.update(this.camera, this.elapsed);
     this.village.setViewport(this.renderer.getDrawingBufferSize(this._bufferSize).y, this.camera.fov);
     this.village.update(dt, this.elapsed, this.wind, env.nightFactor, env.lightLevel);
   }

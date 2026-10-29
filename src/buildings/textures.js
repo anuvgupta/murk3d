@@ -325,6 +325,20 @@ export function bark(base = [0.32, 0.26, 0.2], fissures = 10) {
   });
 }
 
+// White birch bark with dark horizontal lenticels and peeling marks.
+export function birchBark() {
+  return paint(512, (u, v, out) => {
+    const marks = smooth(0.72, 0.8, nz(2, u * 4, v * 16)) * smooth(0.3, 0.6, nz(1, u * 8, v * 2));
+    const streak = nz(3, u * 32, v * 4);
+    const l = 0.86 + 0.1 * streak;
+    const dark = Math.max(marks, smooth(0.82, 0.9, nz(0, u * 2, v * 8)) * 0.8);
+    out[0] = clamp01(mix(0.88 * l, 0.16, dark));
+    out[1] = clamp01(mix(0.86 * l, 0.14, dark));
+    out[2] = clamp01(mix(0.8 * l, 0.13, dark));
+    out[3] = 0.6 - dark * 0.4 + 0.1 * streak;
+  });
+}
+
 // --- Roofs -----------------------------------------------------------------
 // Roof textures: courses run along u; each course's lower edge is at higher v.
 
