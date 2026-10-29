@@ -382,3 +382,9 @@ screenshot-checked.
   fogGolden 0.85, mist lower, saturation +golden, warm horizon band in the
   sky shader at low sun, moon disc + navy night floor, crater rims round
   every realm. River/bridge morning view is the best shot so far.
+- Lighting round 3 (16:50): sunset west view through the blossom tree and
+  the forest-sun shot at 18:17 are the dreamiest frames yet. Night now has
+  a moon; realm spire tips no longer poke over the mountains (karst rim).
+  Daytime sky still pale near horizon → lowered turbidity, softer HDR knee
+  (verify in batch Q). Open: a tall thin white column north of the plaza
+  at noon (chimney smoke?), willow branches read black, lake water milky.
