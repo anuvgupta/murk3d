@@ -309,3 +309,7 @@ portals + 10 reference worlds, then the long screenshot-critique loop.
 Known open issues: dusk mist still a touch bright toward the sun; ghibli
 clouds sparse; chests placed at (4.5,14.5), (-86,-88), (-210,122) not yet
 screenshot-checked.
+- Castle in progress: `src/buildings/Castle.js` (terraced wards, gatehouses,
+  towers with spires, keep with great tower and rose window, long arched
+  bridge from the knoll). Plan: MESAS/CASTLE in plan.js, castle road spirals
+  the knoll; Terrain.castleHeight terraces the plateau top.
