@@ -36,7 +36,7 @@ const PALETTE = {
   sunHigh: C(0xfff1d6),
   sunLow: C(0xff7a2e),
   moon: C(0x9bb2e6),
-  fogDay: C(0xc6d4e3),
+  fogDay: C(0xb9cde4),
   fogGolden: C(0xe2a383),
   fogNight: C(0x0b0f19),
   hemiSkyDay: C(0xd3d8d6),
@@ -275,7 +275,8 @@ export class Environment {
     // Haze: pale blue-white by day, warm amber-rose at low sun, deep blue at night.
     a.fogColor.copy(PALETTE.fogNight).lerp(this._tmpColor.copy(PALETTE.fogDay).lerp(PALETTE.fogGolden, golden * 0.85), day);
     a.fogSunColor.copy(PALETTE.fogNight).lerp(this._tmpColor.setRGB(0.86, 0.84, 0.78).lerp(this._tmpColor2.setRGB(0.82, 0.58, 0.4), low), day);
-    a.fogDensity = 0.0012 + 0.001 * low * day + 0.0003 * (1 - day);
+    // Clear air at midday; haze thickens as the sun drops.
+    a.fogDensity = 0.00075 + 0.0011 * low * day + 0.0003 * (1 - day);
     a.fogHeight = this.focusHeight - 6;
     a.fogFalloff = 0.015;
     // Mist lies in the valley at dawn and dusk and thins through the day.
