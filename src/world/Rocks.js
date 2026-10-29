@@ -45,6 +45,9 @@ export function rockGeometry(seed, kind = 'boulder', detail = 5) {
       const t = v.dot(p.n) - p.d;
       if (t > 0) v.addScaledVector(p.n, -t * 0.9);
     }
+    // Rumple the cut faces so no facet edge is dead straight.
+    const rumple = fbm3(noise, v.x * 2.8 + 3, v.y * 2.8, v.z * 2.8 + 5, 2);
+    v.multiplyScalar(1 + rumple * 0.05);
     v.multiply(stretch);
     // Bedding layers: small horizontal steps, tilted per rock.
     const layer = v.y + v.x * tilt;
