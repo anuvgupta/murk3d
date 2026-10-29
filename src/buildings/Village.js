@@ -4,6 +4,8 @@ import { buildHouse, HOUSE_NAMES } from './houses.js';
 import { BARRELS, crate, well } from './props.js';
 import { Bridge } from './Bridge.js';
 import { Smoke } from './Smoke.js';
+import { createItemMaterials, displayTable, weaponRack, CHESTS } from './items.js';
+import { windmillSails, waterWheel } from './landmarks.js';
 import { HOUSES, PLAZA, WELL } from '../world/plan.js';
 import { mulberry32 } from '../util/noise.js';
 
@@ -26,6 +28,7 @@ export class Village {
     this.colliders = [];
     this.decks = [];
     this.landmarks = [];
+    this.animated = []; // { group, axis, speed }
     const kit = new Kit();
     const chimneys = [];
     const random = mulberry32(77);
@@ -41,6 +44,20 @@ export class Village {
       for (const c of info.chimneys) chimneys.push(toWorld(c));
       for (const b of info.colliders) this.colliders.push(worldBox(b, h.x, h.z, h.rotationY));
       for (const d of info.decks || []) this.decks.push({ ...worldBox(d, h.x, h.z, h.rotationY), y: h.y + d.y });
+      // Moving parts stay as their own meshes so they can turn.
+      for (const a of info.animated || []) {
+        const group = a.kind === 'sails' ? windmillSails(m) : waterWheel(m);
+        group.position.copy(toWorld(a.position));
+        group.rotation.y = h.rotationY;
+        group.traverse((o) => {
+          if (o.isMesh) {
+            o.castShadow = true;
+            o.receiveShadow = true;
+          }
+        });
+        this.group.add(group);
+        this.animated.push({ group, kind: a.kind, speed: a.kind === 'sails' ? 0.35 : 0.9, phase: Math.random() * 6 });
+      }
       this.landmarks.push({ name: HOUSE_NAMES[h.design], x: h.x, z: h.z, r: Math.max(h.footprint.hx, h.footprint.hz) + 1 });
     }
 
@@ -55,6 +72,33 @@ export class Village {
       const x = PLAZA.x + Math.cos(a) * (PLAZA.radius - 1.2);
       const z = PLAZA.z + Math.sin(a) * (PLAZA.radius - 1.2);
       this.prop(kit, m, i % 4 === 3 ? 'crate' : i % 3, x, terrain.heightAt(x, z), z, random() * 6);
+    }
+
+    // Market display on the plaza's west edge: a laid table and a weapon
+    // rack. Chests sit about the vale as finds.
+    const im = (this.itemMaterials = createItemMaterials(m));
+    const stallY = terrain.plazaHeight;
+    kit.frame({ x: PLAZA.x - PLAZA.radius + 2.6, y: stallY, z: PLAZA.z - 2.2, ry: Math.PI / 2 }, () => {
+      const t = displayTable(kit, m, im);
+      this.colliders.push({ cx: PLAZA.x - PLAZA.radius + 2.6, cz: PLAZA.z - 2.2, hx: t.hz, hz: t.hx, rot: Math.PI / 2 });
+    });
+    kit.frame({ x: PLAZA.x - PLAZA.radius + 1.4, y: stallY, z: PLAZA.z + 2.8, ry: Math.PI / 2 }, () => {
+      const r = weaponRack(kit, m, im);
+      this.colliders.push({ cx: PLAZA.x - PLAZA.radius + 1.4, cz: PLAZA.z + 2.8, hx: r.hz, hz: r.hx, rot: Math.PI / 2 });
+    });
+    this.landmarks.push({ name: 'market stall', x: PLAZA.x - PLAZA.radius + 2, z: PLAZA.z, r: 3 });
+    const chestSpots = [
+      { x: 4.5, z: 14.5, ry: 0.4, kind: 0 },    // south edge of the plaza
+      { x: -86, z: -88, ry: 2.2, kind: 1 },    // the overlook
+      { x: -210, z: 122, ry: 1.0, kind: 2 },   // deep in the Elder Wood
+    ];
+    for (const c of chestSpots) {
+      let info;
+      kit.frame({ x: c.x, y: terrain.heightAt(c.x, c.z), z: c.z, ry: c.ry }, () => {
+        info = CHESTS[c.kind](kit, m, im);
+      });
+      this.colliders.push({ cx: c.x, cz: c.z, hx: info.r, hz: info.r * 0.7, rot: c.ry });
+      this.landmarks.push({ name: info.name, x: c.x, z: c.z, r: info.r + 0.5 });
     }
 
     this.bridge = new Bridge();
@@ -131,5 +175,12 @@ export class Village {
     this.materials.glass.emissiveIntensity = 0.12 + nightFactor * 2.2 * flicker;
     this.materials.lamp.emissiveIntensity = 0.2 + nightFactor * 4 * flicker;
     this.smoke.update(dt, wind, lightLevel);
+    // Sails turn with the wind; the wheel turns with the river.
+    const w = wind.uniforms.uWindStrength.value;
+    for (const a of this.animated) {
+      const rate = a.kind === 'sails' ? a.speed * (0.3 + 1.4 * w) : a.speed;
+      // Rotate about the part's own local z (its axle), which the group's yaw has turned into world space.
+      a.group.rotateZ(-rate * dt);
+    }
   }
 }

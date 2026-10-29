@@ -248,12 +248,12 @@ export class Environment {
     a.disc = 9.0;
     // Haze: pale blue-white by day, warm amber-rose at low sun, deep blue at night.
     a.fogColor.copy(PALETTE.fogNight).lerp(this._tmpColor.copy(PALETTE.fogDay).lerp(PALETTE.fogGolden, golden * 0.6), day);
-    a.fogSunColor.copy(PALETTE.fogNight).lerp(this._tmpColor.setRGB(0.92, 0.88, 0.8).lerp(this._tmpColor2.setRGB(0.88, 0.62, 0.42), low), day);
+    a.fogSunColor.copy(PALETTE.fogNight).lerp(this._tmpColor.setRGB(0.86, 0.84, 0.78).lerp(this._tmpColor2.setRGB(0.82, 0.58, 0.4), low), day);
     a.fogDensity = 0.0012 + 0.001 * low * day + 0.0003 * (1 - day);
     a.fogHeight = this.focusHeight - 6;
     a.fogFalloff = 0.025;
     // Mist lies in the valley at dawn and dusk and thins through the day.
-    a.groundMist = 0.12 + 0.5 * low * day + 0.2 * (1 - day);
+    a.groundMist = 0.1 + 0.35 * low * day + 0.2 * (1 - day);
     a.saturation = 1.1 + 0.05 * day;
     a.lift.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
     a.vignette = 0.22;

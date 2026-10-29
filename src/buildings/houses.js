@@ -13,6 +13,7 @@
 
 import * as THREE from 'three';
 import { mulberry32 } from '../util/noise.js';
+import { windmill, townHall, lumberMill } from './landmarks.js';
 
 const deg = THREE.MathUtils.degToRad;
 
@@ -523,9 +524,9 @@ function tower(kit, m, rng) {
   };
 }
 
-const DESIGNS = [cottage, hall, hut, logHouse, tower];
+const DESIGNS = [cottage, hall, hut, logHouse, tower, windmill, townHall, lumberMill];
 
-export const HOUSE_NAMES = ['cottage', 'hall', 'thatched hut', 'log house', 'tower house'];
+export const HOUSE_NAMES = ['cottage', 'hall', 'thatched hut', 'log house', 'tower house', 'windmill', 'town hall', 'lumber mill'];
 
 // Build one house into the kit at the kit's current frame.
 export function buildHouse(kit, m, design, seed) {

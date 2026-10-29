@@ -181,12 +181,15 @@ export const HOUSE_FOOTPRINTS = [
   { hx: 3.6, hz: 3.0 }, // 2: thatched stone hut
   { hx: 4.6, hz: 4.6 }, // 3: log house with porch
   { hx: 3.4, hz: 3.4 }, // 4: stone tower house
+  { hx: 3.8, hz: 3.8 }, // 5: windmill (tower + gallery)
+  { hx: 8.6, hz: 5.2 }, // 6: town hall
+  { hx: 7.0, hz: 3.6 }, // 7: lumber mill (shed + stacks; wheel reaches the river)
 ];
 
 // Each house faces `face` (its door side looks toward that point).
 export const HOUSES = [
   { design: 0, x: -24, z: -17, face: [0, 0], seed: 1 },
-  { design: 1, x: -2, z: -27, face: [0, 0], seed: 2 },
+  { design: 6, x: -2, z: -29, face: [0, 0], seed: 2 },
   { design: 2, x: -27, z: 21, face: [0, 0], seed: 3 },
   { design: 3, x: 5, z: 26, face: [0, 0], seed: 4 },
   { design: 4, x: -50, z: -9, face: [-50, 12], seed: 5 },
@@ -195,6 +198,8 @@ export const HOUSES = [
   { design: 3, x: 64, z: 20, face: [64, 0], seed: 8 },
   { design: 2, x: 12, z: -50, face: [4, -30], seed: 9 },
   { design: 4, x: -78, z: 34, face: [-78, 16], seed: 10 },
+  { design: 5, x: -44, z: -64, face: [-20, -40], seed: 11 },
+  { design: 7, x: 29, z: 74, face: [60, 74], seed: 12 },
 ];
 
 for (const h of HOUSES) {
