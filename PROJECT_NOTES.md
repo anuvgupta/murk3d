@@ -439,3 +439,9 @@ screenshot-checked.
   Oblivion sunset refs. Lake surface too pale/grey at sunset → water
   reflection tint eased 0.6→0.3. Batches AA (sky/grass) and AB (water)
   pending.
+- 19:05 Sky deepening had no effect (zenith 189,197,210): per-channel
+  soft clip + clamp 2.0 bleached the bright noon sky to white before
+  the tint. Now a luminance-based hue-preserving clip (l/(1+0.7l)) and
+  clamp 1.6. Far meadow 93→102 after the 1.22 lift; pushed to 1.36.
+  Verify AC (noon overlook, sky-up, golden, dawn) — the clip change
+  touches every time of day.
