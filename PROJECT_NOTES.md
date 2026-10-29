@@ -411,3 +411,8 @@ screenshot-checked.
   warm sepia haze over a lit village (closest yet to the Oblivion refs).
   Noon still veiled → fog 0.00075 by day, bluer fogDay. White castle gets
   a pale limestone texture (verify in U4/V4).
+- 18:00 Round 6: noon veil thinner (good); lake morning shot is strong.
+  Castle shadow side read dull grey → white materials envMapIntensity
+  1.6–2.0 + pale limestone texture. Horizon still milky → mie 0.0022,
+  rayleigh 1.9. Near grass was a yellow band vs the far meadow → tips
+  less yellow. Verifying in batches W (castle) and X (overlook/road/forest).
