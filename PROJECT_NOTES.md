@@ -352,3 +352,8 @@ screenshot-checked.
   rock arches (Vale (-122,206), karst, cliffs, two spanning the canyon).
 - Offline terrain probe: node scratchpad/probe.mjs (Terrain runs in node),
   used to place things without renders.
+- Render review (14:00): glade gates good; karst spires ok (made taller/
+  more); citadel reads well; floating isles ok but cloud sea faint; tundra
+  snow ok (rocks now snow-dusted); moonlit night works (haze fixed); rift
+  arcade good; temple/jetty/crypt interior good; waterfalls thin (widened).
+  Portal travel verified headlessly for every realm (#19 done).
