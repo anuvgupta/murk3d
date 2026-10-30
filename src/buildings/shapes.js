@@ -44,9 +44,9 @@ export function bevelBox(w, h, d, r = 0.01, { segments = 2, metres = 1, grain = 
 // perfect solid of revolution. The roughening depends on direction and
 // relative height only, so nested shells (glass and liquid) made with the
 // same seed and range dent together.
-export function organicLathe(points, { segments = 16, seed = 0, dent = 0.05, oval = 0.05, lean = 0, bumps = 2.5, flat = false, range = null } = {}) {
+export function organicLathe(points, { segments = 16, seed = 0, dent = 0.05, oval = 0.05, lean = 0, bumps = 2.5, flat = false, range = null, phiStart = 0, phiLength = Math.PI * 2 } = {}) {
   const pts = points.map(([r, y]) => new THREE.Vector2(Math.max(0, r), y));
-  const g = new THREE.LatheGeometry(pts, segments);
+  const g = new THREE.LatheGeometry(pts, segments, phiStart, phiLength);
   const p = g.attributes.position;
   let y0 = Infinity;
   let y1 = -Infinity;
@@ -79,6 +79,7 @@ export function organicLathe(points, { segments = 16, seed = 0, dent = 0.05, ova
   }
   g.computeVertexNormals();
   // The lathe's first and last columns are the same seam: share their normals.
+  if (phiLength < Math.PI * 2) return g;
   const n = g.attributes.normal;
   const rows = pts.length;
   for (let j = 0; j < rows; j++) {

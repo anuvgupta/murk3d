@@ -4,6 +4,7 @@ import { oakBarrel, waterBarrel, crate } from './props.js';
 import { coinPurse } from './items.js';
 import { createAlchemyMaterials, potion, tome, stoneMortar, brassScales, cutGems, dripCandle, herbSheaf, brewCauldron, workTable } from './alchemy.js';
 import { bevelBox } from './shapes.js';
+import { armoury as armouryStall } from './armoury.js';
 
 // The fantasy item and furniture library: everyday things of the Vale, each
 // built into a Kit in its own local frame (ground or tabletop at y = 0,
@@ -547,17 +548,7 @@ export function quiver(kit, im, fm, t = {}) {
 
 // Armoury stand: shields, bows and staffs against a timber frame.
 export function armoury(kit, m, im, fm) {
-  const w = 2.4;
-  kit.box(m.timber, w, 0.08, 0.08, { y: 1.9 }, { metres: 1.2, grain: true });
-  kit.box(m.timber, w, 0.08, 0.1, { y: 0.1 }, { metres: 1.2, grain: true });
-  for (const sx of [-1, 1]) kit.box(m.timber, 0.09, 1.95, 0.09, { x: sx * (w / 2 - 0.05), y: 0.97 });
-  kit.box(m.planks, w, 1.2, 0.04, { y: 1.1, z: -0.08 }, { metres: 1 });
-  roundShield(kit, m, im, { x: -0.7, y: 1.3, z: 0.02, rx: Math.PI / 2 });
-  roundShield(kit, m, im, { x: 0.0, y: 1.25, z: 0.02, rx: Math.PI / 2, ry: 0.3 });
-  bow(kit, im, fm, { x: 0.7, y: 1.6, z: 0.06, rz: 0.1 });
-  quiver(kit, im, fm, { x: 0.95, y: 0.16, z: 0.1, rz: -0.15 });
-  for (let k = 0; k < 3; k++) staff(kit, im, fm, k, { x: -1.0 + k * 0.22, y: 0.15, z: 0.14, rz: 0.12 - k * 0.05 });
-  return { hx: w / 2 + 0.1, hz: 0.25 };
+  return armouryStall(kit, m, im, fm);
 }
 
 // --- Tavern yard -------------------------------------------------------------
