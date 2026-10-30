@@ -62,8 +62,10 @@ function gableRoof(kit, m, { mat, length, span, baseY, pitch, eave = 0.6, overha
       kit.box(mat, len, thick, slopeLen, { x: 0, y: c.y, z: c.z, rx: pitch }, { metres });
       if (trim) {
         for (const sx of [-1, 1]) {
-          const b = c.clone().addScaledVector(nrm, -0.05);
-          kit.box(trim, 0.12, 0.3, slopeLen, { x: sx * (len / 2 - 0.04), y: b.y, z: b.z, rx: pitch }, { metres: 1.2, grain: true });
+          // Barge boards stand 3 cm above the roof surface and 2 cm past its
+          // ends; the two slopes' boards differ in width where they meet.
+          const b = c.clone().addScaledVector(nrm, -0.03);
+          kit.box(trim, ry ? 0.11 : 0.12, 0.3, slopeLen + 0.04, { x: sx * (len / 2 - 0.04), y: b.y, z: b.z, rx: pitch }, { metres: 1.2, grain: true });
         }
         const f = new THREE.Vector3(0, apex, 0).addScaledVector(dir, slopeLen).addScaledVector(nrm, -0.02);
         kit.box(trim, len, 0.26, 0.1, { y: f.y, z: f.z, rx: pitch }, { metres: 1.2, grain: true });
@@ -136,7 +138,7 @@ function windowAt(kit, m, x, y, w, h, { shutters = false, frame = m.timber, dept
     kit.box(frame, w + f * 2 + 0.12, f * 1.1, depth + 0.08, { y: -h / 2 - f / 2, z: 0.07 }, { metres: 1.2, grain: true });
     for (const s of [-1, 1]) kit.box(frame, f, h, depth, { x: s * (w / 2 + f / 2), z: 0.04 }, { metres: 1.2, grain: true });
     kit.box(frame, 0.05, h, 0.05, { z: 0.05 });
-    kit.box(frame, w, 0.05, 0.05, { y: h * 0.12, z: 0.05 });
+    kit.box(frame, w, 0.05, 0.04, { y: h * 0.12, z: 0.05 });
     if (arch) kit.box(m.ashlar, w + f * 2 + 0.2, 0.28, 0.2, { y: h / 2 + f + 0.14, z: 0.06 }, { metres: 2 });
     if (shutters) {
       for (const s of [-1, 1]) {
@@ -159,14 +161,20 @@ function doorAt(kit, m, x, w, h, { bottom = 0.3, surround = m.ashlar, double = f
   });
 }
 
-// Posts, rails and braces over a plaster wall, in a wall frame.
-function timberFrame(kit, m, width, y0, y1, bays, { open = [], t = 0.1 } = {}) {
+// Posts, rails and braces over a plaster wall, in a wall frame. Where members
+// cross, their faces must not share a plane (they z-fight): posts stand 1 cm
+// proud of rails, rails 1 cm proud of braces, and posts end 1 cm inside the
+// top and bottom rails. `skip` drops posts that would run through a door or
+// window.
+function timberFrame(kit, m, width, y0, y1, bays, { open = [], skip = [], t = 0.1 } = {}) {
   const bw = width / bays;
   const h = y1 - y0;
   const z = t / 2 - 0.02;
-  kit.box(m.timber, width + 0.02, 0.2, t, { y: y0 + 0.1, z }, { metres: 1.2, grain: true });
-  kit.box(m.timber, width + 0.02, 0.2, t, { y: y1 - 0.1, z }, { metres: 1.2, grain: true });
-  for (let i = 0; i <= bays; i++) kit.box(m.timber, 0.17, h, t, { x: -width / 2 + i * bw, y: y0 + h / 2, z }, { metres: 1.2, grain: true });
+  const rail = t + 0.02;
+  const post = t + 0.04;
+  kit.box(m.timber, width + 0.02, 0.2, rail, { y: y0 + 0.1, z }, { metres: 1.2, grain: true });
+  kit.box(m.timber, width + 0.02, 0.2, rail, { y: y1 - 0.1, z }, { metres: 1.2, grain: true });
+  for (let i = 0; i <= bays; i++) if (!skip.includes(i)) kit.box(m.timber, 0.17, h - 0.02, post, { x: -width / 2 + i * bw, y: y0 + h / 2, z }, { metres: 1.2, grain: true });
   const a = y0 + 0.2;
   const b = y1 - 0.2;
   kit.beamBetween(m.timber, -width / 2, a, -width / 2 + bw, b, 0.15, t, z);
@@ -174,7 +182,7 @@ function timberFrame(kit, m, width, y0, y1, bays, { open = [], t = 0.1 } = {}) {
   for (let i = 1; i < bays - 1; i++) {
     if (open.includes(i)) continue;
     const x = -width / 2 + (i + 0.5) * bw;
-    kit.box(m.timber, bw, 0.15, t, { x, y: y0 + h / 2, z }, { metres: 1.2, grain: true });
+    kit.box(m.timber, bw, 0.15, rail, { x, y: y0 + h / 2, z }, { metres: 1.2, grain: true });
     if (i % 2) {
       kit.beamBetween(m.timber, x - bw / 2, a, x + bw / 2, y0 + h / 2, 0.14, t, z);
       kit.beamBetween(m.timber, x - bw / 2, b, x + bw / 2, y0 + h / 2, 0.14, t, z);
@@ -230,9 +238,10 @@ function cottage(kit, m, rng) {
   walls(kit, UW, UD, (name, width) => {
     kit.frame({ z: 0.01 }, () => {
       const bays = name === 'front' || name === 'back' ? 6 : 4;
-      const bw = timberFrame(kit, m, width, upperBottom, upperTop, bays, { open: [1, 4] });
+      const windowed = bays === 4 && name === (side > 0 ? 'left' : 'right');
+      const bw = timberFrame(kit, m, width, upperBottom, upperTop, bays, { open: [1, 4], skip: windowed ? [2] : [] });
       if (bays === 6) for (const i of [1, 4]) windowAt(kit, m, -width / 2 + (i + 0.5) * bw, upperBottom + 1.15, 0.8, 0.95);
-      else if (name === (side > 0 ? 'left' : 'right')) windowAt(kit, m, 0, upperBottom + 1.15, 0.8, 0.95);
+      else if (windowed) windowAt(kit, m, 0, upperBottom + 1.15, 0.8, 0.95);
     });
   });
   walls(kit, W, D, (name) => {
@@ -252,7 +261,7 @@ function cottage(kit, m, rng) {
     kit.frame({ x: sx * (UW / 2 + 0.03), y: upperTop, ry: Math.PI / 2 }, () => {
       kit.box(m.timber, 0.16, roof.rise - 0.3, 0.1, { y: (roof.rise - 0.3) / 2 }, { metres: 1.2, grain: true });
       const cy = roof.rise * 0.38;
-      kit.box(m.timber, UD * 0.62 - 0.1, 0.16, 0.1, { y: cy }, { metres: 1.2, grain: true });
+      kit.box(m.timber, UD * 0.62 - 0.1, 0.16, 0.08, { y: cy }, { metres: 1.2, grain: true });
     });
   }
   kit.box(m.timber, roof.len + 0.1, 0.3, 0.3, { y: roof.apex + 0.18, rx: Math.PI / 4 }, { metres: 1.2, grain: true });
@@ -290,7 +299,8 @@ function hall(kit, m, rng) {
     kit.frame({ z: 0.01 }, () => {
       const long = name === 'front' || name === 'back';
       const bays = long ? 8 : 4;
-      const bw = timberFrame(kit, m, width, g0, g1, bays, { open: long ? [1, 2, 3, 4, 5, 6] : [1, 2] });
+      // The door or window at the middle of every wall replaces its centre post.
+      const bw = timberFrame(kit, m, width, g0, g1, bays, { open: long ? [1, 2, 3, 4, 5, 6] : [1, 2], skip: [bays / 2] });
       if (long) {
         for (const i of [1, 2, 5, 6]) windowAt(kit, m, -width / 2 + (i + 0.5) * bw, g0 + 1.5, 0.85, 1.15);
         if (name === 'front') doorAt(kit, m, 0, 1.9, 2.3, { bottom: g0, surround: m.timber, double: true });
@@ -302,14 +312,14 @@ function hall(kit, m, rng) {
     kit.frame({ z: 0.01 }, () => {
       const long = name === 'front' || name === 'back';
       const bays = long ? 8 : 4;
-      const bw = timberFrame(kit, m, width, u0, u1, bays, { open: long ? [1, 2, 3, 4, 5, 6] : [1, 2] });
+      const bw = timberFrame(kit, m, width, u0, u1, bays, { open: long ? [1, 2, 3, 4, 5, 6] : [1, 2], skip: long ? [bays / 2] : [] });
       if (long) for (const i of [1, 2, 3, 4, 5, 6]) if (i !== 3 && i !== 4) windowAt(kit, m, -width / 2 + (i + 0.5) * bw, u0 + 1.2, 0.8, 0.95);
       if (long) windowAt(kit, m, 0, u0 + 1.2, 1.0, 0.95);
     });
   });
 
   // Front steps up to the plinth.
-  for (let i = 0; i < 3; i++) kit.box(m.ashlar, 3.0 - i * 0.3, 0.27, 0.45, { y: 0.13 + i * 0.27, z: D / 2 + 1.1 - i * 0.4 }, { metres: 2 });
+  for (let i = 0; i < 3; i++) kit.box(m.ashlar, 3.0 - i * 0.3, 0.27, 0.45, { y: 0.13 + i * 0.27, z: D / 2 + 1.175 - i * 0.4 }, { metres: 2 });
 
   const pitch = deg(46);
   const roof = gableRoof(kit, m, { mat: m.clay, length: UW, span: UD, baseY: u1, pitch, eave: 0.7, overhang: 0.6, metres: 2 });
