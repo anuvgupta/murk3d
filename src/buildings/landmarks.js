@@ -372,7 +372,8 @@ export function lumberMill(kit, m) {
       for (let i = 0; i <= 8; i++) {
         const x = -W / 2 - 0.4 + i * ((W + 0.8) / 8);
         const r = new THREE.Vector3(0, apex, 0).addScaledVector(dir, slopeLen / 2).addScaledVector(nrm, -0.1);
-        kit.box(m.timber, 0.1, 0.16, slopeLen, { x, y: r.y, z: r.z, rx: pitch }, { metres: 1.2, grain: true });
+        // The two slopes' rafters meet at the ridge; different widths keep their sides apart.
+        kit.box(m.timber, ry ? 0.09 : 0.1, 0.16, slopeLen, { x, y: r.y, z: r.z, rx: pitch }, { metres: 1.2, grain: true });
       }
     });
   }

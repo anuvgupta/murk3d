@@ -56,11 +56,12 @@ export class Castle {
   // -- Pieces ---------------------------------------------------------------
 
   // A straight run of curtain wall between two local points, with a
-  // crenellated parapet and a walkway.
-  wallRun(kit, m, ax, az, bx, bz, baseY, height, thick = 1.6) {
+  // crenellated parapet and a walkway. Runs overlap at the joints, so
+  // neighbours are given different `lift`s to keep their tops out of one plane.
+  wallRun(kit, m, ax, az, bx, bz, baseY, height, thick = 1.6, lift = 0) {
     const len = Math.hypot(bx - ax, bz - az);
     const ry = Math.atan2(bx - ax, bz - az);
-    kit.frame({ x: (ax + bx) / 2, y: baseY, z: (az + bz) / 2, ry }, () => {
+    kit.frame({ x: (ax + bx) / 2, y: baseY + lift, z: (az + bz) / 2, ry }, () => {
       kit.box(m.white, thick, height, len + 0.2, { y: height / 2 }, { metres: 2.4 });
       // Foundation grows out of the rock below the ward floor.
       kit.box(m.whiteDark, thick + 0.6, 9, len + 0.3, { y: -4.5 }, { metres: 2.4 });
@@ -140,7 +141,7 @@ export class Castle {
       kit.add(m.whiteDark, ag, { y: 2.3 });
       // Portcullis, raised.
       for (let i = -3; i <= 3; i++) kit.box(m.iron, 0.08, 3.2, 0.08, { x: i * 0.55, y: 4.0, z: 0.6 });
-      for (let i = 0; i < 4; i++) kit.box(m.iron, 3.6, 0.08, 0.08, { y: 2.6 + i * 0.9, z: 0.6 });
+      for (let i = 0; i < 4; i++) kit.box(m.iron, 3.6, 0.08, 0.07, { y: 2.6 + i * 0.9, z: 0.6 });
       // Machicolations and parapet over the gate.
       kit.box(m.white, half * 2 - 4.0, 1.3, 3.6, { y: height + 0.65 }, { metres: 2 });
       for (let i = -2; i <= 2; i++) kit.box(m.white, 0.9, 0.6, 0.4, { x: i * 1.3, y: height + 1.6, z: 1.6 }, { metres: 2 });
@@ -190,7 +191,7 @@ export class Castle {
       let dGate = Math.abs(mid - this.cfg.gateDir);
       if (dGate > Math.PI) dGate = Math.PI * 2 - dGate;
       if (dGate < 0.25) continue;
-      this.wallRun(kit, m, Math.cos(a0) * outerR, Math.sin(a0) * outerR, Math.cos(a1) * outerR, Math.sin(a1) * outerR, 0, TERRACES[0].wall);
+      this.wallRun(kit, m, Math.cos(a0) * outerR, Math.sin(a0) * outerR, Math.cos(a1) * outerR, Math.sin(a1) * outerR, 0, TERRACES[0].wall, 1.6, (i % 2) * 0.012);
       if (i % 2 === 0) this.tower(kit, m, Math.cos(a0) * outerR, Math.sin(a0) * outerR, 0, TERRACES[0].wall + 4, 2.6);
     }
     this.gatehouse(kit, m, Math.cos(this.cfg.gateDir) * outerR, Math.sin(this.cfg.gateDir) * outerR, this.cfg.gateDir, 0, TERRACES[0].wall + 2);
@@ -209,7 +210,7 @@ export class Castle {
         let dGate = Math.abs(((mid - T.gateAngle + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
         if (dGate < 0.33) continue;
         // Walls rise from the lower ward's floor so the terrace face is clad.
-        this.wallRun(kit, m, Math.cos(a0) * ringR, Math.sin(a0) * ringR, Math.cos(a1) * ringR, Math.sin(a1) * ringR, prev.h, T.h - prev.h + T.wall, 1.4);
+        this.wallRun(kit, m, Math.cos(a0) * ringR, Math.sin(a0) * ringR, Math.cos(a1) * ringR, Math.sin(a1) * ringR, prev.h, T.h - prev.h + T.wall, 1.4, (i % 2) * 0.012);
         if (i % 3 === 0) this.tower(kit, m, Math.cos(a0) * ringR, Math.sin(a0) * ringR, prev.h, T.h - prev.h + T.wall + 3.5, 2.0);
       }
       // Gate in this ring, at the terrace floor level, and stairs up to it.

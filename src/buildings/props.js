@@ -82,10 +82,11 @@ export const BARRELS = [oakBarrel, waterBarrel, cask];
 export function crate(kit, m, size = 0.7) {
   kit.box(m.planks, size, size, size, { y: size / 2 }, { metres: 1.2 });
   for (const y of [0.05, size - 0.05]) {
-    for (const [w, d] of [[size + 0.02, 0.08], [0.08, size + 0.02]]) {
+    // Rails stop inside the crossing rail at each corner, and the crossing
+    // rails are a touch shallower, so no two rails share a face.
+    for (const [w, d] of [[size, 0.08], [0.08, size]]) {
       for (const s of [-1, 1]) {
-        const off = (w > d ? size / 2 : 0) * 0;
-        kit.box(m.timber, w, 0.08, d, { x: w > d ? 0 : s * (size / 2 - 0.03), y, z: w > d ? s * (size / 2 - 0.03) : off }, { metres: 1.2, grain: true });
+        kit.box(m.timber, w, w > d ? 0.08 : 0.07, d, { x: w > d ? 0 : s * (size / 2 - 0.03), y, z: w > d ? s * (size / 2 - 0.03) : 0 }, { metres: 1.2, grain: true });
       }
     }
   }
