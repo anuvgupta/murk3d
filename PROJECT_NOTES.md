@@ -679,3 +679,36 @@ screenshot-checked.
   good; crypt/ward walls still tile-like at 2 m; island cone still
   smooth. Session handoff written: HANDOFF.md (this branch) and
   https://claude.ai/artifact/WfyERcS7grzanb3KJnACvt
+- 2026-10-30 (resumed after compaction; the stop hook held the /goal open
+  because the visual loop had not reached "incredible"). Another session
+  (Opus) is pushing to main in parallel: z-fighting fixes (castle wall
+  runs lifted 12 mm alternately, crates, portcullis, sawmill rafters,
+  bridge soffit, town-hall arcade), calmer moonlit water, feedback-kind
+  toggle row. Always `git fetch && git rebase origin/main` before push.
+- Pass 26 (BM/BN): world-space masonry weathering shader
+  (`buildings/masonry.js`, applied to white/whiteDark/whiteHouse/ashlar/
+  stone/stoneWarm/ruin/ruinDark): broad + mid stains, rain streaks on
+  vertical faces, rising damp and moss at the foot (reads terrain height
+  under the wall via TERRAIN_HEIGHT_GLSL), lichen, 2.2 m × 0.8 m patchwork
+  tint, soft macro normal wobble. GLSL reserved word `patch` bit again →
+  `quilt`. ashlarStone: unequal course heights, wandering joints, chipped
+  corners, pale per-block tint 0.6+0.44t, softer arris. Castle walls and
+  towers at metres 3.6/3 (monumental blocks). Grass grows on the floating
+  isles: `uDiscs[6]` (x,z,r,top) override terrainHeight in the grass
+  vertex shader + per-tile culling sphere stretched up to the disc top
+  (first try showed nothing because the tile's sphere sat 100 m below).
+  Island cones 56×22 segments, ridged noise, bedding steps, 5–8 ribs,
+  hanging vines (rope) and root knots (logs). Moss pads on flagstones are
+  ragged 9-gon patches in 0x3f5a2a. Jungle floor: ground tint
+  [0.5,0.46,0.3], grassDensity 0.38, olive grass tint. Rock relief gains
+  fine fracture grain (tri 1.5/4.2) and bedding ledges near the camera.
+  Result: castle gate (BN4) and ward (BN1) now read as masonry; sky isle
+  (BN2) has blades and a craggy cone — keepers. Castle at 19:00 from
+  (120,-120) yaw -0.785 is a keeper.
+- Pass 27 (BO): realm grassDensity scaled blade HEIGHT, not cover, so the
+  jungle stayed a dark lawn → cover now thresholds the lush noise
+  (`cover = smoothstep(0.88-a, 1.08-a, gn.y*0.8+br*0.2)`), so thin realms
+  break into patches with ground showing. Close rock: cavity contrast
+  `mix(0.5+0.75h, 0.28+1.15h, detail)` via a `rockDetailF` global; gully
+  banding halved. Verify BO (jungle, cliff close, isle looking down for
+  the cloud sea, tundra tufts, canyon, ward at dusk).
