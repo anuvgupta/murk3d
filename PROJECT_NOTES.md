@@ -933,3 +933,18 @@ screenshot-checked.
   the plaza (skip bridge/houses), 8-pole ring at r 12.7, 6-pole ring at
   r 4.7 (4.3 m tall) with 3 crossings over the well. Bank scree (c3f5c9d)
   in groundColor behind `groundDetail`. Verify DM (plaza), DN (bank).
+- Verified DM/DN: fairy lights are a keeper by night (#52 closed with
+  frames on feedback/verify); bulbs clipped to white at 4.6 → 2.7, bead
+  icosahedron(0.058,1), one warm point light over the well (172d48d).
+  Castle bridge gate 22:00 with lanterns is a keeper (DN3). Karst bank
+  stones read as even confetti → gathered by a 0.09-scale noise and tinted
+  from the soil (7d5e5cf; re-check DP1).
+- Twilight (DO): 19:45 and 05:15 were a flat pink-grey window — no direct
+  light at all between sunI (off at elev −0.03) and moonI (on from −0.03,
+  weak). Now: sky afterglow band in finishSkyFragment (adbd28f) and a
+  civil-twilight rim light `duskI = 1.1·smoothstep(−0.17,−0.06)·(1−
+  smoothstep(−0.06,0))` from the sun's side with lightDir.y clamped to 0.1,
+  colour lerped to PALETTE.dusk 0xff6a6a; moon now ramps −0.1→−0.2 and its
+  disc uses its own direction; the pass's sun glow uses the true sunDir
+  (a25b46f). Re-check DQ1–DQ5 (19:45 W, 19:50 village, 05:15 E, jetty
+  20:00, 20:30).
