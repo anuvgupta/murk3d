@@ -79,7 +79,9 @@ export const ROCK_GLSL = /* glsl */ `
       seam = j.x * detail;
       blockH = mix( 0.5, j.y, detail );
     }
-    return clamp( strata * 0.1 + lumps * 0.26 + grain * 0.2 + fine * 0.12 + ledge * 0.08 + macro * 0.36 + ( blockH - 0.5 ) * 0.18 - cracks * 0.24 - seam * 0.2 + 0.05, 0.0, 1.0 );
+    // Strata read strongest on steep faces (canyon walls, cliffs), barely on level ground.
+    float strataW = 0.1 + 0.16 * ( 1.0 - w.y );
+    return clamp( strata * strataW + lumps * 0.26 + grain * 0.2 + fine * 0.12 + ledge * 0.08 + macro * ( 0.36 - 0.1 * ( 1.0 - w.y ) ) + ( blockH - 0.5 ) * 0.18 - cracks * 0.24 - seam * 0.2 + 0.05, 0.0, 1.0 );
   }
 
   // Granular speckle for the last metre or two: a smoothed hash at ~3 cm.
@@ -110,6 +112,8 @@ export const ROCK_GLSL = /* glsl */ `
     float meso = tri( p, w, 0.05, 2 );
     float gully = tri( vec3( p.x, p.y * 0.22, p.z ), w, 0.045, 3 );
     c *= ( 0.76 + 0.46 * meso ) * ( 0.9 + 0.2 * smoothstep( 0.35, 0.7, gully ) );
+    // Bedding colour: alternating warm and cool beds on steep faces.
+    c *= 1.0 + ( 1.0 - w.y ) * 0.22 * ( sin( p.y * 2.2 + broad * 7.0 + 1.3 ) );
     // Lichen in patches.
     float lichen = smoothstep( 0.64, 0.8, tri( p, w, 0.08, 0 ) ) * 0.45;
     c = mix( c, ${lin(0x8b8a52)}, lichen );
