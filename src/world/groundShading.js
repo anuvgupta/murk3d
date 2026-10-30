@@ -271,6 +271,18 @@ export const GROUND_GLSL = /* glsl */ `
     // Banks: worn earth on moderate slopes, bare rock where it steepens or climbs.
     float bank = smoothstep( 0.3, 0.46, slope + ( n.z - 0.5 ) * 0.1 );
     c = mix( c, dirtColor( n ) * 0.9, bank * 0.6 );
+    if ( bank > 0.01 && groundDetail > 0.01 ) {
+      // Up close a bare bank is not smooth sand: rain-washed soil streaks
+      // run downhill, and pale grit and small stones lodge on the face.
+      vec2 dn = normalize( nrm.xz + vec2( 1e-4, 0.0 ) );
+      vec2 pr = vec2( dot( p.xz, vec2( -dn.y, dn.x ) ), dot( p.xz, dn ) );
+      float streak = texture( uNoise, vec2( pr.x * 0.9, pr.y * 0.07 ) ).g;
+      float grit = texture( uNoise, p.xz * 1.7 + 3.1 ).a;
+      float stone = smoothstep( 0.72, 0.8, grit + ( texture( uNoise, p.xz * 6.3 ).r - 0.5 ) * 0.12 );
+      vec3 soil = c * ( 0.84 + 0.32 * streak );
+      soil = mix( soil, vec3( 0.6, 0.57, 0.5 ) * ( 0.8 + 0.5 * texture( uNoise, p.xz * 5.0 ).b ), stone * 0.85 );
+      c = mix( c, soil, bank * groundDetail );
+    }
     // Steep ground is bare rock; on a cliff the odd flatter ledge stays rock
     // too (no grass blotches), so the rock band starts earlier where the
     // ground is already mostly steep.
