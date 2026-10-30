@@ -902,3 +902,10 @@ screenshot-checked.
   overlook noon, bridge 08:30 all keepers on the final build.
 - Next survey (DI): shelves plates golden, sky-isle bridge, moonlit
   close, jungle temple, cliff-ruins falls, alpine lake.
+- Surveys DI/DJ: new keepers — moonlit realm 23:00, village dawn 06:11,
+  overlook dawn 06:30. Weak: the Vale's rock spires/mesas at 20–60 m read
+  as smooth cones because joints faded with `detail` → joints persist at
+  0.4 weight at distance (re-check DK). Castle at midnight is flat
+  grey-green; candidate: bluer moonlight hemi and lit castle windows.
+  Several survey positions landed against trunks/cliffs — pick spots
+  from the map/probe first next time.
