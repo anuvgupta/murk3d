@@ -25,10 +25,11 @@ export function rememberQuality(name) {
 }
 export const settings = PRESETS[QUALITY];
 
-// Pixelation: the frame is rendered at a lower resolution and scaled up
-// with nearest-neighbour sampling, so the pixels are real and the whole
-// post chain (atmosphere, bloom) stays consistent. `px` is the size of one
-// game pixel in CSS pixels; 0 means the normal resolution.
+// Pixelation: the frame is rendered at twice the pixel grid, box-filtered
+// down to it (PixelatePass) and scaled up with nearest-neighbour sampling,
+// so the pixels are real, filtered rather than sampled, and the whole post
+// chain (atmosphere, bloom) stays consistent. `px` is the size of one game
+// pixel in CSS pixels; 0 means the normal resolution.
 export const PIXEL_LEVELS = [
   { name: 'Off', px: 0 },
   { name: 'Mild', px: 3 },

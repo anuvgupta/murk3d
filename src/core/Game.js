@@ -5,6 +5,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { AtmospherePass } from '../world/AtmospherePass.js';
 import { TemporalPass } from '../world/TemporalPass.js';
+import { PixelatePass } from '../world/PixelatePass.js';
 
 import { Terrain } from '../world/Terrain.js';
 import { GroundMask } from '../world/GroundMask.js';
@@ -266,7 +267,10 @@ export class Game {
       // High threshold: only the sun, glowing windows and bright cloud edges bloom.
       this.composer.addPass(new UnrealBloomPass(size, 0.25, 0.6, 4.0));
     }
-    // Frame blending steadies the pixelated modes; it idles when they're off.
+    // The pixelated modes: 2×2 box filter down to the pixel grid, then frame
+    // blending to steady it. Both idle when pixels are off.
+    this.pixelate = new PixelatePass();
+    this.composer.addPass(this.pixelate);
     this.temporal = new TemporalPass();
     this.composer.addPass(this.temporal);
     this.composer.addPass(new OutputPass());
@@ -279,6 +283,7 @@ export class Game {
     const L = this.pixelLevel;
     if (this.wind) this.wind.stepHz = [0, 18, 12][L];
     if (this.grass) this.grass.uniforms.uPixelWiden.value = [1, 1.8, 2.6][L];
+    if (this.pixelate) this.pixelate.enabled = L > 0;
     if (this.temporal) {
       this.temporal.baseWeight = [0, 0.42, 0.55][L];
       this.temporal.enabled = L > 0;
@@ -452,10 +457,11 @@ export class Game {
     else this.renderer.render(this.scene, this.camera);
   }
 
-  // Device pixels per CSS pixel: the preset's ratio, or 1/px when pixelated.
+  // Device pixels per CSS pixel: the preset's ratio, or twice the pixel grid
+  // when pixelated (the pixelate pass averages each 2×2 block down to one).
   effectiveRatio() {
     const px = PIXEL_LEVELS[this.pixelLevel].px;
-    return px ? 1 / px : this.baseRatio;
+    return px ? 2 / px : this.baseRatio;
   }
 
   applyResolution() {

@@ -9,9 +9,10 @@
 //              slowly as they drift
 //   painterly  brushed cirrus streaks and soft banks, like a painted backdrop
 //
-// Every style runs on one cloud clock T (sky time × cloudSpeed) and passes its
-// cloud plane through churn(): a rotational domain warp, so the masses roll,
-// curl and tear as they drift rather than sliding across the sky as a stamp.
+// Every style runs on one cloud clock T (sky time × cloudSpeed × 600: a lobe
+// takes a minute or so to roll over in a breeze) and passes its cloud plane
+// through churn(): a rotational domain warp, so the masses roll, curl and tear
+// as they drift rather than sliding across the sky as a stamp.
 
 export const CLOUD_STYLES = ['realistic', 'ghibli', 'painterly'];
 
@@ -86,7 +87,7 @@ const STYLES = {
       vec3 sunCol = vSunE * Fex * 0.22 * 0.04;
       vec3 skyAmb = Lin * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
       float horizonFade = smoothstep( 0.0, 0.08, direction.y );
-      float T = time * cloudSpeed * 2500.0;
+      float T = time * cloudSpeed * 600.0;
       vec2 drift = vec2( 0.9, 0.35 );
       vec2 toSun = vSunDirection.xz * 0.06;
       // Two decks: broken cumulus below, a thinner higher layer above.
@@ -137,7 +138,7 @@ const STYLES = {
       vec3 sunCol = vSunE * Fex * 0.22 * 0.04;
       vec3 skyAmb = Lin * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
       float horizonFade = smoothstep( 0.0, 0.06, direction.y );
-      float T = time * cloudSpeed * 2500.0;
+      float T = time * cloudSpeed * 600.0;
       // A low deck, so the towers loom large overhead.
       vec2 uv = direction.xz / ( max( direction.y, 0.02 ) * 0.55 ) * cloudScale * 800.0;
       uv += vec2( 0.9, 0.35 ) * T * 0.8;
@@ -194,7 +195,7 @@ const STYLES = {
       vec3 sunCol = vSunE * Fex * 0.22 * 0.04;
       vec3 skyAmb = Lin * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
       float horizonFade = smoothstep( 0.0, 0.06, direction.y );
-      float T = time * cloudSpeed * 2500.0;
+      float T = time * cloudSpeed * 600.0;
       vec2 drift = vec2( 0.9, 0.35 );
       vec2 toSun = vSunDirection.xz * 0.06;
       // Soft banks, brushed: low-contrast masses with feathered edges that
