@@ -983,3 +983,11 @@ screenshot-checked.
   floor" in DT/DW free-cam shots was NOT fog: the cameras sat inside the
   realm rim walls (back faces culled → sky below horizon). view2 cam mode
   now clamps cam.y ≥ terrainHeight + 3. Corrected survey DZ1–DZ8 queued.
+- DX: the cliff-ruins mesa's gentle side (45°) is one brown fuzzy mound at
+  30–100 m (the bank zone with no carpet); canyon at 15:00 and tundra wide
+  are keepers; cliff-ruins top with vines is a keeper. Banks now carry
+  contour rock ledges (terr noise in world y, 0.22/0.5 scales → `ledge`,
+  rock at 0.85) and grassy banks (mask r) keep more green (dirt mix 0.6 →
+  0.38) — a4958af. Verify EA1 (mesa slope), EA2 overlook noon, EA3 karst,
+  EA4 bank close, EA5 bridge: the Vale's river banks and hills must not
+  turn stripy.
