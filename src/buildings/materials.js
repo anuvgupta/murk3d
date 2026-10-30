@@ -130,8 +130,8 @@ export function createBuildingMaterials(noiseTexture, heightMap) {
   m.lamp.userData.noShadow = true;
   // Weather the walling stone in world space (stains, streaks, damp, moss).
   const W = (mat, o) => weatherMasonry(mat, { noise: noiseTexture, heightMap, ...o });
-  W(m.white, { moss: 0.35, grime: 0.8, lichen: 0.05 });
-  W(m.whiteDark, { moss: 0.5, grime: 1.0, lichen: 0.08 });
+  W(m.white, { moss: 0.5, grime: 1.3, lichen: 0.08 });
+  W(m.whiteDark, { moss: 0.7, grime: 1.5, lichen: 0.12 });
   W(m.whiteHouse, { moss: 0.3, grime: 0.8, lichen: 0.04 });
   W(m.ashlar, { moss: 0.6, grime: 1.0, lichen: 0.12 });
   W(m.stone, { moss: 0.7, grime: 1.0, lichen: 0.14 });
