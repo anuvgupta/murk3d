@@ -675,3 +675,7 @@ screenshot-checked.
   whiteHouse material = white ashlar at 2.4x repeat for the town; island
   cones get 6 ribs + fissures + overhanging rim. Verify BL (+ chapel
   close, castle gate from the bridge).
+- 13:40 BL verified: castle gate from the bridge and river-town street
+  good; crypt/ward walls still tile-like at 2 m; island cone still
+  smooth. Session handoff written: HANDOFF.md (this branch) and
+  https://claude.ai/artifact/WfyERcS7grzanb3KJnACvt
