@@ -34,6 +34,20 @@ function finishSkyFragment(fragment) {
       float hz = 1.0 - smoothstep( 0.0, 0.28, direction.y );
       texColor = mix( texColor, texColor * vec3( 1.2, 0.92, 0.78 ) + vec3( 0.16, 0.07, 0.03 ), g * hz * 0.75 );
     }
+    {
+      // Afterglow: for a while after sunset (and before sunrise) the horizon
+      // around the sun keeps a band of apricot that fades up through rose to
+      // violet, so dusk lingers instead of dropping straight to night.
+      float below = smoothstep( 0.03, -0.05, vSunDirection.y ) * ( 1.0 - smoothstep( -0.14, -0.3, vSunDirection.y ) );
+      vec2 sunH = normalize( vSunDirection.xz + vec2( 1e-5, 0.0 ) );
+      vec2 dirH = normalize( direction.xz + vec2( 1e-5, 0.0 ) );
+      float toward = 0.5 + 0.5 * dot( sunH, dirH );
+      float band = exp( -max( direction.y, 0.0 ) * ( 5.0 + 9.0 * ( 1.0 - toward ) ) ) * smoothstep( -0.06, 0.01, direction.y );
+      float hgt = clamp( direction.y * 6.0, 0.0, 1.0 );
+      vec3 glowC = mix( vec3( 1.0, 0.52, 0.22 ), vec3( 0.62, 0.32, 0.55 ), hgt );
+      float strength = below * band * ( 0.1 + 0.9 * pow( toward, 3.0 ) );
+      texColor += glowC * strength * 0.55;
+    }
     texColor = clamp( texColor, vec3( 0.0 ), vec3( 1.6 ) );
     // Night sky is deep navy, never pure black.
     texColor = max( texColor, vec3( 0.006, 0.009, 0.02 ) );
