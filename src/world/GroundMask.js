@@ -168,18 +168,27 @@ export class GroundMask {
     cobble.beginPath();
     cobble.arc(toPx(PLAZA.x), toPx(PLAZA.z), PLAZA.radius * PX, 0, Math.PI * 2);
     cobble.fill();
+    // Where a road leaves the plaza the paving thins out over a few metres:
+    // loose setts sunk in the dirt, then bare road. Kept to the road below.
+    const fringe = layer();
+    const halo = fringe.createRadialGradient(toPx(PLAZA.x), toPx(PLAZA.z), (PLAZA.radius - 0.5) * PX, toPx(PLAZA.x), toPx(PLAZA.z), (PLAZA.radius + 4) * PX);
+    halo.addColorStop(0, '#fff');
+    halo.addColorStop(1, '#000');
+    fringe.fillStyle = halo;
+    fringe.fillRect(0, 0, SIZE, SIZE);
 
     const g = grass.getImageData(0, 0, SIZE, SIZE).data;
     const r = road.getImageData(0, 0, SIZE, SIZE).data;
     const w = water.getImageData(0, 0, SIZE, SIZE).data;
     const c = cobble.getImageData(0, 0, SIZE, SIZE).data;
+    const f = fringe.getImageData(0, 0, SIZE, SIZE).data;
     this.data = new Uint8Array(SIZE * SIZE * 4);
     for (let i = 0; i < SIZE * SIZE; i++) {
       const o = i * 4;
       this.data[o] = g[o];
       this.data[o + 1] = r[o];
       this.data[o + 2] = w[o];
-      this.data[o + 3] = c[o];
+      this.data[o + 3] = Math.max(c[o], Math.round((f[o] * r[o]) / 255));
     }
     this.bakeTerrain(terrain);
     blur(this.data);

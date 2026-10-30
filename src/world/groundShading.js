@@ -141,8 +141,11 @@ export const GROUND_GLSL = /* glsl */ `
   }
 
   // Paving setts: staggered courses of rounded-rectangular stones with wavy,
-  // finely jagged edges, recessed joints and moss in the cracks.
-  vec3 cobbleColor( vec2 p, vec4 n ) {
+  // finely jagged edges, recessed joints and moss in the cracks. cover is the
+  // mask's paving amount: below full, whole stones drop out one by one (each
+  // has its own threshold) so the paving frays into loose setts on dirt
+  // instead of fading. Returns the colour and how much of it covers the ground.
+  vec4 cobbleColor( vec2 p, vec4 n, float cover ) {
     vec2 q = p * 3.0;
     float row = floor( q.y );
     float rh = fract( sin( row * 12.99 ) * 43758.5 );
@@ -160,7 +163,18 @@ export const GROUND_GLSL = /* glsl */ `
     vec3 c = mix( ${lin(0x7a7268)}, ${lin(0xa59b8a)}, h ) * ( 0.82 + 0.3 * n.w ) * ( 0.7 + 0.3 * round );
     c = mix( c, c * ${lin(0xd4b58a)} * 1.2, smoothstep( 0.6, 0.9, fract( h * 7.3 ) ) * 0.4 );
     vec3 mortar = mix( ${lin(0x3a342c)}, ${lin(0x4f6a2a)}, smoothstep( 0.55, 0.8, n.y ) * 0.7 );
-    return mix( mortar, c, joint );
+    // Loose setts sit lower and dirtier than the laid paving.
+    float laid = smoothstep( 0.82, 0.96, cover );
+    c *= mix( 0.78, 1.0, laid );
+    float keep = step( 0.08 + 0.84 * fract( h * 53.7 + 0.31 ), cover );
+    // Loose setts are worn smaller and rounder, half buried, the corners lost
+    // under the dirt; the sparser the paving, the smaller what's left.
+    vec2 cq = max( vec2( 0.2 ) - vec2( e2.x * 0.85, e2.y ), 0.0 );
+    float roundEdge = 0.2 - length( cq ) + wave + jag;
+    float inset = mix( 0.15, 0.05, smoothstep( 0.1, 0.9, cover ) ) + 0.04 * fract( h * 17.1 );
+    float loose = keep * smoothstep( inset, inset + 0.03, roundEdge );
+    // Fully paved: mortar fills the joints. Frayed: the dirt shows between stones.
+    return vec4( mix( mortar, c, joint ), max( laid, loose ) );
   }
 
   // carpet: how much of the grass carpet actually stands here (the blade
@@ -182,7 +196,10 @@ export const GROUND_GLSL = /* glsl */ `
     vec3 c = mix( bare, under, smoothstep( 0.0, 0.55, m.r ) * carpet );
     c = mix( c, dirtColor( n ), smoothstep( 0.15, 0.85, m.g ) );
     c = mix( c, bedColor( n ), m.b );
-    if ( m.a > 0.01 ) c = mix( c, cobbleColor( p.xz, n ), m.a );
+    if ( m.a > 0.01 ) {
+      vec4 sett = cobbleColor( p.xz, n, m.a );
+      c = mix( c, sett.rgb, sett.a );
+    }
 
     float slope = 1.0 - nrm.y;
     // Banks: worn earth on moderate slopes, bare rock where it steepens or climbs.
