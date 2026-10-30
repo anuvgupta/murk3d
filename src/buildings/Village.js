@@ -236,6 +236,11 @@ export class Village {
     const flicker = 0.85 + 0.1 * Math.sin(time * 13.1) + 0.05 * Math.sin(time * 27.3);
     this.materials.glass.emissiveIntensity = 0.12 + nightFactor * 2.2 * flicker;
     this.materials.lamp.emissiveIntensity = 0.2 + nightFactor * 4 * flicker;
+    const gu = this.materials.glassBlue.userData.uniforms;
+    if (gu) {
+      gu.uNight.value = nightFactor;
+      gu.uTime.value = time;
+    }
     this.smoke.update(dt, wind, lightLevel);
     if (this.furnitureMaterials) this.furnitureMaterials.time.value = time;
     // Sails turn with the wind; the wheel turns with the river.

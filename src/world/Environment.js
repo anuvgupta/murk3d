@@ -46,7 +46,7 @@ const C = (hex) => new THREE.Color(hex);
 const PALETTE = {
   sunHigh: C(0xfff1d6),
   sunLow: C(0xff7a2e),
-  moon: C(0x9bb2e6),
+  moon: C(0x8fa8ea),
   fogDay: C(0xb9cde4),
   fogGolden: C(0xe2a383),
   fogNight: C(0x0b0f19),
@@ -54,6 +54,7 @@ const PALETTE = {
   hemiSkyGolden: C(0xf0b08a),
   hemiSkyNight: C(0x5a6fa8),
   hemiGround: C(0x8a7a62),
+  hemiGroundNight: C(0x2a3250),
 };
 
 export class Environment {
@@ -243,7 +244,7 @@ export class Environment {
     // Direct light: the sun by day, a dim cool moon by night. Their intensities
     // both pass through ~0 around the horizon, hiding the swap in direction.
     const sunI = 4.4 * smoothstep(-0.03, 0.14, elev) * (0.72 + 0.28 * smoothstep(0.1, 0.5, elev));
-    const moonI = 1.6 * smoothstep(-0.03, -0.14, elev);
+    const moonI = 2.0 * smoothstep(-0.03, -0.14, elev);
     if (sunI > 0.0001 || moonI <= 0.0001) {
       this.lightDir.copy(sunDir);
       this.sun.color.copy(PALETTE.sunLow).lerp(PALETTE.sunHigh, smoothstep(0.04, 0.6, elev));
@@ -273,7 +274,9 @@ export class Environment {
     const c = this._color;
     c.copy(PALETTE.hemiSkyDay).lerp(PALETTE.hemiSkyGolden, golden * 0.7);
     this.hemi.color.copy(PALETTE.hemiSkyNight).lerp(c, day);
-    this.hemi.groundColor.copy(PALETTE.hemiGround).multiplyScalar(0.25 + 0.75 * day);
+    // By night the ground bounce is moonlit blue-grey, so grass and stone go
+    // cool and silver instead of khaki.
+    this.hemi.groundColor.copy(PALETTE.hemiGroundNight).lerp(this._tmpColor.copy(PALETTE.hemiGround), day);
     // Twilight keeps a fair amount of sky light so dusk reads as dusk, not black.
     const twilight = smoothstep(-0.2, 0.0, elev) * (1 - day);
     this.hemi.intensity = 0.56 + 0.16 * day + 0.45 * twilight;
@@ -299,12 +302,14 @@ export class Environment {
     // Mist lies in the valley at dawn and dusk and thins through the day.
     a.groundMist = 0.07 + 0.14 * low * day + 0.14 * (1 - day);
     a.mistFill = 0;
-    a.saturation = THREE.MathUtils.lerp(0.84, 1.12 + 0.06 * day + 0.1 * golden, day);
-    a.lift.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
+    a.saturation = THREE.MathUtils.lerp(0.98, 1.12 + 0.06 * day + 0.1 * golden, day);
+    // Shadows lift warm by day and blue by night (a warm lift browned the night sky).
+    this._tmpColor2.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
+    a.lift.setRGB(0.004, 0.008, 0.022).lerp(this._tmpColor2, day);
     a.vignette = 0.22;
     a.moon = 0;
     // Punchier by day; flat light at dusk and night stays soft.
-    a.contrast = 1.0 + 0.14 * day * (1 - 0.5 * golden);
+    a.contrast = 1.0 + 0.14 * day * (1 - 0.5 * golden) + 0.06 * (1 - day);
     // By night the pass draws the moon instead: a small pale disc, faint halo.
     if (moonI > 0.0001 && sunI <= 0.0001) {
       a.sunDir.copy(this.lightDir);

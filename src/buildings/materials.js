@@ -38,6 +38,40 @@ function mossMaterial() {
 
 // Shared materials for every building and prop. Textures are generated once;
 // variants (plaster tints, warmer stone) reuse them with a colour multiplier.
+// Castle window glass: cool sky reflection by day; by night most windows glow
+// warm from the rooms behind them, each at its own brightness and with its own
+// slow candle flicker (hashed from the window's centre, carried in `aux`).
+function windowGlass() {
+  const mat = new THREE.MeshStandardMaterial({ color: 0x1a2438, emissive: 0x6a8ad0, emissiveIntensity: 0.18, roughness: 0.1, metalness: 0.2 });
+  const uniforms = { uNight: { value: 0 }, uTime: { value: 0 } };
+  mat.userData.uniforms = uniforms;
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>
+        attribute vec4 aux;
+        varying vec4 vAux;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        vAux = aux;`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+        varying vec4 vAux;
+        uniform float uNight;
+        uniform float uTime;`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        {
+          float h1 = fract( sin( dot( floor( vAux.xyz * 4.0 ), vec3( 12.9898, 78.233, 37.719 ) ) ) * 43758.5453 );
+          float h2 = fract( h1 * 97.13 + 0.37 );
+          float lit = step( 0.18, h1 ); // a few rooms stay dark
+          float fl = 0.88 + 0.12 * sin( uTime * ( 1.6 + 3.0 * h2 ) + h1 * 6.2832 ) * sin( uTime * 0.6 + h2 * 5.0 );
+          vec3 warm = mix( vec3( 1.0, 0.6, 0.26 ), vec3( 1.0, 0.82, 0.52 ), h2 );
+          float night = clamp( uNight * lit * fl * ( 0.45 + 0.55 * h2 ), 0.0, 1.0 );
+          totalEmissiveRadiance = mix( totalEmissiveRadiance, warm * 2.6, night );
+        }`);
+  };
+  return mat;
+}
+
 export function createBuildingMaterials(noiseTexture, heightMap) {
   tex.setTextureNoise(noiseTexture);
 
@@ -114,7 +148,7 @@ export function createBuildingMaterials(noiseTexture, heightMap) {
     whiteHouse: std(whiteFine, 1.0, 0.85, { color: 0xf4f0e8, envMapIntensity: 1.6 }),
     slateBlue: std(slate, 2, 0.7, { color: 0x6f7f96 }),
     gilt: new THREE.MeshStandardMaterial({ color: 0xe8c45a, roughness: 0.25, metalness: 1.0 }),
-    glassBlue: new THREE.MeshStandardMaterial({ color: 0x1a2438, emissive: 0x6a8ad0, emissiveIntensity: 0.18, roughness: 0.1, metalness: 0.2 }),
+    glassBlue: windowGlass(),
     banner: new THREE.MeshStandardMaterial({ color: 0x1e3a7a, roughness: 0.95, side: THREE.DoubleSide }),
     // Ruins: weathered grey ashlar and rubble, moss and turf.
     // Weathered limestone, as pale as Oblivion's Ayleid stone.

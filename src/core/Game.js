@@ -200,6 +200,14 @@ export class Game {
     await mark('village');
     this.castles = CASTLES.map((cfg) => new Castle({ terrain: this.terrain, materials: this.buildingMaterials, castle: cfg }));
     for (const c of this.castles) scene.add(c.group);
+    this.castleLights = [];
+    // Real lights only at the outer gate and the keep door; the other lanterns glow on their own.
+    for (const c of this.castles) for (const p of [...c.worldLamps().slice(0, 2), ...c.worldLamps().slice(-2)]) {
+      const light = new THREE.PointLight(0xffb060, 0, 16, 1.6);
+      light.position.copy(p);
+      scene.add(light);
+      this.castleLights.push(light);
+    }
     await mark('castle');
     this.islands = new SkyIslands({ noise: this.noiseTexture, materials: this.buildingMaterials });
     scene.add(this.islands.group);
@@ -673,6 +681,10 @@ export class Game {
     if (!this.active) this.portals.update(dt, { x: 1e9, y: 0, z: 1e9 });
     this.falls.update(dt);
     this.mushrooms.update(env.nightFactor);
+    if (this.castleLights) {
+      const lf = 0.9 + 0.1 * Math.sin(this.elapsed * 11.3);
+      for (const l of this.castleLights) l.intensity = env.nightFactor * 9 * lf;
+    }
   }
 
   render() {

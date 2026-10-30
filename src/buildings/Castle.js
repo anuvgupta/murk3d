@@ -3,6 +3,27 @@ import { Kit } from './Kit.js';
 import { CASTLE, ROADS } from '../world/plan.js';
 import { mulberry32 } from '../util/noise.js';
 
+// A window pane whose centre rides along in `aux`, so the glass shader can
+// light each window on its own at night.
+function pane(geometry) {
+  const n = geometry.attributes.position.count;
+  const aux = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) aux[i * 4 + 3] = 1;
+  geometry.setAttribute('aux', new THREE.Float32BufferAttribute(aux, 4));
+  return geometry;
+}
+
+// A hanging iron lantern, lit at night (shares the village lamp glass).
+function lantern(kit, m, p) {
+  kit.frame({ x: p.x, y: p.y, z: p.z }, () => {
+    kit.box(m.iron, 0.04, 0.04, 0.32, { y: 0.25, z: -0.15 });
+    kit.box(m.iron, 0.22, 0.03, 0.22, { y: -0.15 });
+    kit.add(m.iron, new THREE.ConeGeometry(0.17, 0.14, 4), { y: 0.2, ry: Math.PI / 4 });
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) kit.box(m.iron, 0.02, 0.28, 0.02, { x: sx * 0.1, z: sz * 0.1 });
+    kit.box(m.lamp, 0.17, 0.25, 0.17);
+  });
+}
+
 // The white castle on its plateau.
 //
 // Layout, from the bridge inward: the bridge lands at a gatehouse in the
@@ -99,7 +120,7 @@ export class Castle {
           for (let i = 0; i < 4; i++) {
             const a = (i / 4) * Math.PI * 2 + 0.4;
             kit.frame({ x: Math.cos(a) * radius, y: k * 5, z: Math.sin(a) * radius, ry: -a + Math.PI / 2 }, () => {
-              kit.box(m.glassBlue, 0.5, 1.4, 0.1, { z: 0.02 });
+              kit.add(m.glassBlue, pane(new THREE.BoxGeometry(0.5, 1.4, 0.1)), { z: 0.02 });
               kit.box(m.whiteDark, 0.9, 0.2, 0.3, { y: 0.85, z: 0.1 }, { metres: 3 });
               kit.box(m.whiteDark, 0.9, 0.15, 0.3, { y: -0.8, z: 0.1 }, { metres: 3 });
             });
@@ -223,8 +244,12 @@ export class Castle {
       const sz = Math.sin(T.gateAngle) * (ringR + 2.2 + run / 2);
       // Stairs face inward (uphill toward the gate).
       this.stairs(kit, m, Math.cos(T.gateAngle) * (ringR + 2.2 + run), Math.sin(T.gateAngle) * (ringR + 2.2 + run), T.gateAngle + Math.PI, prev.h, rise, run, 5.0);
-      // Lamps at the gate.
-      this.lamps.push(new THREE.Vector3(gx + Math.cos(T.gateAngle + Math.PI / 2) * 3.2, T.h + 3.0, gz + Math.sin(T.gateAngle + Math.PI / 2) * 3.2));
+      // Lanterns either side of the gate.
+      for (const s of [-1, 1]) {
+        const lp = new THREE.Vector3(gx + Math.cos(T.gateAngle + Math.PI / 2) * s * 3.2, T.h + 3.0, gz + Math.sin(T.gateAngle + Math.PI / 2) * s * 3.2);
+        this.lamps.push(lp);
+        lantern(kit, m, lp);
+      }
     }
     // Buildings in the wards: a row of lean-to houses against the walls.
     this.wardBuildings(kit, m);
@@ -252,7 +277,7 @@ export class Castle {
           kit.box(m.white, w, h, d, { y: h / 2 }, { metres: 3.6 });
           // Door and a window or two facing the way.
           kit.box(m.planks, 1.0, 2.0, 0.1, { y: 1.0, z: -d / 2 - 0.04 }, { metres: 1 });
-          kit.box(m.glassBlue, 0.7, 0.9, 0.08, { x: w * 0.28, y: 1.9, z: -d / 2 - 0.04 });
+          kit.add(m.glassBlue, pane(new THREE.BoxGeometry(0.7, 0.9, 0.08)), { x: w * 0.28, y: 1.9, z: -d / 2 - 0.04 });
           // Gable roof in slate.
           for (const s of [-1, 1]) kit.box(m.slateBlue, w + 0.6, 0.16, d * 0.62, { y: h + d * 0.26, z: s * d * 0.25, rx: -s * deg(42) }, { metres: 3 });
           kit.box(m.whiteDark, 0.6, h + 1.2, 0.6, { x: w / 2 - 0.5, y: (h + 1.2) / 2, z: d / 2 - 0.5 }, { metres: 3 });
@@ -275,14 +300,14 @@ export class Castle {
       for (const sx of [-5.5, -2.75, 0, 2.75, 5.5]) for (const sz of [-1, 1]) kit.box(m.whiteDark, 0.8, 9, 0.9, { x: sx, y: 4.5, z: sz * 4.9 }, { metres: 3 });
       // Tall lancet windows along the sides.
       for (const sx of [-4.1, -1.4, 1.4, 4.1]) for (const sz of [-1, 1]) {
-        kit.box(m.glassBlue, 0.9, 4.0, 0.1, { x: sx, y: 6.5, z: sz * 4.52 });
+        kit.add(m.glassBlue, pane(new THREE.BoxGeometry(0.9, 4.0, 0.1)), { x: sx, y: 6.5, z: sz * 4.52 });
         kit.box(m.whiteDark, 1.3, 0.3, 0.3, { x: sx, y: 8.7, z: sz * 4.6 }, { metres: 3 });
       }
       // Rose window on the gable facing the gate.
       const gateFace = this.cfg.gateDir;
       kit.frame({ ry: -gateFace + Math.PI / 2 }, () => {
         kit.cylinder(m.whiteDark, 2.2, 2.2, 0.5, { y: 9.6, z: 0, rx: Math.PI / 2 }, { segments: 24 });
-        kit.cylinder(m.glassBlue, 1.8, 1.8, 0.56, { y: 9.6, rx: Math.PI / 2 }, { segments: 24 });
+        kit.add(m.glassBlue, pane(new THREE.CylinderGeometry(1.8, 1.8, 0.56, 24)), { y: 9.6, rx: Math.PI / 2 });
         for (let i = 0; i < 8; i++) kit.box(m.whiteDark, 0.14, 3.5, 0.6, { y: 9.6, rz: (i / 8) * Math.PI });
       });
       // Roof.
@@ -294,7 +319,12 @@ export class Castle {
     // Lesser spires at the corners of the keep platform.
     for (const [sx, sz] of [[6.5, 3.8], [6.5, -3.8], [-6.5, 3.8], [-6.5, -3.8]]) this.tower(kit, m, sx, sz, y, 16 + Math.abs(sx) * 0.3, 1.7);
     this.colliders.push({ cx: 0, cz: 0, hx: 7.2, hz: 4.7, rot: 0, local: true });
-    this.lamps.push(new THREE.Vector3(Math.cos(this.cfg.gateDir) * 8.5, y + 2.6, Math.sin(this.cfg.gateDir) * 8.5));
+    for (const s of [-1, 1]) {
+      const a = this.cfg.gateDir + Math.PI / 2;
+      const lp = new THREE.Vector3(Math.cos(this.cfg.gateDir) * 8.5 + Math.cos(a) * s * 2.4, y + 2.6, Math.sin(this.cfg.gateDir) * 8.5 + Math.sin(a) * s * 2.4);
+      this.lamps.push(lp);
+      lantern(kit, m, lp);
+    }
   }
 
   // The bridge from the knoll to the gate: a long arched span of pale stone
