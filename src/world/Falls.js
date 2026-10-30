@@ -25,20 +25,28 @@ export class Falls {
         varying vec2 vUv;
         varying float vSteep;
         void main() {
-          // Streaks: noise scrolled down the fall, stretched along it.
+          // Streaks: noise scrolled down the fall, stretched along it; the
+          // flow splits into ropes of water with glassy gaps between them.
           float t = uTime * ( 0.9 + 0.8 * vSteep );
           float s1 = texture( uNoise, vec2( vUv.x * 2.0, vUv.y * 0.35 - t * 0.5 ) ).r;
           float s2 = texture( uNoise, vec2( vUv.x * 5.0 + 0.3, vUv.y * 0.9 - t * 0.9 ) ).g;
-          float streak = smoothstep( 0.35, 0.8, s1 * 0.6 + s2 * 0.5 );
-          vec3 water = vec3( 0.55, 0.72, 0.78 );
+          float s3 = texture( uNoise, vec2( vUv.x * 11.0 + 0.7, vUv.y * 2.2 - t * 1.6 ) ).a;
+          float streak = smoothstep( 0.3, 0.8, s1 * 0.5 + s2 * 0.4 + s3 * 0.3 );
+          float rope = smoothstep( 0.35, 0.65, texture( uNoise, vec2( vUv.x * 3.0 + 0.2, vUv.y * 0.12 - t * 0.08 ) ).b );
+          vec3 water = vec3( 0.5, 0.68, 0.76 );
           vec3 foam = vec3( 0.96, 0.98, 1.0 );
-          vec3 col = mix( water, foam, streak * ( 0.5 + 0.5 * vSteep ) );
-          // Edges thin out; the bottom whitens into the plume.
-          float edge = smoothstep( 0.0, 0.18, vUv.x ) * smoothstep( 1.0, 0.82, vUv.x );
-          float plume = smoothstep( 0.7, 1.0, vUv.y );
+          vec3 col = mix( water, foam, streak * ( 0.45 + 0.55 * vSteep ) );
+          // Ragged edges that waver, not a ruled strip; the bottom whitens into the plume.
+          float wobble = ( texture( uNoise, vec2( vUv.y * 1.5 - t * 0.3, 0.3 ) ).r - 0.5 ) * 0.16;
+          float edge = smoothstep( 0.0, 0.22, vUv.x + wobble ) * smoothstep( 1.0, 0.78, vUv.x - wobble );
+          float plume = smoothstep( 0.72, 1.0, vUv.y );
           col = mix( col, foam, plume * 0.6 );
-          float alpha = ( 0.55 + 0.45 * streak ) * edge * ( 0.75 + 0.25 * vSteep );
-          alpha *= 1.0 - plume * 0.5;
+          float alpha = ( 0.3 + 0.7 * streak ) * ( 0.55 + 0.45 * rope ) * edge * ( 0.7 + 0.3 * vSteep );
+          alpha *= 1.0 - plume * 0.45;
+          // Spray: the plume breaks into drifting flecks.
+          float spray = smoothstep( 0.6, 0.9, texture( uNoise, vec2( vUv.x * 6.0 + t * 0.2, vUv.y * 3.0 - t * 0.6 ) ).g ) * plume;
+          col = mix( col, foam, spray );
+          alpha = max( alpha, spray * 0.7 * edge );
           gl_FragColor = vec4( col, alpha );
         }`,
       transparent: true,
