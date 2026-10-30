@@ -76,7 +76,10 @@ function gableRoof(kit, m, { mat, length, span, baseY, pitch, eave = 0.6, overha
 }
 
 // Four-sided pyramid roof (square or rectangular base, ridge if not square).
-function hipRoof(kit, mat, { w, d, baseY, height, overhang = 0.6, metres = 2 }) {
+// The slopes are a single surface, so the eaves are boxed in underneath:
+// a plank soffit and fascia boards round the edge, which is what you see
+// looking up at the roof from below.
+function hipRoof(kit, mat, { w, d, baseY, height, overhang = 0.6, metres = 2, soffit = null, fascia = null }) {
   const hw = w / 2 + overhang;
   const hd = d / 2 + overhang;
   const ridge = Math.max(0, hw - hd);
@@ -126,6 +129,12 @@ function hipRoof(kit, mat, { w, d, baseY, height, overhang = 0.6, metres = 2 }) 
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   g.computeVertexNormals();
   kit.add(mat, g);
+  if (soffit) kit.box(soffit, hw * 2 - 0.08, 0.04, hd * 2 - 0.08, { y: baseY - 0.05 }, { metres: 1.2, grain: true });
+  if (fascia) {
+    // Boards on the four eave edges, mitred by overlapping at the corners.
+    for (const sz of [-1, 1]) kit.box(fascia, hw * 2 + 0.02, 0.22, 0.06, { y: baseY - 0.1, z: sz * (hd - 0.02) }, { metres: 1.2, grain: true });
+    for (const sx of [-1, 1]) kit.box(fascia, 0.05, 0.2, hd * 2 - 0.06, { x: sx * (hw - 0.025), y: baseY - 0.1 }, { metres: 1.2, grain: true });
+  }
   return top;
 }
 
@@ -520,7 +529,7 @@ function tower(kit, m, rng) {
     for (const x of [-1.6, 1.6]) kit.box(m.timber, 0.08, 1.0, 1.0, { x, y: 0.5, z: 0.5 });
   });
 
-  const roofTop = hipRoof(kit, m.slate, { w: W, d: W, baseY: top + 0.1, height: 5.2, overhang: 0.6 });
+  const roofTop = hipRoof(kit, m.slate, { w: W, d: W, baseY: top + 0.1, height: 5.2, overhang: 0.6, soffit: m.planks, fascia: m.timber });
   kit.cylinder(m.iron, 0.02, 0.05, 1.2, { y: roofTop + 0.5 }, { segments: 6 });
   const chim = chimney(kit, m, 1.4, -1.4, roofTop - 1.2, { mat: stone, w: 0.8, d: 0.8, base: top });
 
