@@ -616,3 +616,13 @@ screenshot-checked.
   the AZ aerial camera at y 45–70 was inside that slope. Plates moved
   north onto 5–25 m ground (z 205–300), SHELVES label → (-165,248).
   BD (lip/turf/bank checks) and BE (relocated Shelves) queued.
+- 06:30 BD/BE reviewed. Lips now rounded turf-topped shelves from the air
+  (BD0/BE0: close to the ref), relocated Shelves sit on flat ground. Left:
+  (1) lit-green strip at rock feet persists (BD3/BE4) — terrain carpet
+  used the smoothed vertex normal, blades use the baked 5 m slope → the
+  terrain now samples uHeightMap/terrainSlope() itself; (2) BD5 mountain
+  face showed flat triangle facets — triWeights took the face normal
+  (projection flips per triangle) → smooth normal for projection, face
+  normal only for classification; (3) BE2/BE4 lips still boxy with a
+  ruler-straight top → displacement ×1.7, bedding 0.3, top swell ±0.45 m
+  mirrored in surfaceAt. Verify BF.
