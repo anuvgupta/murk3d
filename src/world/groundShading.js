@@ -145,12 +145,42 @@ export const GROUND_GLSL = /* glsl */ `
     float cn = texture( uNoise, p * 0.45 + 0.9 ).a;
     float crack = ( 1.0 - smoothstep( 0.0, 0.03, abs( cn - 0.5 ) ) ) * smoothstep( 0.5, 0.7, packed ) * detail;
     c *= 1.0 - 0.3 * crack;
-    // Gravel and the odd pebble pressed into the surface.
-    vec2 cell = floor( p * 16.0 );
-    float h = fract( sin( dot( cell, vec2( 127.1, 311.7 ) ) ) * 43758.5453 );
-    vec2 f = fract( p * 16.0 ) - 0.5;
-    float peb = step( 0.955, h ) * ( 1.0 - smoothstep( 0.16, 0.3, length( f + ( vec2( fract( h * 7.0 ), fract( h * 13.0 ) ) - 0.5 ) * 0.4 ) ) );
-    c = mix( c, mix( vec3( 0.5, 0.46, 0.4 ), vec3( 0.36, 0.32, 0.28 ), fract( h * 3.1 ) ) * ( 0.9 + 0.3 * f.y ), peb * detail * detail * 0.8 );
+    // Pebbles: bare packed earth almost everywhere, with the stones gathered
+    // in the odd patch (washed into a dip, kicked to the side), where grit,
+    // small stones and a few bigger ones lie together, each with a lit top
+    // and a contact shadow.
+    float patchN = texture( uNoise, p * 0.09 + vec2( 0.31, 0.77 ) ).b * 0.65 + texture( uNoise, p * 0.33 + 0.13 ).g * 0.35;
+    float patchAmt = smoothstep( 0.64, 0.76, patchN ) * detail;
+    if ( patchAmt > 0.01 ) {
+      // Grit.
+      vec2 gc = floor( p * 38.0 );
+      float gh = fract( sin( dot( gc, vec2( 269.5, 183.3 ) ) ) * 43758.5453 );
+      c = mix( c, c * mix( 0.7, 1.25, fract( gh * 5.3 ) ), step( 1.0 - 0.35 * patchAmt, gh ) );
+      // Two sizes of stone, denser toward the patch's heart.
+      for ( int k = 0; k < 2; k++ ) {
+        float scale = k == 0 ? 7.0 : 15.0;
+        vec2 q = p * scale + float( k ) * 17.3;
+        vec2 cell = floor( q );
+        float h = fract( sin( dot( cell, vec2( 127.1, 311.7 ) ) ) * 43758.5453 );
+        if ( h > patchAmt * ( k == 0 ? 0.45 : 0.8 ) ) continue;
+        vec2 f = fract( q ) - 0.5 - ( vec2( fract( h * 7.0 ), fract( h * 13.0 ) ) - 0.5 ) * 0.35;
+        float a = h * 40.0;
+        f = mat2( cos( a ), sin( a ), -sin( a ), cos( a ) ) * f;
+        f.y *= 1.25 + 0.5 * fract( h * 23.0 );
+        float r = 0.2 + 0.14 * fract( h * 17.0 );
+        float d = length( f );
+        float stone = 1.0 - smoothstep( r * 0.82, r, d );
+        float shadow = smoothstep( r * 1.45, r, d ) * ( 1.0 - stone );
+        // Grey and brown stones (linear colour), dusted with the road's dirt.
+        vec3 sc = mix( vec3( 0.2, 0.19, 0.17 ), vec3( 0.1, 0.09, 0.08 ), fract( h * 3.1 ) );
+        sc = mix( sc, sc * vec3( 1.15, 0.95, 0.75 ), step( 0.6, fract( h * 5.7 ) ) );
+        sc = mix( sc, c * 1.4, 0.25 );
+        // Rounded: lit on the upper side, darker at the edge.
+        sc *= 0.75 + 0.35 * clamp( 0.5 - f.y / r * 0.5, 0.0, 1.0 ) + 0.15 * ( 1.0 - d / r );
+        c *= 1.0 - 0.35 * shadow;
+        c = mix( c, sc, stone );
+      }
+    }
     // Packed earth pales toward the edge where feet and wheels don't go.
     c *= 1.0 + 0.18 * ( 1.0 - smoothstep( 0.6, 0.95, g ) );
     return c;
