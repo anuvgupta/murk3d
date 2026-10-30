@@ -810,3 +810,24 @@ screenshot-checked.
   has maria/craters/terminator in AtmospherePass (uMoon), lens ghosts +
   streak when the sun is near centre, motes 1500 with speeds and 2-point
   trails, god rays 0.12+0.6*low with pow 1.35 sharpening.
+- Terrain grid: SEGMENTS 768, WARP 2.0 (747a146). Cells 1.15 m centre,
+  3.3 m at the realm ring (was 1.54 / 5.3). Reason: realm ground showed
+  whole-triangle light/dark facets (shadow terminator on coarse mesh) and
+  the canyon walls were smeared; also added a cell-scaled shadow lookup
+  offset in TerrainMaterial (worldPosition += normal * cell * 0.1 before
+  shadowmap_vertex). view2 has `noShadow` to separate the two causes.
+- Rock: cellular joints (cellOn/rockJoints in ROCK_GLSL), bedding
+  contrast 0.86+0.28*band, envMapIntensity 1.6. Still the weakest
+  material (#57 open). Ideas not yet tried: curvature/cavity darkening
+  from the height field, a second lower-frequency joint set, lichen
+  colour variation per block, sky-ambient on upward faces.
+- Verified and closed: #51 roads/mushrooms, #53 potions, #54 cauldron
+  (fire ring had been hidden under the belly, then floated outside; now
+  r 0.29–0.34 leaning out), #55 plaza edge (final cause was the road
+  corridor held up to the bridge: roadKeep ramp over edge 1.5–5.5 m),
+  #17 motes, #18 glare, #22/#23 pending CM3 moon frame, #27 moss, #14,
+  #16, #25, #40 flowers. Verification images go to the feedback branch
+  under verify/ via a temp index (GIT_INDEX_FILE) so the work tree stays
+  clean.
+- Render infra: view2 goto 240 s, waitForFunction 900 s (page loads
+  take 4 min when a build runs alongside); 'sky' option sets skyTime.
