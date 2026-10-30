@@ -644,3 +644,11 @@ screenshot-checked.
   a per-triangle ledge facet at a plate face (open, low priority).
   Verify BH (bank + fresh critique frames: bridge 08:30, plaza 16:30,
   lake noon, castle road 17:30).
+- 09:50 BH: bridge at 08:30 is a keeper (willow, bridge, castle hill,
+  tavern); plaza and lake-noon frames good. The bank strip (BH1) was in
+  the end sunlit GRASS: the baked slope texel at that spot is a flat
+  vertex (0.99) beside a one-cell cliff, so blades stood at full density
+  on a 60° sunlit face and the terrain gates never engaged. Blades now
+  cull by min(baked, local 0.6 m gradient groundN.y) and the terrain
+  carpet by min(baked, face normal). Verify BI (+ Rift golden, glade
+  dusk as new critique frames).
