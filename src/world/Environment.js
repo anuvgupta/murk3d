@@ -312,15 +312,22 @@ export class Environment {
     const low = 1 - smoothstep(0.05, 0.45, elev); // sun near the horizon
     // The glow sits on the true sun, not the clamped twilight light direction.
     a.sunDir.copy(sunDir);
-    a.sunVisible = smoothstep(-0.08, 0.02, elev);
+    // The glow goes with the disc: once the sun is under the horizon the sky
+    // dome's afterglow takes over (a screen-space glow would sit on the grass).
+    a.sunVisible = smoothstep(-0.03, 0.02, elev);
     // Glow colour: white-gold high, apricot low.
     a.sunColor.setRGB(1.0, 0.93, 0.8).lerp(this._tmpColor.setRGB(1.0, 0.72, 0.45), low);
     a.shaft = 0.12 + 0.6 * low; // god rays: strongest at a low sun, where trees and roofs cut them
     a.glow = 0.35 + 0.9 * low;
     a.disc = 9.0;
     // Haze: pale blue-white by day, warm amber-rose at low sun, deep blue at night.
-    a.fogColor.copy(PALETTE.fogNight).lerp(this._tmpColor.copy(PALETTE.fogDay).lerp(PALETTE.fogGolden, golden * 0.85), day);
-    a.fogSunColor.copy(PALETTE.fogNight).lerp(this._tmpColor.setRGB(0.86, 0.84, 0.78).lerp(this._tmpColor2.setRGB(0.82, 0.58, 0.4), low), day);
+    // The haze darkens faster than the light does, so at twilight the far hills
+    // are not a pale pink wall brighter than the sky above them; toward the
+    // set sun it carries a little of the afterglow's rose.
+    const dayFog = smoothstep(-0.1, 0.06, elev);
+    a.fogColor.copy(PALETTE.fogNight).lerp(this._tmpColor.copy(PALETTE.fogDay).lerp(PALETTE.fogGolden, golden * 0.85), dayFog);
+    a.fogSunColor.copy(PALETTE.fogNight).lerp(this._tmpColor2.setRGB(0.3, 0.14, 0.2), duskI / 1.1);
+    a.fogSunColor.lerp(this._tmpColor.setRGB(0.86, 0.84, 0.78).lerp(this._tmpColor2.setRGB(0.82, 0.58, 0.4), low), dayFog);
     // Clear air at midday; haze thickens as the sun drops.
     a.fogDensity = 0.00075 + 0.0011 * low * day + 0.0003 * (1 - day);
     a.fogHeight = this.focusHeight - 6;
