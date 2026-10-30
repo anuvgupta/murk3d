@@ -18,7 +18,7 @@ import { Water } from '../world/Water.js';
 import { createBuildingMaterials } from '../buildings/materials.js';
 import { Village } from '../buildings/Village.js';
 import { Castle } from '../buildings/Castle.js';
-import { CASTLES, RUINS, PITS, GLADE } from '../world/plan.js';
+import { CASTLES, RUINS, PITS, GLADE, WELL } from '../world/plan.js';
 import { Portals } from '../world/Portals.js';
 import { Falls } from '../world/Falls.js';
 import { Arches } from '../world/Arches.js';
@@ -201,6 +201,13 @@ export class Game {
     this.castles = CASTLES.map((cfg) => new Castle({ terrain: this.terrain, materials: this.buildingMaterials, castle: cfg }));
     for (const c of this.castles) scene.add(c.group);
     this.castleLights = [];
+    {
+      // The fairy lights over the well pool a little warm light on the plaza.
+      const light = new THREE.PointLight(0xffc27a, 0, 24, 1.4);
+      light.position.set(WELL.x, this.terrain.plazaHeight + 3.4, WELL.z);
+      scene.add(light);
+      this.castleLights.push(light);
+    }
     // Real lights only at the outer gate and the keep door; the other lanterns glow on their own.
     for (const c of this.castles) for (const p of [...c.worldLamps().slice(0, 2), ...c.worldLamps().slice(-2)]) {
       const light = new THREE.PointLight(0xffb060, 0, 16, 1.6);

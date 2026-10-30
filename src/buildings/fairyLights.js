@@ -11,7 +11,7 @@ const POLE_H = 3.6;
 // A bulb whose centre rides along in `aux`, so the glass shader can give each
 // one its own colour and twinkle.
 function bulb() {
-  const g = new THREE.IcosahedronGeometry(0.065, 0);
+  const g = new THREE.IcosahedronGeometry(0.058, 1);
   const n = g.attributes.position.count;
   const aux = new Float32Array(n * 4);
   for (let i = 0; i < n; i++) aux[i * 4 + 3] = 1;

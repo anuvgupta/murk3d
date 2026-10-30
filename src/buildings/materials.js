@@ -101,7 +101,8 @@ function fairyGlass() {
           vec3 pastel = h3 < 0.33 ? vec3( 1.0, 0.5, 0.62 ) : ( h3 < 0.66 ? vec3( 0.5, 0.95, 0.9 ) : vec3( 0.78, 0.6, 1.0 ) );
           vec3 c = h1 < 0.78 ? gold : pastel;
           float tw = 0.78 + 0.22 * sin( uTime * ( 1.5 + 2.5 * h2 ) + h1 * 6.2832 );
-          totalEmissiveRadiance = c * mix( 0.35, 4.6 * tw, uNight );
+          // Bright enough to glow, not so bright the colour clips to white.
+          totalEmissiveRadiance = c * mix( 0.35, 2.7 * tw, uNight );
         }`);
   };
   return mat;
