@@ -652,6 +652,9 @@ export class Ruins {
       const y = this.terrain.heightAt(x, z);
       const broken = i === 1 ? 0.6 : i === 3 ? 0.3 : 0;
       kit.frame({ x, y, z, ry: along }, () => {
+        // A foundation course under the piers, mostly buried, so on uneven
+        // ground the arch stands on stone rather than on air.
+        kit.box(m.ruinDark, 2.6 + 2 * 0.7 + 0.3, 1.8, 1.3, { y: -0.8 }, { metres: 2 });
         gothicArch(kit, m.ruinDark, { w: 2.6, t: 0.5, d: 1.0, pierH: 3.4 + random() * 0.6, pierW: 0.7, broken });
       });
       const c = Math.cos(along);
@@ -663,8 +666,12 @@ export class Ruins {
     }
     const y0 = this.terrain.heightAt(site.x, site.z);
     kit.frame({ x: site.x, y: y0, z: site.z, ry: along }, () => {
-      kit.frame({ x: 3.2, z: 1.0 }, () => column(kit, m.ruinDark, { h: 3.8, r: 0.36, broken: true, random }));
-      kit.frame({ x: -3.0, z: -1.6 }, () => column(kit, m.ruinDark, { h: 3.8, r: 0.36, broken: false, random }));
+      for (const [cx, cz, broken] of [[3.2, 1.0, true], [-3.0, -1.6, false]]) {
+        kit.frame({ x: cx, z: cz }, () => {
+          kit.box(m.ruinDark, 1.0, 1.6, 1.0, { y: -0.7 }, { metres: 2 });
+          column(kit, m.ruinDark, { h: 3.8, r: 0.36, broken, random });
+        });
+      }
       fallenBlocks(kit, m.ruinDark, m.moss, 14, 7, random, { size: 0.9 });
       kit.frame({ x: 2.4, z: -2.6, ry: 0.7 }, () => {
         kit.box(m.ruin, 1.4, 0.3, 0.9, { y: 0.15 }, { metres: 1.5 });

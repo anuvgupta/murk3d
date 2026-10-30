@@ -440,6 +440,9 @@ for (const R of REGIONS) {
   if (g.y !== undefined) continue; // a gate on a floating island needs no pad
   PADS.push({ x: R.x + g.dx, z: R.z + g.dz, r: 11, apron: 12 });
 }
+// The realms' ruins stand on levelled ground (an arcade's row of arches is
+// 17 m long), not perched on the slope with their downhill feet in the air.
+for (const s of RUINS) if (s.flat) PADS.push({ x: s.x, z: s.z, r: s.kind === 'crevasse' ? 11 : 9, apron: 10 });
 
 // Levelled floors cut into (depth > 0) or built up from (depth < 0) the
 // ground: the crypt's chamber and stair, and the temple's quay on the shore,
