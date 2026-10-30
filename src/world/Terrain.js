@@ -714,9 +714,18 @@ export const TERRAIN_HEIGHT_GLSL = /* glsl */ `
   }
 
   // Surface normal y (1 = flat, 0 = vertical) at the nearest grid vertex.
+  // Baked slope (normal y), bilinear across the cell so the carpet and
+  // blade cut-offs follow a smooth line rather than the texel grid.
   float terrainSlope( vec2 p ) {
     vec2 g = ( asinh( p * T_SINHK / T_HALF ) / T_WARP + 1.0 ) * T_SEG * 0.5;
-    ivec2 ic = ivec2( clamp( g + 0.5, vec2( 0.0 ), vec2( T_SEG ) ) );
-    return texelFetch( uHeightMap, ic, 0 ).g;
+    g = clamp( g, vec2( 0.0 ), vec2( T_SEG - 0.0001 ) );
+    vec2 cell = floor( g );
+    vec2 f = fract( g );
+    ivec2 ic = ivec2( cell );
+    float a = texelFetch( uHeightMap, ic, 0 ).g;
+    float b = texelFetch( uHeightMap, ic + ivec2( 1, 0 ), 0 ).g;
+    float c = texelFetch( uHeightMap, ic + ivec2( 0, 1 ), 0 ).g;
+    float d = texelFetch( uHeightMap, ic + ivec2( 1, 1 ), 0 ).g;
+    return mix( mix( a, b, f.x ), mix( c, d, f.x ), f.y );
   }
 `;
