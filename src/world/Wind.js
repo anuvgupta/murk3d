@@ -24,10 +24,15 @@ export class Wind {
     this.phase = 'breeze';
     this.phaseTime = 10;
     this.travel = 0;
+    // When > 0, the shaders only see the wind advance this many times a
+    // second (the pixelated modes), so a gust reads as a few big moves
+    // instead of a constant shimmer of single pixels.
+    this.stepHz = 0;
+    this._stepAcc = 0;
 
     this.uniforms = {
       uTime: { value: 0 },
-      uWindDir: { value: this.direction },
+      uWindDir: { value: this.direction.clone() },
       uWindStrength: { value: this.strength },
       uWindTravel: { value: 0 },
     };
@@ -65,7 +70,13 @@ export class Wind {
     // Gust fronts move faster in stronger wind.
     this.travel += dt * (3 + 9 * s);
 
+    if (this.stepHz > 0) {
+      this._stepAcc += dt;
+      if (this._stepAcc < 1 / this.stepHz) return;
+      this._stepAcc = 0;
+    }
     this.uniforms.uTime.value = this.time;
+    this.uniforms.uWindDir.value.copy(this.direction);
     this.uniforms.uWindStrength.value = s;
     this.uniforms.uWindTravel.value = this.travel;
   }

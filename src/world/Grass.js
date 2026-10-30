@@ -101,6 +101,7 @@ export class Grass {
       uNoise: { value: noise },
       uPlayer: { value: new THREE.Vector3(1e5, 0, 1e5) },
       uFullRadius: { value: this.fullRadius },
+      uPixelWiden: { value: 1 }, // blades broaden under the pixelated modes
       uRadius: { value: this.radius },
       uSunDir: { value: sun.direction },
       uSunColor: { value: sun.color },
@@ -222,6 +223,7 @@ export class Grass {
           uniform vec3 uPlayer;
           uniform float uFullRadius;
           uniform float uRadius;
+          uniform float uPixelWiden;
           uniform vec3 uSunDir;
           uniform vec4 uDiscs[ 6 ];
           attribute vec4 aBlade;
@@ -288,7 +290,7 @@ export class Grass {
           float dryPatch = smoothstep( 0.62, 0.9, 1.0 - gn.x );
           float tall = 0.6 + 0.6 * lush - 0.3 * dryPatch;
           float bladeH = ( 0.42 + 0.22 * tr + 0.14 * br ) * tall * density * thin * fade;
-          float bladeW = ( 0.016 + 0.008 * br2 ) * widen * step( 0.02, bladeH );
+          float bladeW = ( 0.016 + 0.008 * br2 ) * widen * uPixelWiden * step( 0.02, bladeH );
 
           // Tuft lean: shared direction, per-blade spread; some blades stand, some lie over.
           float tuftYaw = tr * 6.2832 + ( br - 0.5 ) * 2.4;

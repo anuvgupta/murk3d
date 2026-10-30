@@ -4,6 +4,7 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { AtmospherePass } from '../world/AtmospherePass.js';
+import { TemporalPass } from '../world/TemporalPass.js';
 
 import { Terrain } from '../world/Terrain.js';
 import { GroundMask } from '../world/GroundMask.js';
@@ -265,7 +266,24 @@ export class Game {
       // High threshold: only the sun, glowing windows and bright cloud edges bloom.
       this.composer.addPass(new UnrealBloomPass(size, 0.25, 0.6, 4.0));
     }
+    // Frame blending steadies the pixelated modes; it idles when they're off.
+    this.temporal = new TemporalPass();
+    this.composer.addPass(this.temporal);
     this.composer.addPass(new OutputPass());
+    this.applyPixelTuning();
+  }
+
+  // What else changes with the pixel level: the wind animates in steps, blades
+  // broaden to hold their pixels, and frames blend so a pixel is slow to flip.
+  applyPixelTuning() {
+    const L = this.pixelLevel;
+    if (this.wind) this.wind.stepHz = [0, 18, 12][L];
+    if (this.grass) this.grass.uniforms.uPixelWiden.value = [1, 1.8, 2.6][L];
+    if (this.temporal) {
+      this.temporal.baseWeight = [0, 0.42, 0.55][L];
+      this.temporal.enabled = L > 0;
+      this.temporal.fresh = true;
+    }
   }
 
   start() {
@@ -319,6 +337,17 @@ export class Game {
     this.updateWorld(dt);
     this.hud.update(this.player.yaw, this.environment.timeLabel());
 
+    if (this.temporal && this.temporal.enabled) {
+      // Blend less the faster the view turns or moves, so nothing smears.
+      const cam = this.camera;
+      const dir = cam.getWorldDirection(this._tDir || (this._tDir = new THREE.Vector3()));
+      const ang = this._pDir ? this._pDir.angleTo(dir) / Math.max(dt, 1e-3) : 0;
+      const mv = this._pPos ? this._pPos.distanceTo(cam.position) / Math.max(dt, 1e-3) : 0;
+      (this._pDir || (this._pDir = new THREE.Vector3())).copy(dir);
+      (this._pPos || (this._pPos = new THREE.Vector3())).copy(cam.position);
+      const calm = (1 - THREE.MathUtils.smoothstep(ang, 0.35, 2.5)) * (1 - THREE.MathUtils.smoothstep(mv, 2.5, 9));
+      this.temporal.weight = (this.temporal.baseWeight || 0) * calm;
+    }
     const t0 = performance.now();
     this.renderer.info.reset();
     this.render();
@@ -442,6 +471,7 @@ export class Game {
     this.pixelLevel = i;
     rememberPixelLevel(i);
     this.applyResolution();
+    this.applyPixelTuning();
     if (!quiet && this.hud) this.hud.toast(`Pixels: ${PIXEL_LEVELS[i].name.toLowerCase()}`);
     window.dispatchEvent(new CustomEvent('murk:pixels', { detail: i }));
   }

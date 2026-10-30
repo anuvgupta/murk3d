@@ -4,8 +4,9 @@
 //
 //   realistic  two layers of cumulus with cauliflower edges, sun-lit tops,
 //              shaded undersides and silver linings
-//   ghibli     tall flat-bottomed cumulus built from a few hard-edged lobes,
-//              bright lit faces and a single soft shadow tone
+//   ghibli     towering cauliflower cumulus: domain-warped lobes stacked big
+//              to small, opaque, bright crowns and blue-grey flanks, churning
+//              slowly as they drift
 //   painterly  brushed cirrus streaks and soft banks, like a painted backdrop
 
 export const CLOUD_STYLES = ['realistic', 'ghibli', 'painterly'];
@@ -19,7 +20,7 @@ export function readCloudStyle() {
   } catch {
     // storage blocked
   }
-  return 'realistic';
+  return 'painterly';
 }
 
 export function saveCloudStyle(style) {
@@ -110,33 +111,44 @@ const STYLES = {
       vec3 sunCol = vSunE * Fex * 0.22 * 0.04;
       vec3 skyAmb = Lin * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
       float horizonFade = smoothstep( 0.0, 0.06, direction.y );
-      vec2 uv = direction.xz / ( max( direction.y, 0.02 ) * 0.5 ) * cloudScale * 700.0;
-      uv += time * cloudSpeed * 500.0;
-      float evolve = time * cloudSpeed * 120.0;
-      // Towers: big round lobes stacked into masses.
-      float region = noise( uv * 0.1 ) * 0.5 + 0.5;
-      float cov = clamp( cloudCoverage * 1.15 + ( region - 0.5 ) * 0.8, 0.0, 1.0 );
+      // A low deck, so the towers loom large overhead.
+      vec2 uv = direction.xz / ( max( direction.y, 0.02 ) * 0.55 ) * cloudScale * 800.0;
+      uv += time * cloudSpeed * 600.0;
+      float evolve = time * cloudSpeed * 150.0;
+      // Domain warp: the masses churn and roll instead of sliding as a stamp.
+      vec2 warp = vec2( fbm( uv * 0.25 + evolve * 0.05, evolve ), fbm( uv * 0.25 + 13.0 - evolve * 0.04, evolve ) ) * 1.6;
+      vec2 q = uv + warp;
+      float region = noise( q * 0.08 ) * 0.5 + 0.5;
+      float cov = clamp( cloudCoverage * 1.1 + ( region - 0.5 ) * 0.9, 0.0, 1.0 );
       float th = 1.0 - cov;
-      float body = fbm( uv * 0.35, evolve ) * 0.5 + 0.5;          // where clouds are
-      float big = billow( uv * 0.9 + evolve * 0.3 );
-      float mid = billow( uv * 2.2 - evolve * 0.2 + 7.0 );
-      float shape = body * 0.5 + big * 0.38 + mid * 0.22;
-      float field = shape;
-      float dens = smoothstep( th, th + 0.05, field );
-      // Cel shading: a lit face toward the sun, a mid tone, a shadow tone.
-      vec2 toSun = vSunDirection.xz * 0.07;
-      float fieldS = ( fbm( ( uv - toSun ) * 0.35, evolve ) * 0.5 + 0.5 ) * 0.5 + billow( ( uv - toSun ) * 0.9 + evolve * 0.3 ) * 0.38 + billow( ( uv - toSun ) * 2.2 - evolve * 0.2 + 7.0 ) * 0.22;
-      float grad = ( fieldS - field ) * 10.0;
-      float tone = grad < -0.15 ? 1.0 : ( grad < 0.25 ? 0.72 : 0.5 );
-      // Undersides darker toward the horizon.
-      tone *= mix( 0.8, 1.0, smoothstep( 0.05, 0.4, direction.y ) );
-      vec3 lit = skyAmb * 0.8 + sunCol * 1.35;
-      vec3 shade = skyAmb * 1.3 + sunCol * 0.3;
-      vec3 cloudColor = mix( shade, lit, tone ) * max( dayFactor, 0.03 );
-      // A thin bright rim toward the sun.
-      float rim = dens * ( 1.0 - smoothstep( th, th + 0.12, field ) );
-      cloudColor += sunCol * rim * 0.8 * max( dayFactor, 0.03 );
-      float alpha = dens * horizonFade * clamp( cloudDensity * 2.4, 0.0, 1.0 );
+      // Cauliflower: round lobes stacked big to small, each eroding the last.
+      float body = fbm( q * 0.3, evolve ) * 0.5 + 0.5;
+      float lobes = billow( q * 0.7 + evolve * 0.2 ) * 0.5 + billow( q * 1.6 + 5.0 - evolve * 0.15 ) * 0.3 + billow( q * 3.6 + 11.0 ) * 0.2;
+      float field = body * 0.55 + lobes * 0.6;
+      float depth = max( 0.0, field - th );
+      float dens = smoothstep( 0.0, 0.09, depth );   // a definite rim, but not a cut-out
+      float thick = smoothstep( 0.0, 0.35, depth );  // how deep into the mass we look
+      // Shading from the field's slope toward the sun: each lobe has a lit
+      // crown and a shaded flank, painted in broad soft steps.
+      vec2 toSun = vSunDirection.xz * 0.08;
+      vec2 qs = q - toSun;
+      float fieldS = ( fbm( qs * 0.3, evolve ) * 0.5 + 0.5 ) * 0.55 + ( billow( qs * 0.7 + evolve * 0.2 ) * 0.5 + billow( qs * 1.6 + 5.0 - evolve * 0.15 ) * 0.3 + billow( qs * 3.6 + 11.0 ) * 0.2 ) * 0.6;
+      float slope = ( fieldS - field ) * 6.0;
+      float lit = smoothstep( 0.1, 0.9, clamp( 0.5 - slope, 0.0, 1.0 ) );
+      // Flat shaded bellies low on the sky; the tops stay bright.
+      float belly = 1.0 - smoothstep( 0.04, 0.35, direction.y );
+      lit *= 1.0 - 0.6 * belly * thick;
+      vec3 top = skyAmb * 0.7 + sunCol * 1.45;
+      vec3 shade = skyAmb * 1.35 + sunCol * 0.22;
+      vec3 cloudColor = mix( shade, top, lit );
+      // The heart of a thick mass, turned from the sun, goes a shade deeper.
+      cloudColor *= 1.0 - 0.18 * thick * ( 1.0 - lit );
+      // Silver lining toward the sun.
+      float silver = clamp( 0.51 / pow( 1.49 - cosTheta * 1.4, 1.5 ), 0.0, 3.0 );
+      float edge = dens * ( 1.0 - dens ) * 4.0;
+      cloudColor += sunCol * silver * edge * 0.5;
+      cloudColor *= max( dayFactor, 0.03 );
+      float alpha = dens * horizonFade * clamp( cloudDensity * 2.6, 0.0, 1.0 );
       texColor -= L0 * 0.04 * alpha;
       vec3 aerial = mix( texColor, cloudColor, Fex );
       texColor = mix( texColor, aerial, alpha );
