@@ -948,3 +948,19 @@ screenshot-checked.
   disc uses its own direction; the pass's sun glow uses the true sunDir
   (a25b46f). Re-check DQ1–DQ5 (19:45 W, 19:50 village, 05:15 E, jetty
   20:00, 20:30).
+- DQ verified the twilight rim light (grass glows gold-rose at 19:45,
+  jetty 20:00 keeper, 20:30 moonlit village keeper) but exposed two bugs:
+  the screen-space sun glow sat on the grass below the horizon (sunVisible
+  had lost its sunI gate → now smoothstep(−0.03,0.02)), and the haze at
+  05:15 was a pale pink wall brighter than the sky (`day` ramps −0.2→0.1,
+  so fog was half-day at −0.05 → separate `dayFog` smoothstep(−0.1,0.06),
+  fogSunColor carries dusk rose 0.3/0.14/0.2 by duskI) — 82bc06c; re-check
+  DS1–DS4 (incl. 19:15 sunset itself).
+- Crypt: masonry gained a `buried` term (max terrainHeight at ±3.5 m vs
+  p.y) so sunken walls sweat damp and moss (da676d9); first pass painted
+  the back wall flat green → moss in patches (mossPatch 0.5–0.78 with a
+  1.9-scale noise) and fine 3.1-scale texture inside the moss (56fbd41);
+  re-check DU1/DU2. Castle ward corridor (DR4) still plain: terrace walls
+  stand on built floors, so no rising damp — would need a floor-height
+  uniform or per-part aux. Realm postcard survey DT1–DT9 queued (free
+  cameras from realm centres; earlier realm shots were all bad spots).
