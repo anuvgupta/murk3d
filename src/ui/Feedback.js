@@ -38,12 +38,14 @@ export class Feedback {
     this.shot = document.getElementById('fb-shot');
     this.meta = document.getElementById('fb-meta');
     this.text = document.getElementById('fb-text');
-    this.kind = document.getElementById('fb-kind');
+    this.kind = 'art';
+    this.kindButtons = [...document.querySelectorAll('#fb-kind button')];
     this.status = document.getElementById('fb-status');
     this.tokenInput = document.getElementById('fb-token');
     this.tokenRow = document.getElementById('fb-token-row');
     this.open = false;
 
+    for (const b of this.kindButtons) b.addEventListener('click', () => this.setKind(b.dataset.kind));
     document.getElementById('fb-send').addEventListener('click', () => this.submit());
     document.getElementById('fb-cancel').addEventListener('click', () => this.close());
     document.getElementById('fb-token-save').addEventListener('click', () => {
@@ -62,6 +64,12 @@ export class Feedback {
       if (e.key === 'Escape') this.close();
     });
     this.refreshToken();
+  }
+
+  // One kind is always chosen; picking another releases the rest.
+  setKind(kind) {
+    this.kind = kind;
+    for (const b of this.kindButtons) b.setAttribute('aria-checked', String(b.dataset.kind === kind));
   }
 
   get token() {
@@ -178,7 +186,7 @@ export class Feedback {
       this.status.textContent = 'Write a note first.';
       return;
     }
-    const entry = { note, kind: this.kind.value, context: this.context, image: this.image };
+    const entry = { note, kind: this.kind, context: this.context, image: this.image };
     if (!this.token) {
       this.saveLocally(entry);
       this.status.textContent = 'Saved in this browser. Add a token to post it to GitHub.';

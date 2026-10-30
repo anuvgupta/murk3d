@@ -46,13 +46,13 @@
         <img id="fb-shot" alt="Screenshot of the current view" />
         <p id="fb-meta"></p>
         <div class="fb-row">
-          <label for="fb-kind">Kind</label>
-          <select id="fb-kind">
-            <option value="idea">Idea</option>
-            <option value="art">Looks wrong</option>
-            <option value="bug">Bug</option>
-            <option value="world">World design</option>
-          </select>
+          <span id="fb-kind-label">Kind</span>
+          <div id="fb-kind" role="radiogroup" aria-labelledby="fb-kind-label">
+            <button type="button" role="radio" data-kind="art" aria-checked="true">Looks wrong</button>
+            <button type="button" role="radio" data-kind="bug" aria-checked="false">Bug</button>
+            <button type="button" role="radio" data-kind="idea" aria-checked="false">Idea</button>
+            <button type="button" role="radio" data-kind="world" aria-checked="false">World design</button>
+          </div>
         </div>
         <textarea id="fb-text" rows="4" placeholder="What do you see? e.g. &ldquo;Put a castle on this hill&rdquo; or &ldquo;this door looks odd&rdquo;"></textarea>
         <div class="fb-actions">
