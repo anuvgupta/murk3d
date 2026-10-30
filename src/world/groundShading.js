@@ -147,8 +147,8 @@ export const GROUND_GLSL = /* glsl */ `
     vec2 cell = floor( p * 16.0 );
     float h = fract( sin( dot( cell, vec2( 127.1, 311.7 ) ) ) * 43758.5453 );
     vec2 f = fract( p * 16.0 ) - 0.5;
-    float peb = step( 0.9, h ) * ( 1.0 - smoothstep( 0.18, 0.34, length( f + ( vec2( fract( h * 7.0 ), fract( h * 13.0 ) ) - 0.5 ) * 0.4 ) ) );
-    c = mix( c, mix( vec3( 0.62, 0.58, 0.5 ), vec3( 0.42, 0.38, 0.34 ), fract( h * 3.1 ) ) * ( 0.9 + 0.3 * f.y ), peb * detail );
+    float peb = step( 0.955, h ) * ( 1.0 - smoothstep( 0.16, 0.3, length( f + ( vec2( fract( h * 7.0 ), fract( h * 13.0 ) ) - 0.5 ) * 0.4 ) ) );
+    c = mix( c, mix( vec3( 0.5, 0.46, 0.4 ), vec3( 0.36, 0.32, 0.28 ), fract( h * 3.1 ) ) * ( 0.9 + 0.3 * f.y ), peb * detail * detail * 0.8 );
     // Packed earth pales toward the edge where feet and wheels don't go.
     c *= 1.0 + 0.18 * ( 1.0 - smoothstep( 0.6, 0.95, g ) );
     return c;

@@ -340,9 +340,9 @@ export class Grass {
           // a point: the head is the top row spread a little, with the point
           // pulled down into a short rounded cap.
           float flowerPatch = smoothstep( 0.52, 0.72, texture( uNoise, root * 0.045 + 0.61 ).r );
-          float flowerTuft = step( fract( tr * 13.7 + 0.31 ), 0.05 * flowerPatch ) * step( 0.45, density );
+          float flowerTuft = step( fract( tr * 13.7 + 0.31 ), 0.03 * flowerPatch ) * step( 0.45, density );
           float isFlower = flowerTuft * step( br2, 0.72 );
-          wprof = mix( wprof, 0.3 + 2.1 * smoothstep( 0.4, 0.5, hy ), isFlower );
+          wprof = mix( wprof, 0.3 + 1.7 * smoothstep( 0.4, 0.5, hy ), isFlower );
           bladeH *= 1.0 + ( 0.12 + 0.3 * br ) * isFlower;
           float hyP = mix( hy, min( hy, 0.667 + ( hy - 0.667 ) * 0.3 ), isFlower );
           vec3 world = vec3( root.x, ground - 0.02, root.y );
@@ -370,7 +370,7 @@ export class Grass {
           col = mix( col, mix( vec3( 0.25, 0.2, 0.08 ), vec3( 0.62, 0.52, 0.28 ), hy ), dry );
           {
             float fh = fract( tr * 5.13 + 0.17 ); // one family per clump
-            vec3 fcol = fh < 0.32 ? vec3( 0.93, 0.9, 0.82 ) : fh < 0.56 ? vec3( 0.95, 0.78, 0.2 ) : fh < 0.78 ? vec3( 0.5, 0.46, 0.86 ) : fh < 0.95 ? vec3( 0.86, 0.47, 0.6 ) : vec3( 0.8, 0.2, 0.14 );
+            vec3 fcol = fh < 0.2 ? vec3( 0.84, 0.8, 0.68 ) : fh < 0.48 ? vec3( 0.9, 0.7, 0.16 ) : fh < 0.74 ? vec3( 0.42, 0.36, 0.8 ) : fh < 0.93 ? vec3( 0.8, 0.38, 0.52 ) : vec3( 0.75, 0.16, 0.12 );
             fcol *= 0.9 + 0.2 * br;
             col = mix( col, fcol, isFlower * smoothstep( 0.4, 0.5, hy ) );
           }
