@@ -255,7 +255,9 @@ export class Water {
             vec2 across = vec2( -along.y, along.x );
             vec2 q = isRiver ? vec2( vWaterUv.x, vWaterUv.y ) : vec2( dot( vWaterUv, across ), dot( vWaterUv, along ) );
             float spd = isRiver ? vFlow.z : 0.12 + 0.45 * uWindStrength;
-            float t = uTime;
+            // Ripples drift at half the current, so glints move calmly; the
+            // foam still shows the true flow.
+            float t = uTime * 0.5;
             vec3 n1 = texture( uWaterNormals, q * vec2( 0.09, 0.06 ) - vec2( 0.0, t * spd * 0.06 ) ).xyz * 2.0 - 1.0;
             vec3 n2 = texture( uWaterNormals, q * vec2( 0.21, 0.17 ) + vec2( 0.37, -t * spd * 0.19 ) ).xyz * 2.0 - 1.0;
             // Fast wind chop, strongest under gust fronts.
