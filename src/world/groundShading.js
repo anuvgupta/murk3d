@@ -11,21 +11,26 @@ export function regionUniforms() {
   const pos = [];
   const tint = [];
   const grass = [];
+  const rock = [];
   for (let i = 0; i < 10; i++) {
     const R = REGIONS[i];
     if (R) {
       pos.push(new THREE.Vector4(R.x, R.z, R.r, R.snow || 0));
       const g = R.palette.ground;
       tint.push(new THREE.Vector4(g[0], g[1], g[2], R.palette.grassDensity ?? 1));
+      // Rock: tint rgb and how far the rock is greyed toward one tone (limestone, granite).
+      const rk = R.palette.rock || [g[0], g[1], g[2], 0];
+      rock.push(new THREE.Vector4(rk[0], rk[1], rk[2], rk[3]));
       const gt = R.palette.grassTint || [1, 1, 1];
       grass.push(new THREE.Vector3(gt[0], gt[1], gt[2]));
     } else {
       pos.push(new THREE.Vector4(1e6, 1e6, 1, 0));
       tint.push(new THREE.Vector4(1, 1, 1, 1));
       grass.push(new THREE.Vector3(1, 1, 1));
+      rock.push(new THREE.Vector4(1, 1, 1, 0));
     }
   }
-  return { uRegions: { value: pos }, uRegionTint: { value: tint }, uRegionGrass: { value: grass } };
+  return { uRegions: { value: pos }, uRegionTint: { value: tint }, uRegionGrass: { value: grass }, uRegionRock: { value: rock } };
 }
 
 const lin = (hex) => {
@@ -38,6 +43,7 @@ export const REALM_GLSL = /* glsl */ `
   // The realms: (x, z, radius, snow) and (tint rgb, grass density).
   uniform vec4 uRegions[ 10 ];
   uniform vec4 uRegionTint[ 10 ];
+  uniform vec4 uRegionRock[ 10 ];
   uniform vec3 uRegionGrass[ 10 ];
   // Blade tint of whichever realm holds p (straw on the tundra).
   vec3 realmGrassTint( vec2 p ) {
@@ -63,6 +69,25 @@ export const REALM_GLSL = /* glsl */ `
       }
     }
     return best;
+  }
+  // The realm's rock: tint (rgb), how far it is greyed toward one tone (a),
+  // and the realm's weight here (0 in the Vale).
+  vec4 realmRock( vec2 p, out float wgt ) {
+    vec4 best = vec4( 1.0, 1.0, 1.0, 0.0 );
+    wgt = 0.0;
+    for ( int i = 0; i < 10; i++ ) {
+      float d = distance( p, uRegions[ i ].xy );
+      float w = 1.0 - smoothstep( uRegions[ i ].z - 20.0, uRegions[ i ].z + 70.0, d );
+      if ( w > 0.0 ) {
+        best = mix( best, uRegionRock[ i ], w );
+        wgt = max( wgt, w );
+      }
+    }
+    return best;
+  }
+  vec3 tintRock( vec3 c, vec4 rr ) {
+    c = mix( c, vec3( dot( c, vec3( 0.333 ) ) ), rr.a );
+    return c * mix( vec3( 1.0 ), rr.rgb, 0.75 );
   }
 `;
 
@@ -268,8 +293,12 @@ export const GROUND_GLSL = /* glsl */ `
     }
 
     float slope = 1.0 - nrm.y;
+    // The realms' rims are steep bowls: rock takes over from bare earth a
+    // little sooner there, in the realm's own stone.
+    float rimW;
+    vec4 rr = realmRock( p.xz, rimW );
     // Banks: worn earth on moderate slopes, bare rock where it steepens or climbs.
-    float bank = smoothstep( 0.3, 0.46, slope + ( n.z - 0.5 ) * 0.1 );
+    float bank = smoothstep( 0.3 - 0.05 * rimW, 0.46 - 0.05 * rimW, slope + ( n.z - 0.5 ) * 0.1 );
     c = mix( c, dirtColor( n ) * 0.9, bank * 0.6 );
     if ( bank > 0.01 && groundDetail > 0.01 ) {
       // Up close a bare bank is not smooth sand: rain-washed soil streaks
@@ -292,10 +321,10 @@ export const GROUND_GLSL = /* glsl */ `
     // too (no grass blotches), so the rock band starts earlier where the
     // ground is already mostly steep.
     float rockAmt = max(
-      smoothstep( 0.36, 0.52, slope + ( n.z - 0.5 ) * 0.06 ),
+      smoothstep( 0.36 - 0.1 * rimW, 0.52 - 0.1 * rimW, slope + ( n.z - 0.5 ) * 0.06 ),
       smoothstep( 95.0, 150.0, p.y + n.x * 40.0 ) * 0.9
     );
-    c = mix( c, rockColor( p, nrm ), rockAmt );
+    c = mix( c, tintRock( rockColor( p, nrm ), rr ), rockAmt );
 
     float snowLine = 150.0 + ( n.x - 0.5 ) * 50.0;
     // Steep faces keep a dusting, so a far peak reads as one snowy mass

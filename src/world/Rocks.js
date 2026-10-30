@@ -122,7 +122,8 @@ export function createRockMaterial(noise) {
           // Realm tint, and snow settling on the upper faces.
           float snow;
           vec4 realm = realmAt( vWPos.xz, snow );
-          diffuseColor.rgb *= mix( vec3( 1.0 ), realm.rgb, 0.75 );
+          float rimW;
+          diffuseColor.rgb = tintRock( diffuseColor.rgb, realmRock( vWPos.xz, rimW ) );
           diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.9, 0.92, 0.97 ), clamp( snow, 0.0, 1.0 ) * smoothstep( 0.25, 0.75, wn.y + rockH * 0.3 ) );
         }`
       )

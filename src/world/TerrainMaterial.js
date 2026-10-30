@@ -109,12 +109,15 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         rockDetailF = detail;
         rockHOut = rockHeight( vWPos, tw, detail );
         // Rock amount from the smooth normal (the face normal would step per triangle and show the mesh).
-        rockAmtOut = smoothstep( 0.42, 0.58, 1.0 - min( wn.y, mix( 1.0, faceN.y, steepK ) ) + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.14 + ( texture( uNoise, vWPos.xz * 0.31 + 0.5 ).a - 0.5 ) * 0.1 );
+        // The realms' steep rims turn to rock a little sooner than the Vale's hills.
+        float rimW;
+        vec4 rr = realmRock( vWPos.xz, rimW );
+        rockAmtOut = smoothstep( 0.42 - 0.1 * rimW, 0.58 - 0.1 * rimW, 1.0 - min( wn.y, mix( 1.0, faceN.y, steepK ) ) + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.14 + ( texture( uNoise, vWPos.xz * 0.31 + 0.5 ).a - 0.5 ) * 0.1 );
         {
           // Realm-coloured rock (red canyon, pale karst), snowed over on the tundra.
           float sn;
           vec4 rl = realmAt( vWPos.xz, sn );
-          vec3 rockC = rockAlbedo( vWPos, wnClass, tw, rockHOut ) * mix( vec3( 1.0 ), rl.rgb, 0.75 );
+          vec3 rockC = tintRock( rockAlbedo( vWPos, wnClass, tw, rockHOut ), rr );
           // Snow on rock keeps the rock's relief: brighter on the ridges, grey in the hollows.
           rockC = mix( rockC, vec3( 0.88, 0.91, 0.97 ) * ( 0.78 + 0.36 * rockHOut ), clamp( sn, 0.0, 1.0 ) * 0.9 * smoothstep( 0.25, 0.7, wn.y + rockHOut * 0.3 ) );
           ground = mix( ground, rockC, rockAmtOut );

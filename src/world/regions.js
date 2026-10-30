@@ -23,7 +23,7 @@ export const REGIONS = [
     ...at(0), r: 150,
     floor: 6,
     rim: 115, // taller than the spires, so their tips don't show over the Vale's mountains
-    palette: { ground: [0.94, 0.98, 0.98], grass: [0.95, 1.04, 0.86], fog: [0.72, 0.84, 0.84], fogDensity: 1.3, saturation: 1.12 }, // limestone grey
+    palette: { ground: [0.94, 0.98, 0.98], rock: [1.3, 1.3, 1.27, 0.7], grass: [0.95, 1.04, 0.86], fog: [0.72, 0.84, 0.84], fogDensity: 1.3, saturation: 1.12 }, // limestone grey
     lake: { r: 54, depth: 7, level: 1.5, tint: [0.55, 1.5, 1.35] },
     spires: { count: 40, rMin: 5, rMax: 14, hMin: 34, hMax: 96, seed: 11 },
     arches: [{ dx: 75, dz: -39, r: 13, tube: 3.6, ry: 1.1 }],
@@ -40,7 +40,7 @@ export const REGIONS = [
     tagline: 'Islands adrift above the cloud sea',
     ...at(1), r: 150,
     floor: -70,
-    palette: { ground: [0.9, 0.95, 1.0], grass: [0.9, 1.0, 1.0], fog: [0.82, 0.88, 0.96], fogDensity: 0.6, saturation: 1.05 },
+    palette: { ground: [0.9, 0.95, 1.0], rock: [1.0, 1.02, 1.08, 0.35], grass: [0.9, 1.0, 1.0], fog: [0.82, 0.88, 0.96], fogDensity: 0.6, saturation: 1.05 },
     mist: { top: -20 }, // the cloud sea fills the bowl
     gate: { dx: 0, dz: 0, y: 28, face: Math.PI / 2 }, // on the main island
     islands: [
@@ -61,7 +61,7 @@ export const REGIONS = [
     tagline: 'A fortress on the roof of the world',
     ...at(2), r: 150,
     floor: 60,
-    palette: { ground: [0.96, 0.96, 0.9], grass: [0.9, 0.96, 0.82], fog: [0.8, 0.84, 0.9], fogDensity: 0.9, saturation: 1.05 },
+    palette: { ground: [0.96, 0.96, 0.9], rock: [1.0, 0.99, 0.96, 0.3], grass: [0.9, 0.96, 0.82], fog: [0.8, 0.84, 0.9], fogDensity: 0.9, saturation: 1.05 },
     mesas: [{ dx: 0, dz: 0, radius: 40, height: 44, gentleWidth: 24, cliffWidth: 10, cliffDir: 0, cliffSpread: 4 }],
     castle: { knoll: { dx: -64, dz: 46 } },
     gate: { dx: -64, dz: 46 }, // arrive on the knoll, the bridge ahead
@@ -78,7 +78,7 @@ export const REGIONS = [
     tagline: 'A glacier-carved vale of pines',
     ...at(3), r: 160,
     floor: 20,
-    palette: { ground: [0.95, 0.97, 0.9], grass: [0.9, 1.0, 0.8], fog: [0.8, 0.86, 0.92], fogDensity: 0.8, saturation: 1.06 },
+    palette: { ground: [0.95, 0.97, 0.9], rock: [1.1, 1.1, 1.14, 0.6], grass: [0.9, 1.0, 0.8], fog: [0.8, 0.86, 0.92], fogDensity: 0.8, saturation: 1.06 },
     lake: { r: 24, depth: 4, level: 0.4, dx: 10, dz: 30 },
     falls: [{ from: { dx: 76, dz: 30 }, to: { dx: 35, dz: 30 }, w: 9 }],
     gate: { dx: 0, dz: -70 },
@@ -97,7 +97,7 @@ export const REGIONS = [
     tagline: 'Giants of the green and the temples they swallowed',
     ...at(4), r: 150,
     floor: 4,
-    palette: { ground: [0.5, 0.46, 0.3], grass: [0.78, 1.0, 0.7], fog: [0.72, 0.84, 0.7], fogDensity: 1.8, saturation: 1.18, grassDensity: 0.38, grassTint: [0.62, 0.74, 0.42] },
+    palette: { ground: [0.5, 0.46, 0.3], rock: [0.72, 0.78, 0.6, 0.25], grass: [0.78, 1.0, 0.7], fog: [0.72, 0.84, 0.7], fogDensity: 1.8, saturation: 1.18, grassDensity: 0.38, grassTint: [0.62, 0.74, 0.42] },
     flora: [{ species: 'giant', density: 6.0, spacing: 11 }, { species: 'oak', density: 2.5, spacing: 8 }, { species: 'willow', density: 1.0, spacing: 8 }, { species: 'fern', density: 14, spacing: 2.2 }],
     ruins: ['stones', 'arcade'],
     height(u, v, d, n) {
@@ -110,7 +110,7 @@ export const REGIONS = [
     tagline: 'Pale towers on an island in the stream',
     ...at(5), r: 150,
     floor: 8,
-    palette: { ground: [0.96, 0.98, 0.9], grass: [0.96, 1.02, 0.86], fog: [0.84, 0.88, 0.9], fogDensity: 0.9, saturation: 1.08 },
+    palette: { ground: [0.96, 0.98, 0.9], rock: [1.08, 1.06, 1.0, 0.3], grass: [0.96, 1.02, 0.86], fog: [0.84, 0.88, 0.9], fogDensity: 0.9, saturation: 1.08 },
     lake: { r: 62, depth: 4, level: 0.6, ring: 30 }, // a moat: water between r=30 and r=62
     town: { white: true, r: 22 },
     gate: { dx: 55, dz: 55 },
@@ -126,7 +126,7 @@ export const REGIONS = [
     ...at(6), r: 150,
     floor: 3,
     night: true,
-    palette: { ground: [0.7, 0.9, 0.95], grass: [0.6, 0.9, 0.95], fog: [0.25, 0.5, 0.55], fogDensity: 1.6, saturation: 1.1 },
+    palette: { ground: [0.7, 0.9, 0.95], rock: [0.7, 0.92, 1.0, 0.5], grass: [0.6, 0.9, 0.95], fog: [0.25, 0.5, 0.55], fogDensity: 1.6, saturation: 1.1 },
     lake: { r: 40, depth: 3, level: 0.5, dx: 20, dz: -10, tint: [0.6, 1.4, 1.5] },
     ruins: ['chapel', 'arcade', 'stones'],
     crystals: { colour: 0x58e0d8, count: 40 },
@@ -142,7 +142,7 @@ export const REGIONS = [
     ...at(7), r: 150,
     floor: 30,
     rim: 84, // lower than the default so the afternoon sun reaches the snowfield
-    palette: { ground: [1.3, 1.32, 1.4], grass: [1.1, 1.1, 1.2], fog: [0.86, 0.9, 0.98], fogDensity: 1.2, saturation: 0.85, grassDensity: 0.1, grassTint: [0.95, 0.82, 0.55] },
+    palette: { ground: [1.3, 1.32, 1.4], rock: [1.0, 1.04, 1.14, 0.55], grass: [1.1, 1.1, 1.2], fog: [0.86, 0.9, 0.98], fogDensity: 1.2, saturation: 0.85, grassDensity: 0.1, grassTint: [0.95, 0.82, 0.55] },
     snow: 1,
     rocks: 30,
     crystals: { colour: 0x9fd8ff, count: 70, big: true },
@@ -157,7 +157,7 @@ export const REGIONS = [
     tagline: 'A lost city on a green precipice',
     ...at(8), r: 150,
     floor: 10,
-    palette: { ground: [0.9, 1.0, 0.84], grass: [0.9, 1.04, 0.8], fog: [0.78, 0.86, 0.84], fogDensity: 1.2, saturation: 1.12 },
+    palette: { ground: [0.9, 1.0, 0.84], rock: [0.95, 1.0, 0.9, 0.2], grass: [0.9, 1.04, 0.8], fog: [0.78, 0.86, 0.84], fogDensity: 1.2, saturation: 1.12 },
     mesas: [{ dx: -20, dz: 0, radius: 56, height: 62, gentleWidth: 60, cliffWidth: 9, cliffDir: 0, cliffSpread: 1.4 }],
     lake: { r: 12, depth: 3, level: 0.6, dx: 64, dz: 2, steep: true }, // plunge pool under the cliff
     falls: [{ from: { dx: 34, dz: 2 }, to: { dx: 53, dz: 2 }, w: 9 }],
@@ -175,7 +175,7 @@ export const REGIONS = [
     tagline: 'A ring of stone in red rock',
     ...at(9), r: 150,
     floor: 24,
-    palette: { ground: [1.4, 0.72, 0.4], grass: [1.1, 0.95, 0.6], fog: [0.92, 0.82, 0.7], fogDensity: 0.7, saturation: 1.1, grassDensity: 0.25, grassTint: [1.2, 0.88, 0.45] },
+    palette: { ground: [1.4, 0.72, 0.4], rock: [1.4, 0.72, 0.4, 0.0], grass: [1.1, 0.95, 0.6], fog: [0.92, 0.82, 0.7], fogDensity: 0.7, saturation: 1.1, grassDensity: 0.25, grassTint: [1.2, 0.88, 0.45] },
     canyon: { width: 34, depth: 30 }, // a gorge running east–west through the bowl
     arches: [{ dx: -58, dz: 8.6, r: 24, tube: 4.5, ry: -1.17 }, { dx: 44, dz: 2.9, r: 24, tube: 4.2, ry: 1.3 }], // spanning the gorge
     gate: { dx: 0, dz: 0, face: 0 }, // the shrine ring on the canyon floor
