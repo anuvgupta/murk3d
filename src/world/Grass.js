@@ -333,13 +333,16 @@ export class Grass {
           float wprof = 1.0 - smoothstep( 0.55, 1.0, hy ) * 0.9;
           // Wildflowers: in the lusher sweeps a few blades carry a coloured
           // head, a little taller than the sward around them.
+          // The blade mesh is two or three quad rows and a point: the head is
+          // the top row spread wide, with the point pulled down into a short cap.
           float flowerPatch = smoothstep( 0.56, 0.74, texture( uNoise, root * 0.045 + 0.61 ).r );
-          float isFlower = step( br2, 0.045 * flowerPatch ) * step( 0.45, density );
-          wprof = mix( wprof, 0.35 + 3.4 * smoothstep( 0.74, 0.87, hy ) * ( 1.0 - 0.55 * smoothstep( 0.94, 1.0, hy ) ), isFlower );
-          bladeH *= 1.0 + 0.3 * isFlower;
+          float isFlower = step( br2, 0.06 * flowerPatch ) * step( 0.45, density );
+          wprof = mix( wprof, 0.35 + 5.0 * smoothstep( 0.4, 0.5, hy ), isFlower );
+          bladeH *= 1.0 + 0.35 * isFlower;
+          float hyP = mix( hy, min( hy, 0.667 + ( hy - 0.667 ) * 0.35 ), isFlower );
           vec3 world = vec3( root.x, ground - 0.02, root.y );
-          world += up * ( hy * bladeH * ( 1.0 - curl * hy * hy ) );
-          world += bend3 * ( hy * hy * bladeH );
+          world += up * ( hyP * bladeH * ( 1.0 - curl * hyP * hyP ) );
+          world += bend3 * ( hyP * hyP * bladeH );
           world.xz += across * ( position.x * bladeW * wprof );
           vec3 transformed = world - tileOrigin;
           vHeight = hy;
@@ -363,7 +366,7 @@ export class Grass {
           {
             float fh = fract( br * 7.31 + tr * 3.7 );
             vec3 fcol = fh < 0.3 ? vec3( 0.95, 0.93, 0.86 ) : fh < 0.55 ? vec3( 0.98, 0.82, 0.22 ) : fh < 0.8 ? vec3( 0.62, 0.42, 0.9 ) : vec3( 0.95, 0.5, 0.62 );
-            col = mix( col, fcol, isFlower * smoothstep( 0.8, 0.88, hy ) );
+            col = mix( col, fcol, isFlower * smoothstep( 0.4, 0.5, hy ) );
           }
           vColor.rgb = col * ( 0.96 + 0.08 * br ) * realmGrassTint( root );
           // Olive rather than lime: ease the saturation toward a warm grey.
