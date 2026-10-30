@@ -103,6 +103,10 @@ export const ROCK_GLSL = /* glsl */ `
     float band = sin( p.y * 0.9 + broad * 7.0 ) * 0.5 + 0.5;
     vec3 c = mix( ${lin(0x75695d)}, ${lin(0xb9ab96)}, smoothstep( 0.2, 0.8, broad ) );
     c = mix( c, c * ${lin(0xd2b08f)} * 1.25, band * 0.5 );
+    // Each outcrop its own cast: a very low-frequency tint across the map,
+    // so a wall of spires is not one colour from end to end.
+    float hue = texture( uNoise, p.xz * 0.0045 + 0.13 ).r;
+    c *= mix( vec3( 0.86, 0.9, 0.96 ), vec3( 1.1, 1.0, 0.9 ), hue );
     // Bedding: light and dark beds alternate up the face.
     c *= 0.92 + 0.16 * band;
     // Cavities: hollows and cracks sit in shadow; ridges catch the light.
