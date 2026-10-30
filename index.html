@@ -43,7 +43,13 @@
     <div id="feedback" class="hidden">
       <div class="fb-panel">
         <h2>Leave a note</h2>
+        <video id="fb-video" class="hidden" muted autoplay loop playsinline></video>
         <img id="fb-shot" alt="Screenshot of the current view" />
+        <div class="fb-row fb-media">
+          <label><input id="fb-include-shot" type="checkbox" checked /> Include screenshot</label>
+          <label id="fb-clip-row" class="hidden"><input id="fb-include-clip" type="checkbox" checked /> <span id="fb-clip-label">Include clip</span></label>
+          <button id="fb-record" type="button" title="Or hold F in the game to record">Record a clip</button>
+        </div>
         <p id="fb-meta"></p>
         <div class="fb-row">
           <span id="fb-kind-label">Kind</span>
@@ -71,6 +77,10 @@
       </div>
     </div>
 
+    <div id="rec" class="hidden">
+      <span class="rec-dot"></span><span id="rec-time">0 s</span><span id="rec-hint"></span>
+      <button id="rec-stop" type="button">Stop</button>
+    </div>
     <div id="flash"></div>
     <div id="menu">
       <div class="menu-inner">

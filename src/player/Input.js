@@ -5,6 +5,7 @@ export class Input {
     this.element = element;
     this.keys = new Set();
     this.pressed = new Set(); // keys pressed since the last frame
+    this.released = new Set(); // keys released since the last frame
     this.mouseDX = 0;
     this.mouseDY = 0;
     this.locked = false;
@@ -18,7 +19,10 @@ export class Input {
       this.keys.add(e.code);
       if ((this.locked || this.dragMode) && ['Space', 'ArrowUp', 'ArrowDown'].includes(e.code)) e.preventDefault();
     });
-    window.addEventListener('keyup', (e) => this.keys.delete(e.code));
+    window.addEventListener('keyup', (e) => {
+      this.keys.delete(e.code);
+      this.released.add(e.code);
+    });
     window.addEventListener('blur', () => this.keys.clear());
 
     document.addEventListener('mousemove', (e) => {
@@ -65,10 +69,15 @@ export class Input {
     return this.pressed.has(code);
   }
 
+  wasReleased(code) {
+    return this.released.has(code);
+  }
+
   // Call once at the end of every frame.
   endFrame() {
     this.mouseDX = 0;
     this.mouseDY = 0;
     this.pressed.clear();
+    this.released.clear();
   }
 }

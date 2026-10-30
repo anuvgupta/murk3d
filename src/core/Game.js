@@ -171,6 +171,10 @@ export class Game {
     this.player.spawn(SPAWN.x, SPAWN.z, SPAWN.yaw);
     this.applyViewLink();
     this.feedback = new Feedback(this);
+    // Esc while recording ends the clip and opens the note instead of the menu.
+    this.input.on('unlock', () => {
+      if (this.feedback.recording) this.endRecording();
+    });
     this.map = new MapScreen(this);
 
     this.setupPostProcessing();
@@ -220,10 +224,18 @@ export class Game {
     this.hud.toast(`Clouds: ${next}`);
   }
 
-  openFeedback() {
+  openFeedback(clip = null) {
     this.feedbackOpen = true;
-    this.feedback.show();
+    this.feedback.show(clip);
     if (document.pointerLockElement) document.exitPointerLock();
+  }
+
+  // Ends a clip and opens the note with it. feedbackOpen is set at once so
+  // the menu stays away while the recorder finishes writing.
+  async endRecording() {
+    this.feedbackOpen = true;
+    const clip = await this.feedback.stopRecording();
+    this.openFeedback(clip);
   }
 
   onFeedbackClosed() {
@@ -272,7 +284,22 @@ export class Game {
       if (input.wasPressed('BracketRight')) this.environment.setTime(this.environment.timeOfDay + 0.5);
       if (input.wasPressed('BracketLeft')) this.environment.setTime(this.environment.timeOfDay - 0.5);
       if (input.wasPressed('KeyT')) this.environment.paused = !this.environment.paused;
-      if (input.wasPressed('KeyF')) this.openFeedback();
+      // F: a tap opens a note with a screenshot; holding it records a clip
+      // until release. A clip started from the note panel stops on the next tap.
+      const fb = this.feedback;
+      if (input.wasPressed('KeyF')) {
+        if (fb.recording && !fb.recording.hold) this.endRecording();
+        else if (!fb.recording) this.fDownAt = this.elapsed;
+      }
+      if (this.fDownAt !== undefined && !fb.recording && input.down('KeyF') && this.elapsed - this.fDownAt > 0.3) {
+        this.fDownAt = undefined;
+        fb.startRecording({ hold: true });
+      }
+      if (input.wasReleased('KeyF')) {
+        if (fb.recording?.hold) this.endRecording();
+        else if (this.fDownAt !== undefined) this.openFeedback();
+        this.fDownAt = undefined;
+      }
       if (input.wasPressed('KeyC')) this.cycleClouds();
       if (input.wasPressed('KeyM')) this.map.show(!this.map.open);
       if (input.wasPressed('F3')) {
