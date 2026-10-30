@@ -666,3 +666,12 @@ screenshot-checked.
   pass closed after ~14 measured rounds. Next critique sweep: places not
   re-shot since the lighting overhaul — crypt interior, castle ward,
   Shelves golden, jungle, river town, citadel bridge, sky isles.
+- 13:10 BK critique (7 realms/interiors): crypt interior and castle ward
+  masonry read as flat bathroom tile — hard black joints, no weathering;
+  river-town house walls showed the castle's 2.6 m-repeat blocks; sky
+  island cones smooth grey blobs. Citadel (BK6) is a keeper. Fixes:
+  ashlarStone gains rain streaks under joints, dirt blotches, wider
+  per-block tint (pale base 0.84, 0.76+0.26t), narrower softer mortar;
+  whiteHouse material = white ashlar at 2.4x repeat for the town; island
+  cones get 6 ribs + fissures + overhanging rim. Verify BL (+ chapel
+  close, castle gate from the bridge).
