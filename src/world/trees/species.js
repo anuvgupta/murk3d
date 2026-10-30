@@ -144,16 +144,20 @@ export const SPECIES = {
   duskwood: {
     label: 'Violet duskwood',
     levels: 3,
-    trunk: { len: [2.8, 4.0], radius: [0.3, 0.4], lean: 0.15, taper: 0.7, curveV: 25, wander: 20, segs: 7, start: 0.5, splits: [2, 3], splitAngle: 36, leaderLen: 1.1 },
+    // A twisted fantasy tree: a thick bole that snakes in an S and swells
+    // with burls, heavy limbs writhing out of it, a crown of round violet
+    // leaf masses.
+    trunk: { len: [3.0, 4.2], radius: [0.42, 0.56], lean: 0.2, taper: 0.62, curveV: 34, wander: 26, segs: 11, start: 0.5, splits: [2, 3], splitAngle: 40, leaderLen: 1.0, flare: 0.45, sinuous: 34, waves: 1.2 },
     levels_: [
-      { n: [4, 6], downAngle: 58, downAngleV: 15, lenRatio: 1.3, lenV: 0.2, taper: 0.45, curve: 10, curveV: 40, wander: 28, tropism: 0.1, segs: 8 },
-      { n: [6, 9], downAngle: 50, downAngleV: 20, lenRatio: 0.55, lenV: 0.25, taper: 0.3, curveV: 45, wander: 30, tropism: 0.0, segs: 5, start: 0.15 },
+      { n: [4, 6], downAngle: 58, downAngleV: 15, lenRatio: 1.45, lenV: 0.22, taper: 0.5, curve: 18, curveBack: -22, curveV: 36, wander: 30, tropism: 0.06, segs: 11, thick: 0.72, sinuous: 32, waves: 1.6 },
+      { n: [6, 9], downAngle: 50, downAngleV: 20, lenRatio: 0.55, lenV: 0.25, taper: 0.35, curveV: 45, wander: 32, tropism: 0.0, segs: 6, start: 0.15, thick: 0.6, sinuous: 22 },
     ],
     shape: round,
-    leaves: { per: 7, tipFill: 4, size: [1.3, 1.9], spread: 0.9, sprigs: 7 },
+    gnarl: 1.0,
+    leaves: { per: 7, tipFill: 4, size: [1.0, 1.45], spread: 0.95, sprigs: 14, round: 0.9, outer: 0.42 },
     bark: { color: [0.22, 0.18, 0.25], fissures: 7, depth: 0.9 },
-    leaf: { kind: 'blossom', colors: ['#7e55c4', '#9a72dc', '#633aa8', '#b592ec'] },
-    glow: 0.12,
+    leaf: { kind: 'broad', colors: ['#9c62d4', '#b67ee8', '#8350c0', '#cfa4f2'] },
+    glow: 0.2,
     wind: 0.8,
   },
   dead: {
