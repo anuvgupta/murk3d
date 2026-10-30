@@ -50,6 +50,12 @@
           <label id="fb-clip-row" class="hidden"><input id="fb-include-clip" type="checkbox" checked /> <span id="fb-clip-label">Include clip</span></label>
           <button id="fb-record" type="button" title="Or hold F in the game to record">Record a clip</button>
         </div>
+        <div class="fb-row fb-refs">
+          <button id="fb-add-images" type="button">Add images…</button>
+          <input id="fb-files" type="file" accept="image/*" multiple class="hidden" />
+          <span class="fb-hint">or paste an image or an image link into the note</span>
+        </div>
+        <div id="fb-ref-list" class="hidden"></div>
         <p id="fb-meta"></p>
         <div class="fb-row">
           <span id="fb-kind-label">Kind</span>

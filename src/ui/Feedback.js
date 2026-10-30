@@ -6,9 +6,11 @@ import * as THREE from 'three';
 // what's under the crosshair, then files it as a GitHub issue (labelled
 // "feedback") with the screenshot committed to the repo's `feedback` branch.
 // Holding F (or the panel's Record button) records a clip of the canvas to
-// attach the same way. Needs a GitHub token with Contents and Issues write
-// access to this repo, stored only in this browser. Without one, notes are
-// kept locally (without their clips).
+// attach the same way, and reference images (chosen, pasted, or pasted as
+// links) are uploaded beside it. Every attachment is listed in the issue so
+// whoever picks it up knows what to look at. Needs a GitHub token with
+// Contents and Issues write access to this repo, stored only in this
+// browser. Without one, notes are kept locally (without clips or images).
 
 const OWNER = 'anuvgupta';
 const REPO = 'murk3d';
@@ -18,6 +20,13 @@ const QUEUE_KEY = 'murk.feedbackQueue';
 const API = `https://api.github.com/repos/${OWNER}/${REPO}`;
 const MAX_CLIP_SECONDS = 20;
 const CLIP_MIMES = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm', 'video/mp4'];
+const MAX_REFS = 8;
+const IMAGE_LINK = /^https?:\/\/\S+\.(png|jpe?g|gif|webp)(\?\S*)?$/i;
+
+function imageExt(mime, fallback = 'png') {
+  const m = /image\/(png|jpe?g|gif|webp)/i.exec(mime || '');
+  return m ? m[1].toLowerCase().replace('jpeg', 'jpg') : fallback;
+}
 
 function blobToBase64(blob) {
   return new Promise((resolve, reject) => {
@@ -64,8 +73,29 @@ export class Feedback {
     this.open = false;
     this.recording = null; // { hold, rec, chunks, mime, stream, startedAt } while a clip records
     this.clip = null; // { blob, url, mime, seconds } attached to the open note
+    this.refs = []; // reference images: { blob, url, ext, link } (blob null when only a link)
+    this.refList = document.getElementById('fb-ref-list');
+    this.files = document.getElementById('fb-files');
 
     for (const b of this.kindButtons) b.addEventListener('click', () => this.setKind(b.dataset.kind));
+    document.getElementById('fb-add-images').addEventListener('click', () => this.files.click());
+    this.files.addEventListener('change', () => {
+      for (const f of this.files.files) this.addRefFile(f);
+      this.files.value = '';
+    });
+    // Pasting into the panel: image data becomes an attachment; a bare image
+    // link is fetched and attached (kept as a link if it can't be fetched).
+    this.root.addEventListener('paste', (e) => {
+      const images = [...(e.clipboardData?.files || [])].filter((f) => f.type.startsWith('image/'));
+      const text = e.clipboardData?.getData('text/plain').trim() || '';
+      if (images.length) {
+        e.preventDefault();
+        for (const f of images) this.addRefFile(f);
+      } else if (IMAGE_LINK.test(text)) {
+        e.preventDefault();
+        this.addRefLink(text);
+      }
+    });
     document.getElementById('fb-record').addEventListener('click', () => {
       this.close();
       this.startRecording({ hold: false });
@@ -197,6 +227,69 @@ export class Feedback {
     });
   }
 
+  addRefFile(file, link = null) {
+    if (this.refs.length >= MAX_REFS) {
+      this.status.textContent = `Up to ${MAX_REFS} images per note.`;
+      return;
+    }
+    this.refs.push({ blob: file, url: URL.createObjectURL(file), ext: imageExt(file.type), link });
+    this.renderRefs();
+  }
+
+  async addRefLink(link) {
+    this.status.textContent = 'Fetching image…';
+    try {
+      const res = await fetch(link, { mode: 'cors' });
+      const blob = await res.blob();
+      if (!res.ok || !blob.type.startsWith('image/')) throw new Error('not an image');
+      this.addRefFile(blob, link);
+      this.status.textContent = '';
+    } catch {
+      // Cross-origin hosts often refuse; the issue will carry the link itself.
+      this.refs.push({ blob: null, url: link, ext: null, link });
+      this.renderRefs();
+      this.status.textContent = "Couldn't fetch that image; it will be linked from the note.";
+    }
+  }
+
+  removeRef(i) {
+    const [ref] = this.refs.splice(i, 1);
+    if (ref.blob) URL.revokeObjectURL(ref.url);
+    this.renderRefs();
+  }
+
+  renderRefs() {
+    this.refList.classList.toggle('hidden', !this.refs.length);
+    this.refList.replaceChildren(
+      ...this.refs.map((ref, i) => {
+        const el = document.createElement('div');
+        el.className = 'fb-ref';
+        el.title = ref.link || 'Reference image';
+        if (ref.blob) {
+          const img = document.createElement('img');
+          img.src = ref.url;
+          img.alt = '';
+          el.appendChild(img);
+        } else {
+          el.append(`link: ${new URL(ref.link).host}`);
+        }
+        const x = document.createElement('button');
+        x.type = 'button';
+        x.textContent = '×';
+        x.setAttribute('aria-label', 'Remove image');
+        x.addEventListener('click', () => this.removeRef(i));
+        el.appendChild(x);
+        return el;
+      })
+    );
+  }
+
+  clearRefs() {
+    for (const ref of this.refs) if (ref.blob) URL.revokeObjectURL(ref.url);
+    this.refs = [];
+    this.renderRefs();
+  }
+
   setClip(clip) {
     if (this.clip) URL.revokeObjectURL(this.clip.url);
     this.clip = clip;
@@ -226,6 +319,7 @@ export class Feedback {
     this.image = c.toDataURL('image/jpeg', 0.85);
     this.shot.src = this.image;
     this.setClip(clip);
+    this.clearRefs();
 
     const p = g.player.position;
     const target = this.probe();
@@ -277,13 +371,16 @@ export class Feedback {
       context: this.context,
       image: this.shotToggle.checked ? this.image : null,
       clip: this.clip && this.clipToggle.checked ? this.clip : null,
+      refs: this.refs,
     };
+    const heavy = entry.clip || entry.refs.some((r) => r.blob);
     if (!this.token) {
       this.saveLocally(entry);
-      this.status.textContent = `Saved in this browser${entry.clip ? ' (without the clip)' : ''}. Add a token to post it to GitHub.`;
+      this.status.textContent = `Saved in this browser${heavy ? ' (without the clip or images)' : ''}. Add a token to post it to GitHub.`;
       return;
     }
-    this.status.textContent = entry.clip ? `Posting… uploading a ${(entry.clip.blob.size / 1e6).toFixed(1)} MB clip` : 'Posting…';
+    const bytes = (entry.clip ? entry.clip.blob.size : 0) + entry.refs.reduce((s, r) => s + (r.blob ? r.blob.size : 0), 0);
+    this.status.textContent = bytes ? `Posting… uploading ${(bytes / 1e6).toFixed(1)} MB of media` : 'Posting…';
     try {
       const url = await this.post(entry);
       this.status.innerHTML = `Posted: <a href="${url}" target="_blank" rel="noopener">${url.split('/').slice(-2).join(' #')}</a>`;
@@ -294,14 +391,15 @@ export class Feedback {
       this.flushQueue();
     } catch (err) {
       this.saveLocally(entry);
-      this.status.textContent = `Couldn't post (${err.message}). Saved locally${entry.clip ? ' without the clip' : ''}; it will be retried next time.`;
+      this.status.textContent = `Couldn't post (${err.message}). Saved locally${heavy ? ' without the clip or images' : ''}; it will be retried next time.`;
     }
   }
 
-  // Clips are too large for storage, so a queued note keeps only its image.
-  saveLocally({ clip, ...entry }) {
+  // Clips and image files are too large for storage, so a queued note keeps
+  // only its screenshot and any image links.
+  saveLocally({ clip, refs = [], ...entry }) {
     const queue = JSON.parse(storageGet(QUEUE_KEY) || '[]');
-    queue.push(entry);
+    queue.push({ ...entry, refs: refs.filter((r) => !r.blob).map((r) => ({ blob: null, url: r.link, ext: null, link: r.link })) });
     // Keep the newest few; screenshots are large.
     storageSet(QUEUE_KEY, JSON.stringify(queue.slice(-5)));
   }
@@ -354,20 +452,45 @@ export class Feedback {
     return `https://raw.githubusercontent.com/${OWNER}/${REPO}/${BRANCH}/${path}`;
   }
 
-  async post({ note, kind, context, image, clip }) {
+  async post({ note, kind, context, image, clip, refs = [] }) {
     const id = `${context.at.replace(/[:.]/g, '-')}-${Math.random().toString(36).slice(2, 6)}`;
-    if (image || clip) await this.ensureBranch();
+    if (image || clip || refs.some((r) => r.blob)) await this.ensureBranch();
     const imageUrl = image ? await this.upload(`feedback/${id}.jpg`, `Feedback screenshot ${id}`, image.split(',')[1]) : null;
     const clipUrl = clip
       ? await this.upload(`feedback/${id}.${clip.mime.includes('mp4') ? 'mp4' : 'webm'}`, `Feedback clip ${id}`, await blobToBase64(clip.blob))
       : null;
+    const refUrls = [];
+    for (const [i, ref] of refs.entries()) {
+      refUrls.push(
+        ref.blob ? await this.upload(`feedback/${id}-ref-${i + 1}.${ref.ext}`, `Feedback reference image ${id} #${i + 1}`, await blobToBase64(ref.blob)) : ref.link
+      );
+    }
+
+    // Every attachment is spelled out so whoever reads the issue knows what
+    // there is to look at and where it came from.
+    const attachments = [];
+    if (imageUrl) attachments.push(`- **Screenshot** of the view when the note was written: ![screenshot](${imageUrl})`);
+    if (clipUrl) attachments.push(`- 🎬 **Clip** (${clip.seconds} s, recorded in game just before the note): [${clipUrl.split('/').pop()}](${clipUrl})`);
+    refs.forEach((ref, i) => {
+      const from = ref.link ? ` (from ${ref.link})` : ' (added by the player)';
+      attachments.push(
+        ref.blob
+          ? `- **Reference image ${i + 1}**${from}: ![reference ${i + 1}](${refUrls[i]})`
+          : `- **Reference link ${i + 1}** (could not be fetched, open it directly): ${ref.link}`
+      );
+    });
+    if (!attachments.length) attachments.push('- None: this note has no screenshot, clip or images.');
+
     const c = context;
     const title = `[${kind}] ${note.split('\n')[0].slice(0, 70)}`;
     const body = [
       note,
       '',
       imageUrl ? `![screenshot](${imageUrl})` : '',
-      clipUrl ? `🎬 [Watch the ${clip.seconds} s clip](${clipUrl})` : '',
+      '',
+      '### Attachments',
+      ...attachments,
+      imageUrl || clipUrl || refUrls.some((u, i) => refs[i].blob) ? `Files are on the \`${BRANCH}\` branch (\`git show origin/${BRANCH}:feedback/<name>\`).` : '',
       '',
       `| | |`,
       `|---|---|`,
@@ -383,7 +506,7 @@ export class Feedback {
       '<details><summary>Raw data</summary>',
       '',
       '```json',
-      JSON.stringify({ kind, ...c, image: imageUrl, clip: clipUrl }, null, 2),
+      JSON.stringify({ kind, ...c, image: imageUrl, clip: clipUrl, references: refUrls }, null, 2),
       '```',
       '</details>',
     ].join('\n');

@@ -259,6 +259,69 @@ body {
   margin-left: auto;
 }
 
+.fb-refs {
+  font-size: 14px;
+}
+
+.fb-refs .fb-hint {
+  opacity: 0.6;
+  font-style: italic;
+}
+
+#fb-files {
+  display: none;
+}
+
+/* Reference images: thumbnails with a remove cross; a link that could not be
+   fetched shows its host instead of a picture. */
+#fb-ref-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#fb-ref-list.hidden {
+  display: none;
+}
+
+.fb-ref {
+  position: relative;
+  width: 96px;
+  height: 64px;
+  border: 1px solid rgba(244, 228, 188, 0.3);
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  overflow: hidden;
+  padding: 0 4px;
+  text-align: center;
+  word-break: break-all;
+}
+
+.fb-ref img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fb-ref button {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0 6px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 18px;
+  color: #f4e4bc;
+  background: rgba(24, 19, 14, 0.85);
+  border: 0;
+  border-left: 1px solid rgba(244, 228, 188, 0.3);
+  border-bottom: 1px solid rgba(244, 228, 188, 0.3);
+  cursor: pointer;
+}
+
 #fb-meta {
   font-size: 14px;
   opacity: 0.75;
