@@ -310,9 +310,9 @@ export class Environment {
       a.sunDir.copy(this.lightDir);
       a.sunVisible = smoothstep(-0.05, -0.16, elev);
       a.sunColor.setRGB(0.8, 0.86, 0.98);
-      a.disc = 1.4; // bright enough to read, not so bright the craters burn out
+      a.disc = 0.75; // below clipping, so the maria and craters read
       a.moon = 1;
-      a.glow = 0.18;
+      a.glow = 0.07;
       a.shaft = 0.03;
     }
     if (rw > 0) {

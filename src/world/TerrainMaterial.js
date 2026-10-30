@@ -39,8 +39,8 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
           // face on a coarse mesh shadows itself in triangle-shaped patches.
           // Push the shadow lookup off the surface in proportion to the cell.
           float m = max( abs( vWPos.x ), abs( vWPos.z ) ) * ${SINH_K.toFixed(5)} / ${WORLD_HALF.toFixed(1)};
-          float cell = 1.54 * sqrt( 1.0 + m * m );
-          worldPosition.xyz += vWNormal * cell * 0.07;
+          float cell = 1.149 * sqrt( 1.0 + m * m );
+          worldPosition.xyz += vWNormal * cell * 0.1;
         }
         #endif
         #include <shadowmap_vertex>`

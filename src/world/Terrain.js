@@ -24,8 +24,8 @@ import { REGIONS, regionWeight } from './regions.js';
 
 // The terrain grid is warped so cells are ~1.5 m wide around the village and
 // widen to ~7 m out at the mountains: x = H * sinh(k u) / sinh(k), u in [-1, 1].
-const SEGMENTS = 512;
-const WARP = 2.2;
+const SEGMENTS = 768; // finer everywhere: ~1.15 m cells in the Vale, ~3.3 m out in the realms
+const WARP = 2.0;
 const SINH_K = Math.sinh(WARP);
 
 const gridToWorld = (i) => (WORLD_HALF * Math.sinh(WARP * ((2 * i) / SEGMENTS - 1))) / SINH_K;

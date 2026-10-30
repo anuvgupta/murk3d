@@ -100,6 +100,8 @@ export const ROCK_GLSL = /* glsl */ `
     float band = sin( p.y * 0.9 + broad * 7.0 ) * 0.5 + 0.5;
     vec3 c = mix( ${lin(0x75695d)}, ${lin(0xb9ab96)}, smoothstep( 0.2, 0.8, broad ) );
     c = mix( c, c * ${lin(0xd2b08f)} * 1.25, band * 0.5 );
+    // Bedding: light and dark beds alternate up the face.
+    c *= 0.86 + 0.28 * band;
     // Cavities: hollows and cracks sit in shadow; ridges catch the light.
     c *= mix( 0.5 + 0.75 * h, 0.28 + 1.15 * h, rockDetailF );
     // Close up the stone is granular, not smooth plaster.
