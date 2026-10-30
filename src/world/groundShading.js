@@ -108,8 +108,10 @@ export const GROUND_GLSL = /* glsl */ `
       float drift = texture( uNoise, p * 0.03 + 0.7 ).b;
       float ripple = texture( uNoise, vec2( p.x * 0.8 + p.y * 0.3, p.y * 0.12 ) ).a;
       float swept = smoothstep( 0.3, 0.55, texture( uNoise, p * 0.014 + 0.2 ).g * 0.7 + n.x * 0.3 );
-      vec3 snowC = vec3( 0.84, 0.88, 0.96 ) * ( 0.86 + 0.1 * n.z + 0.08 * drift + 0.05 * ripple );
-      float cover = clamp( snow, 0.0, 1.0 ) * mix( 0.45, 0.95, swept );
+      // Snow is bright: a field in the afternoon sun is near white, the
+      // windswept patches only a little greyer where the straw shows through.
+      vec3 snowC = vec3( 0.9, 0.93, 0.99 ) * ( 0.9 + 0.08 * n.z + 0.08 * drift + 0.05 * ripple );
+      float cover = clamp( snow, 0.0, 1.0 ) * mix( 0.72, 1.0, swept );
       c = mix( c * vec3( 0.9, 0.86, 0.72 ), snowC, cover );
     }
     return c;
