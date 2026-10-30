@@ -45,6 +45,19 @@ export const ROCK_GLSL = /* glsl */ `
     return clamp( strata * 0.1 + lumps * 0.3 + grain * 0.22 + fine * 0.14 + ledge * 0.08 + macro * 0.4 - cracks * 0.28 + 0.02, 0.0, 1.0 );
   }
 
+  // Granular speckle for the last metre or two: a smoothed hash at ~3 cm.
+  float rockSpeckle( vec3 p ) {
+    vec3 q = p * 28.0;
+    vec3 i = floor( q );
+    vec3 f = q - i;
+    f = f * f * ( 3.0 - 2.0 * f );
+    #define RH( o ) fract( sin( dot( i + o, vec3( 12.9898, 78.233, 37.719 ) ) ) * 43758.5453 )
+    float a = mix( mix( RH( vec3( 0, 0, 0 ) ), RH( vec3( 1, 0, 0 ) ), f.x ), mix( RH( vec3( 0, 1, 0 ) ), RH( vec3( 1, 1, 0 ) ), f.x ), f.y );
+    float b = mix( mix( RH( vec3( 0, 0, 1 ) ), RH( vec3( 1, 0, 1 ) ), f.x ), mix( RH( vec3( 0, 1, 1 ) ), RH( vec3( 1, 1, 1 ) ), f.x ), f.y );
+    #undef RH
+    return mix( a, b, f.z );
+  }
+
   vec3 rockAlbedo( vec3 p, vec3 n, vec3 w, float h ) {
     float broad = tri( p, w, 0.015, 0 );
     float band = sin( p.y * 0.9 + broad * 7.0 ) * 0.5 + 0.5;
@@ -52,6 +65,8 @@ export const ROCK_GLSL = /* glsl */ `
     c = mix( c, c * ${lin(0xd2b08f)} * 1.25, band * 0.35 );
     // Cavities: hollows and cracks sit in shadow; ridges catch the light.
     c *= mix( 0.5 + 0.75 * h, 0.28 + 1.15 * h, rockDetailF );
+    // Close up the stone is granular, not smooth plaster.
+    c *= 1.0 + ( rockSpeckle( p ) - 0.5 ) * 0.3 * rockDetailF * rockDetailF;
     // Mid-scale variation and gullies streaking down the slope, visible from afar.
     float meso = tri( p, w, 0.05, 2 );
     float gully = tri( vec3( p.x, p.y * 0.22, p.z ), w, 0.045, 3 );
