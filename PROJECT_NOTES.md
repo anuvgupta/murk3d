@@ -635,3 +635,12 @@ screenshot-checked.
   and a noise-varied face width. BF6 was blocked by a juniper spawned
   on the overlook (tree RNG reshuffles whenever placement rules change)
   → 8 m clearing at OVERLOOK and SPAWN. Verify BG.
+- 08:40 Raycast probe of the lime band (BG1 px 0.33,0.65): terrain hit,
+  mask.r 0.75, baked slope 0.99 (blades fully allowed), smooth ny 0.56,
+  FACE ny 0.41 — a steep bank facing the 15:00 sun. Blades spread thin
+  on a 60° face so the lit ×1.36 under-carpet glows through. Carpet
+  lift now also gated by the face normal (smoothstep 0.45–0.78) and
+  reduced to ×1.28. BG3 overlook golden clear again (keeper). BG2 shows
+  a per-triangle ledge facet at a plate face (open, low priority).
+  Verify BH (bank + fresh critique frames: bridge 08:30, plaza 16:30,
+  lake noon, castle road 17:30).
