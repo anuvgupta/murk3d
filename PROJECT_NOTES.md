@@ -660,3 +660,9 @@ screenshot-checked.
   40% toward warm grey-olive; blades 15%. Measure again (batch58 reruns
   diagbank2) and view BJ (overlook noon, bridge morning, road golden).
   Also: BI5 glade at dusk is a keeper; BI2 overlook cliffs clean.
+- 12:00 Measured after the olive fix: ground (120,144,72) vs blades
+  (115,140,65) — matched, acid green gone. BJ overlook noon, bridge
+  08:30 (keeper), road golden all read warm and natural. Grass/ground
+  pass closed after ~14 measured rounds. Next critique sweep: places not
+  re-shot since the lighting overhaul — crypt interior, castle ward,
+  Shelves golden, jungle, river town, citadel bridge, sky isles.
