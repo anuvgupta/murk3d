@@ -131,6 +131,14 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         if ( uDebug == 5 ) { gl_FragColor = vec4( 0.5, 0.5, 0.5, 1.0 ); return; }
         if ( uDebug == 6 ) { gl_FragColor = vec4( vec3( terrainSlope( vWPos.xz ) ), 1.0 ); return; }
         if ( uDebug == 7 ) { gl_FragColor = vec4( vec3( wnClass.y ), 1.0 ); return; }
+        #if NUM_HEMI_LIGHTS > 0
+        {
+          // Snow in shadow is lit by the whole sky: bright blue-white, never grey.
+          float sn;
+          realmAt( vWPos.xz, sn );
+          outgoingLight += diffuseColor.rgb * hemisphereLights[ 0 ].skyColor * clamp( sn, 0.0, 1.0 ) * 0.55;
+        }
+        #endif
         #include <opaque_fragment>`
       )
       .replace(

@@ -141,6 +141,7 @@ export const REGIONS = [
     tagline: 'Ice and starlight on the high waste',
     ...at(7), r: 150,
     floor: 30,
+    rim: 84, // lower than the default so the afternoon sun reaches the snowfield
     palette: { ground: [1.3, 1.32, 1.4], grass: [1.1, 1.1, 1.2], fog: [0.86, 0.9, 0.98], fogDensity: 1.2, saturation: 0.85, grassDensity: 0.1, grassTint: [0.95, 0.82, 0.55] },
     snow: 1,
     rocks: 30,
