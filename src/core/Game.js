@@ -208,7 +208,7 @@ export class Game {
     scene.add(this.portals.group);
     this.crystals = new Crystals({ terrain: this.terrain });
     scene.add(this.crystals.group);
-    this.mushrooms = new Mushrooms({ terrain: this.terrain });
+    this.mushrooms = new Mushrooms({ terrain: this.terrain, noise: this.noiseTexture });
     scene.add(this.mushrooms.group);
     await mark('mushrooms');
     this.falls = new Falls({ terrain: this.terrain, noise: this.noiseTexture });

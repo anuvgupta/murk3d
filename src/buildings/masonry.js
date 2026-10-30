@@ -65,8 +65,9 @@ export function weatherMasonry(material, { noise, heightMap, moss = 1, grime = 1
 
           // Broad stains, tens of metres across, then patchwork across groups of blocks.
           float stain = texture( uNoise, vec2( s * 0.02, p.y * 0.012 ) + wn.xz * 0.1 ).r * 0.55 + texture( uNoise, vec2( s * 0.07 + 0.3, p.y * 0.05 ) ).a * 0.45;
-          float quilt = texture( uNoise, vec2( floor( s / 2.2 ) * 0.173 + 0.5, floor( p.y / 0.8 ) * 0.291 + 0.5 ) ).b;
-          float tone = ( 0.78 + 0.4 * stain * uGrimeAmt ) * ( 0.86 + 0.26 * quilt );
+          float quilt = texture( uNoise, vec2( floor( s / 2.2 ) * 0.173 + 0.5, floor( p.y / 0.8 ) * 0.291 + 0.5 ) ).b * 0.6
+            + texture( uNoise, vec2( floor( s / 7.0 ) * 0.137 + 0.2, floor( p.y / 3.0 ) * 0.219 + 0.7 ) ).r * 0.4; // and whole courses of a different quarry
+          float tone = ( 0.78 + 0.4 * stain * uGrimeAmt ) * ( 0.8 + 0.38 * quilt );
 
           // Rain streaks: dark runs down vertical faces, strongest just under ledges.
           float streakN = texture( uNoise, vec2( s * 0.5, p.y * 0.015 ) ).g * texture( uNoise, vec2( s * 1.7 + 0.3, p.y * 0.03 ) ).r;

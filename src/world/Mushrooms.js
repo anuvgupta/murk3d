@@ -104,7 +104,7 @@ function mushroomGeometry(kind, seed) {
 }
 
 export class Mushrooms {
-  constructor({ terrain }) {
+  constructor({ terrain, noise }) {
     this.group = new THREE.Group();
     this.group.name = 'mushrooms';
     this.terrain = terrain;
@@ -120,12 +120,55 @@ export class Mushrooms {
     this.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.68, metalness: 0 });
     this.material.onBeforeCompile = (shader) => {
       shader.uniforms.uGlow = { value: 0.15 };
+      shader.uniforms.uNoise = { value: noise };
       this.shader = shader;
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nattribute float glow;\nvarying float vGlow;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = glow;');
+        .replace('#include <common>', '#include <common>\nattribute float glow;\nvarying float vGlow;\nvarying vec3 vLocal;\nvarying vec3 vMNormal;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = glow;\nvLocal = position;\nvMNormal = objectNormal;');
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nuniform float uGlow;\nvarying float vGlow;')
+        .replace('#include <common>', '#include <common>\nuniform float uGlow;\nuniform sampler2D uNoise;\nvarying float vGlow;\nvarying vec3 vLocal;\nvarying vec3 vMNormal;\nfloat mushH;')
+        .replace(
+          '#include <color_fragment>',
+          `#include <color_fragment>
+          {
+            // Stem: fibrous, with fine vertical streaks and a little dirt at the
+            // foot. Cap: mottled, darker and glossier at the crown, faint radial
+            // streaks toward the rim. Underside: gill lines radiating from the stem.
+            float ang = atan( vLocal.z, vLocal.x );
+            float rad = length( vLocal.xz );
+            bool cap = vLocal.y > 0.9 && rad > 0.2;
+            bool under = cap && vMNormal.y < -0.2;
+            if ( under ) {
+              float gills = 0.5 + 0.5 * sin( ang * 60.0 + rad * 6.0 );
+              diffuseColor.rgb *= 0.82 + 0.3 * smoothstep( 0.3, 0.7, gills );
+              mushH = gills;
+            } else if ( cap ) {
+              float mottle = texture( uNoise, vec2( ang * 0.5, rad * 1.6 ) + vColor.rg ).g;
+              float streak = texture( uNoise, vec2( ang * 2.2, rad * 0.4 ) ).a;
+              diffuseColor.rgb *= ( 0.86 + 0.28 * mottle ) * ( 0.94 + 0.12 * streak );
+              diffuseColor.rgb *= 1.0 - 0.18 * smoothstep( 0.0, 0.45, rad ); // the crown glows a touch richer
+              mushH = mottle;
+            } else {
+              float fibre = texture( uNoise, vec2( ang * 1.4, vLocal.y * 0.5 ) ).r * 0.6 + texture( uNoise, vec2( ang * 5.0, vLocal.y * 2.5 ) ).b * 0.4;
+              diffuseColor.rgb *= 0.86 + 0.26 * fibre;
+              diffuseColor.rgb *= mix( vec3( 0.72, 0.66, 0.5 ), vec3( 1.0 ), smoothstep( 0.0, 0.3, vLocal.y ) ); // soil at the foot
+              mushH = fibre;
+            }
+          }`
+        )
+        .replace(
+          '#include <normal_fragment_maps>',
+          `#include <normal_fragment_maps>
+          {
+            vec3 sx = dFdx( -vViewPosition );
+            vec3 sy = dFdy( -vViewPosition );
+            vec3 r1 = cross( sy, normal );
+            vec3 r2 = cross( normal, sx );
+            float det = dot( sx, r1 );
+            vec2 dh = vec2( dFdx( mushH ), dFdy( mushH ) ) * 0.6;
+            normal = normalize( abs( det ) * normal - sign( det ) * ( dh.x * r1 + dh.y * r2 ) );
+          }`
+        )
         .replace(
           '#include <emissivemap_fragment>',
           `#include <emissivemap_fragment>
