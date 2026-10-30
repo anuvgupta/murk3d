@@ -311,7 +311,7 @@ export function createAlchemyMaterials(im) {
             eel *= 0.8;
           }
           diffuseColor.rgb = body * 0.6;
-          totalEmissiveRadiance = body * 0.9 + glow * ( eel * 1.9 + 0.015 );
+          totalEmissiveRadiance = body * 1.0 + glow * ( eel * 2.6 + 0.02 );
         }`
       );
   };
