@@ -333,15 +333,18 @@ export class Grass {
           // Width tapers to a rounded tip.
           // Width: nearly constant, tapering only near the tip.
           float wprof = 1.0 - smoothstep( 0.55, 1.0, hy ) * 0.9;
-          // Wildflowers: in the lusher sweeps a few blades carry a coloured
-          // head, a little taller than the sward around them.
-          // The blade mesh is two or three quad rows and a point: the head is
-          // the top row spread wide, with the point pulled down into a short cap.
-          float flowerPatch = smoothstep( 0.56, 0.74, texture( uNoise, root * 0.045 + 0.61 ).r );
-          float isFlower = step( br2, 0.06 * flowerPatch ) * step( 0.45, density );
-          wprof = mix( wprof, 0.35 + 5.0 * smoothstep( 0.4, 0.5, hy ), isFlower );
-          bladeH *= 1.0 + 0.35 * isFlower;
-          float hyP = mix( hy, min( hy, 0.667 + ( hy - 0.667 ) * 0.35 ), isFlower );
+          // Wildflowers grow as clumps: in the lusher sweeps a few tufts flower,
+          // and most blades of such a tuft carry a small head at its own height,
+          // all in the tuft's colour family (daisies, buttercups, cornflowers,
+          // clover, the odd poppy). The blade mesh is two or three quad rows and
+          // a point: the head is the top row spread a little, with the point
+          // pulled down into a short rounded cap.
+          float flowerPatch = smoothstep( 0.52, 0.72, texture( uNoise, root * 0.045 + 0.61 ).r );
+          float flowerTuft = step( fract( tr * 13.7 + 0.31 ), 0.05 * flowerPatch ) * step( 0.45, density );
+          float isFlower = flowerTuft * step( br2, 0.72 );
+          wprof = mix( wprof, 0.3 + 2.1 * smoothstep( 0.4, 0.5, hy ), isFlower );
+          bladeH *= 1.0 + ( 0.12 + 0.3 * br ) * isFlower;
+          float hyP = mix( hy, min( hy, 0.667 + ( hy - 0.667 ) * 0.3 ), isFlower );
           vec3 world = vec3( root.x, ground - 0.02, root.y );
           world += up * ( hyP * bladeH * ( 1.0 - curl * hyP * hyP ) );
           world += bend3 * ( hyP * hyP * bladeH );
@@ -366,8 +369,9 @@ export class Grass {
           vec3 col = mix( rootCol, tip * tuftTone, smoothstep( 0.0, 0.9, hy ) );
           col = mix( col, mix( vec3( 0.25, 0.2, 0.08 ), vec3( 0.62, 0.52, 0.28 ), hy ), dry );
           {
-            float fh = fract( br * 7.31 + tr * 3.7 );
-            vec3 fcol = fh < 0.3 ? vec3( 0.95, 0.93, 0.86 ) : fh < 0.55 ? vec3( 0.98, 0.82, 0.22 ) : fh < 0.8 ? vec3( 0.62, 0.42, 0.9 ) : vec3( 0.95, 0.5, 0.62 );
+            float fh = fract( tr * 5.13 + 0.17 ); // one family per clump
+            vec3 fcol = fh < 0.32 ? vec3( 0.93, 0.9, 0.82 ) : fh < 0.56 ? vec3( 0.95, 0.78, 0.2 ) : fh < 0.78 ? vec3( 0.5, 0.46, 0.86 ) : fh < 0.95 ? vec3( 0.86, 0.47, 0.6 ) : vec3( 0.8, 0.2, 0.14 );
+            fcol *= 0.9 + 0.2 * br;
             col = mix( col, fcol, isFlower * smoothstep( 0.4, 0.5, hy ) );
           }
           vColor.rgb = col * ( 0.96 + 0.08 * br ) * realmGrassTint( root );
