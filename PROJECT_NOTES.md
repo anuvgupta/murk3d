@@ -892,3 +892,13 @@ screenshot-checked.
   interior crypt detail, house walls at 1 m.
 - Canyon after strata rework: layered sandstone, good. Karst spire close
   up: smooth bank earth → bankAmt relief; re-check DE1.
+- Pass 30-ish close-out (DF–DH): mushrooms gained a fragment shader
+  (fibrous stem + soil foot, mottled cap, gill lines underneath, dFdx
+  bump) after a 2 m close-up showed plastic; castle limestone now
+  0xe9e3d8 / 0xd3cbbd, env 1.4/1.3, masonry quilt 0.8+0.38 with a
+  7 m × 3 m course-group term. The shaded ward corridor still reads as
+  regular ashlar (it IS regular ashlar; the frame diff confirms the
+  changes apply, the corridor is simply in shadow). Gate at 16:00,
+  overlook noon, bridge 08:30 all keepers on the final build.
+- Next survey (DI): shelves plates golden, sky-isle bridge, moonlit
+  close, jungle temple, cliff-ruins falls, alpine lake.
