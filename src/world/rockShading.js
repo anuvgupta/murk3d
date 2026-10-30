@@ -81,7 +81,7 @@ export const ROCK_GLSL = /* glsl */ `
       blockH = mix( 0.5, j.y, detail );
     }
     // Strata read strongest on steep faces (canyon walls, cliffs), barely on level ground.
-    float strataW = 0.07 + 0.09 * ( 1.0 - w.y );
+    float strataW = ( 0.07 + 0.09 * ( 1.0 - w.y ) ) * ( 0.45 + 0.55 * detail ); // far walls keep only a hint of banding
     return clamp( strata * strataW + lumps * 0.26 + grain * 0.2 + fine * 0.12 + ledge * 0.08 + macro * ( 0.36 - 0.1 * ( 1.0 - w.y ) ) + ( blockH - 0.5 ) * 0.18 - cracks * 0.24 - seam * 0.2 + 0.05, 0.0, 1.0 );
   }
 
@@ -105,7 +105,7 @@ export const ROCK_GLSL = /* glsl */ `
     c = mix( c, c * ${lin(0xd2b08f)} * 1.25, band * 0.5 );
     // Each outcrop its own cast: a very low-frequency tint across the map,
     // so a wall of spires is not one colour from end to end.
-    float hue = texture( uNoise, p.xz * 0.0045 + 0.13 ).r;
+    float hue = texture( uNoise, p.xz * 0.02 + 0.13 ).r * 0.6 + texture( uNoise, p.xz * 0.0045 + 0.37 ).g * 0.4; // per outcrop, with a regional drift
     c *= mix( vec3( 0.86, 0.9, 0.96 ), vec3( 1.1, 1.0, 0.9 ), hue );
     // Bedding: light and dark beds alternate up the face.
     c *= 0.92 + 0.16 * band;
