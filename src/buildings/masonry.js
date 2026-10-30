@@ -81,6 +81,13 @@ export function weatherMasonry(material, { noise, heightMap, moss = 1, grime = 1
           float damp = ( 1.0 - smoothstep( 0.1 + dampN * 0.8, 2.2 + dampN * 1.5, above ) ) * uGrimeAmt;
           float mossN = texture( uNoise, vec2( s * 0.23, p.y * 0.23 ) + 0.5 ).g;
           float mossF = ( 1.0 - smoothstep( 0.0, 1.1 + 0.9 * mossN, above ) ) * smoothstep( 0.42, 0.7, mossN ) * uMossAmt;
+          // Sunken walls (a crypt, a cellar, the uphill side of a house) sit
+          // below the ground around them and sweat: damp and moss all over.
+          float around = max( max( terrainHeight( p.xz + vec2( 3.5, 0.0 ) ), terrainHeight( p.xz - vec2( 3.5, 0.0 ) ) ),
+                              max( terrainHeight( p.xz + vec2( 0.0, 3.5 ) ), terrainHeight( p.xz - vec2( 0.0, 3.5 ) ) ) );
+          float buried = smoothstep( -0.2, 1.6, around - p.y ) * vert;
+          damp = max( damp, buried * 0.85 * uGrimeAmt );
+          mossF = max( mossF, buried * smoothstep( 0.3, 0.62, mossN + 0.1 * dampN ) * uMossAmt * 0.9 );
           // Moss also gathers on the tops of ledges and in the shade of north faces.
           float ledge = smoothstep( 0.6, 0.95, wn.y ) * smoothstep( 0.55, 0.75, texture( uNoise, p.xz * 0.6 ).b ) * uMossAmt * 0.6;
           mossF = max( mossF, ledge );
