@@ -31,6 +31,13 @@ export class Bridge {
     return this.spring + (this.crown - this.spring) * Math.sqrt(1 - k * k);
   }
 
+  // Point on the arch's intrados at angle t (0 at +z springing, PI at -z),
+  // optionally inset by roughly `inset` metres. Sampling by angle keeps the
+  // steep ends as finely divided as the crown.
+  archPoint(t, inset = 0) {
+    return [(this.archHalf - inset) * Math.cos(t), this.spring + (this.crown - this.spring - inset) * Math.sin(t)];
+  }
+
   build(kit, m) {
     const L = this.L;
     const W = this.W;
@@ -48,15 +55,15 @@ export class Bridge {
       }
       body.lineTo(L / 2, bottom);
       body.lineTo(a, bottom);
-      for (let i = 0; i <= steps; i++) {
-        const z = a - (i / steps) * 2 * a;
-        body.lineTo(z, this.archY(z));
-      }
+      for (let i = 0; i <= steps; i++) body.lineTo(...this.archPoint((i / steps) * Math.PI));
       body.lineTo(-a, bottom);
       body.closePath();
       this.extrudeAcross(kit, m.ashlar, body, W - 0.2, 0, 2.2);
 
-      // Voussoirs: a ring of dressed stone standing proud of each face.
+      // Voussoirs: a ring of dressed stone standing proud of each face. The
+      // ring's soffit sits 3 cm inside the body's arch (a smaller ellipse), so
+      // the two never share a surface and flicker; and it only runs 0.6 m in
+      // from each face, leaving the body's own soffit between.
       const ring = new THREE.Shape();
       const outerR = 0.6;
       for (let i = 0; i <= steps; i++) {
@@ -66,12 +73,10 @@ export class Bridge {
         if (i === 0) ring.moveTo(z - 0.35, this.archY(z));
         ring.lineTo(z + (i === 0 ? -0.35 : i === steps ? 0.35 : 0), this.archY(z) + lift);
       }
-      for (let i = steps; i >= 0; i--) {
-        const z = -a + (i / steps) * 2 * a;
-        ring.lineTo(z, this.archY(z));
-      }
+      for (let i = 0; i <= steps; i++) ring.lineTo(...this.archPoint((i / steps) * Math.PI, 0.03));
       ring.closePath();
-      this.extrudeAcross(kit, m.stone, ring, W + 0.06, 0, 1.6);
+      const face = (W - 0.2) / 2;
+      for (const sx of [-1, 1]) this.extrudeAcross(kit, m.stone, ring.clone(), 0.73, sx * (face - 0.6 + 0.73 / 2), 1.6);
 
       // Parapets with a coping course.
       for (const sx of [-1, 1]) {
