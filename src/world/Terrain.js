@@ -182,8 +182,12 @@ export class Terrain {
     if (d > reach) return 0;
     const a = Math.atan2(dz, dx);
     const cliff = this.mesaCliffness(mesa, a);
-    const width = lerp(mesa.gentleWidth, mesa.cliffWidth, cliff);
-    let edge = this.mesaEdge(mesa, a);
+    // The lip wanders and bulges at the metre scale (by position, not just by
+    // angle), and the face is steeper in some places than others, so the rim
+    // is a bumpy rounded bevel rather than one clean curve.
+    const bump = this.noiseDetail(x * 0.09 + 3, z * 0.09) * 2.2 * (0.3 + cliff) + this.noiseDetail(x * 0.31 + 7, z * 0.31) * 0.7 * cliff;
+    const width = lerp(mesa.gentleWidth, mesa.cliffWidth, cliff) * (0.8 + 0.5 * (this.noiseDetail(x * 0.05 + 11, z * 0.05) * 0.5 + 0.5));
+    let edge = this.mesaEdge(mesa, a) + bump;
     // A built-on mesa keeps a level top out to its flat radius.
     if (mesa.flatRadius) edge = Math.max(edge, mesa.flatRadius);
     const t = 1 - smoothstep(edge, edge + width, d);
