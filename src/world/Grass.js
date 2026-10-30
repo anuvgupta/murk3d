@@ -221,6 +221,14 @@ export class Grass {
           vec4 gmask = texture( uMask, maskUv( root ) );
           vec4 gn = groundNoise( root );
 
+          // Local ground normal (0.6 m span): shades the carpet and culls blades
+          // on faces too steep for turf; the baked texel is too coarse for that
+          // at a one-cell cliff.
+          float hL = terrainHeight( root - vec2( 0.6, 0.0 ) );
+          float hR = terrainHeight( root + vec2( 0.6, 0.0 ) );
+          float hD = terrainHeight( root - vec2( 0.0, 0.6 ) );
+          float hU = terrainHeight( root + vec2( 0.0, 0.6 ) );
+          vec3 groundN = normalize( vec3( hL - hR, 1.2, hD - hU ) );
           float dist = distance( vec3( root.x, ground, root.y ), cameraPosition );
           float kk = uFullRadius / max( dist, uFullRadius );
           float keep = max( 0.02, kk * kk * kk );
@@ -232,7 +240,7 @@ export class Grass {
           float density = smoothstep( 0.12, 0.85, gmask.r );
           // Nothing grows on cliff faces: thin out as the ground steepens.
           // Blades hold on until the ground is steep enough to be bare rock.
-          density *= smoothstep( 0.56, 0.7, terrainSlope( root ) );
+          density *= smoothstep( 0.5, 0.68, min( terrainSlope( root ), groundN.y ) );
           { float snowAmt; vec4 realm = realmAt( root, snowAmt ); density *= realm.a; }
           float lush = smoothstep( 0.3, 0.8, gn.y );
           float dryPatch = smoothstep( 0.62, 0.9, 1.0 - gn.x );
@@ -270,11 +278,6 @@ export class Grass {
           if ( dot( bladeN, up ) < 0.0 ) bladeN = -bladeN;
           // The field shades like a soft carpet: mostly the ground's own normal,
           // a little blade shape, and a curl across the blade so it isn't a flat strip.
-          float hL = terrainHeight( root - vec2( 0.6, 0.0 ) );
-          float hR = terrainHeight( root + vec2( 0.6, 0.0 ) );
-          float hD = terrainHeight( root - vec2( 0.0, 0.6 ) );
-          float hU = terrainHeight( root + vec2( 0.0, 0.6 ) );
-          vec3 groundN = normalize( vec3( hL - hR, 1.2, hD - hU ) );
           vec3 objectNormal = normalize( mix( bladeN, groundN, 0.62 ) + side3 * ( position.x * 0.35 ) );
           #ifdef USE_TANGENT
             vec3 objectTangent = vec3( tangent.xyz );
