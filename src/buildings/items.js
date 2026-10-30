@@ -704,38 +704,44 @@ export function weaponRack(kit, m, im) {
   for (const sx of [-1, 1]) {
     kit.frame({ x: sx * (w / 2) }, () => {
       wood(bevelBox(0.11, 0.09, 0.78, 0.02, { metres: 1, grain: true }), { y: 0.045 });
-      wood(bevelBox(0.09, 1.72, 0.09, 0.015, { metres: 1, grain: true }), { y: 0.95 });
+      wood(bevelBox(0.09, 2.0, 0.09, 0.015, { metres: 1, grain: true }), { y: 1.09 });
       // Braces from the post to the foot.
       for (const sz of [-1, 1]) wood(bevelBox(0.06, 0.5, 0.06, 0.012, { metres: 1, grain: true }), { y: 0.25, z: sz * 0.17, rx: sz * 0.75 });
     });
   }
-  // Cap rail with rounded ends, rails, troughs.
-  wood(bevelBox(w + 0.24, 0.07, 0.2, 0.025, { metres: 1.2, grain: true }), { y: 1.84 });
+  // Cap rail with rounded ends, rails, slotted bases.
+  wood(bevelBox(w + 0.24, 0.07, 0.2, 0.025, { metres: 1.2, grain: true }), { y: 2.12 });
   const front = 0.13;
   const back = -0.13;
+  const frontRail = 1.075;
+  const backRail = 1.65;
   // Each rail is a pair of bars with a slot between for the blades.
-  for (const [y, z] of [[1.0, front], [1.42, back]]) {
+  for (const [y, z] of [[frontRail, front], [backRail, back]]) {
     for (const sz of [-1, 1]) wood(bevelBox(w, 0.06, 0.035, 0.012, { metres: 1.2, grain: true }), { y, z: z + sz * 0.03 });
   }
-  for (const z of [front, back]) {
-    wood(bevelBox(w, 0.04, 0.2, 0.012, { metres: 1.2, grain: true }), { y: 0.1, z });
-    for (const sz of [-1, 1]) wood(bevelBox(w, 0.12, 0.03, 0.01, { metres: 1.2, grain: true }), { y: 0.16, z: z + sz * 0.085 });
+  // A slotted base box under each row: the blades' points stand in its
+  // slot, held off the ground (the back row's base stands taller, stepped
+  // like a display).
+  for (const [z, top] of [[front, 0.32], [back, 0.42]]) {
+    wood(bevelBox(w, top - 0.03, 0.2, 0.015, { metres: 1.2, grain: true }), { y: (top - 0.03) / 2, z });
+    for (const sz of [-1, 1]) wood(bevelBox(w, 0.04, 0.06, 0.01, { metres: 1.2, grain: true }), { y: top - 0.01, z: z + sz * 0.07 });
   }
   // Turned pegs between the hanging swords.
   for (let i = 0; i <= 7; i++) {
     const x = -w / 2 + 0.15 + i * 0.3;
-    wood(organicLathe([[0, 0], [0.016, 0.002], [0.013, 0.05], [0.02, 0.07], [0.011, 0.085], [0, 0.088]], { segments: 8, seed: i, dent: 0.05 }), { x, y: 1.03, z: front + 0.03 });
+    wood(organicLathe([[0, 0], [0.016, 0.002], [0.013, 0.05], [0.02, 0.07], [0.011, 0.085], [0, 0.088]], { segments: 8, seed: i, dent: 0.05 }), { x, y: frontRail + 0.03, z: front + 0.03 });
   }
-  // Tip-down through the slot, flat of the blade to the front, the guard
-  // resting across the rail; one slot left empty, as if just sold.
+  // Tip-down through the rail's slot into the base's, flat of the blade to
+  // the front, the guard resting across the rail; one slot left empty, as
+  // if just sold.
   for (let i = 0; i < 7; i++) {
     if (i === 4) continue;
     const kind = WEAPON_KINDS[(i * 3) % WEAPON_KINDS.length];
-    kit.frame({ x: -w / 2 + 0.3 + i * 0.3 + (rng() - 0.5) * 0.03, y: 1.045, z: front, rz: -Math.PI / 2 + (rng() - 0.5) * 0.03, ry: (rng() - 0.5) * 0.2 }, () => sword(kit, im, kind, i));
+    kit.frame({ x: -w / 2 + 0.3 + i * 0.3 + (rng() - 0.5) * 0.03, y: frontRail + 0.045, z: front, rz: -Math.PI / 2 + (rng() - 0.5) * 0.03, ry: (rng() - 0.5) * 0.2 }, () => sword(kit, im, kind, i));
   }
   for (let i = 0; i < 5; i++) {
     const kind = WEAPON_KINDS[(i + 1) % WEAPON_KINDS.length];
-    kit.frame({ x: -w / 2 + 0.3 + i * 0.45, y: 1.47, z: back, rz: -Math.PI / 2 + (rng() - 0.5) * 0.03, ry: (rng() - 0.5) * 0.2 }, () => greatsword(kit, im, kind, i + 4));
+    kit.frame({ x: -w / 2 + 0.3 + i * 0.45, y: backRail + 0.05, z: back, rz: -Math.PI / 2 + (rng() - 0.5) * 0.03, ry: (rng() - 0.5) * 0.2 }, () => greatsword(kit, im, kind, i + 4));
   }
   // Round shield on the left post, facing out: planked, iron rim and boss.
   kit.frame({ x: -w / 2 - 0.07, y: 1.15, rz: Math.PI / 2, ry: 0 }, () => {

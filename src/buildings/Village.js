@@ -104,12 +104,21 @@ export class Village {
     // Market display on the plaza's west edge: a laid table and a weapon
     // rack. Chests sit about the vale as finds.
     const im = (this.itemMaterials = createItemMaterials(m));
-    const stallY = terrain.plazaHeight;
+    // Each stands on the ground under its own footprint (its lowest point,
+    // so no foot floats): the plaza isn't level, and at the plaza's height
+    // out here the rack was sunk 0.6 m, its base and sword points buried.
+    const standY = (x, z, hx, hz) => {
+      let y = terrain.heightAt(x, z);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) y = Math.min(y, terrain.heightAt(x + sx * hx, z + sz * hz));
+      return y;
+    };
+    const stallY = standY(PLAZA.x - PLAZA.radius + 2.6, PLAZA.z - 2.2, 0.8, 1.4);
+    const rackY = standY(PLAZA.x - PLAZA.radius + 1.4, PLAZA.z + 2.8, 0.45, 1.45);
     kit.frame({ x: PLAZA.x - PLAZA.radius + 2.6, y: stallY, z: PLAZA.z - 2.2, ry: Math.PI / 2 }, () => {
       const t = displayTable(kit, m, im);
       for (const c of t.colliders) this.colliders.push(worldBox({ ...c, rot: 0 }, PLAZA.x - PLAZA.radius + 2.6, PLAZA.z - 2.2, Math.PI / 2));
     });
-    kit.frame({ x: PLAZA.x - PLAZA.radius + 1.4, y: stallY, z: PLAZA.z + 2.8, ry: Math.PI / 2 }, () => {
+    kit.frame({ x: PLAZA.x - PLAZA.radius + 1.4, y: rackY, z: PLAZA.z + 2.8, ry: Math.PI / 2 }, () => {
       const r = weaponRack(kit, m, im);
       this.colliders.push(worldBox({ cx: 0, cz: 0, hx: r.hx, hz: r.hz }, PLAZA.x - PLAZA.radius + 1.4, PLAZA.z + 2.8, Math.PI / 2));
     });
