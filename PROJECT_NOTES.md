@@ -964,3 +964,16 @@ screenshot-checked.
   stand on built floors, so no rising damp — would need a floor-height
   uniform or per-part aux. Realm postcard survey DT1–DT9 queued (free
   cameras from realm centres; earlier realm shots were all bad spots).
+- DU verified: crypt back wall now mossy in patches (keeper-ish; the
+  interior could still take hanging roots and a dust shaft). Realm survey
+  DT1–DT9 (free cams from realm centres): moonlit (DT6) and tundra (DT7)
+  are keepers; karst, alpine, rivercity, canyon all showed the same
+  brown-earth bowl rims and brown rock regardless of realm → per-realm
+  `palette.rock` [r,g,b,grey] → `uRegionRock`, `realmRock(p, out w)` and
+  `tintRock()` in REALM_GLSL, used by TerrainMaterial, groundColor's far
+  rock and Rocks.js; rock thresholds shift −0.1 (bank −0.05) by realm
+  weight so rims turn to stone sooner (31728a1). Re-check DW1–DW6.
+  view2 cam mode now passes the player position as the environment
+  focus (fog height was following the camera → white floors in DT2/3/5).
+  Still to look at: DT8 cliff-ruins mesa top reads as yellow speckle
+  (far grass on the slope?), canyon arch rock speckle at 10 m (DT9).
