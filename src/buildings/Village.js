@@ -84,11 +84,11 @@ export class Village {
     const stallY = terrain.plazaHeight;
     kit.frame({ x: PLAZA.x - PLAZA.radius + 2.6, y: stallY, z: PLAZA.z - 2.2, ry: Math.PI / 2 }, () => {
       const t = displayTable(kit, m, im);
-      this.colliders.push({ cx: PLAZA.x - PLAZA.radius + 2.6, cz: PLAZA.z - 2.2, hx: t.hz, hz: t.hx, rot: Math.PI / 2 });
+      for (const c of t.colliders) this.colliders.push(worldBox({ ...c, rot: 0 }, PLAZA.x - PLAZA.radius + 2.6, PLAZA.z - 2.2, Math.PI / 2));
     });
     kit.frame({ x: PLAZA.x - PLAZA.radius + 1.4, y: stallY, z: PLAZA.z + 2.8, ry: Math.PI / 2 }, () => {
       const r = weaponRack(kit, m, im);
-      this.colliders.push({ cx: PLAZA.x - PLAZA.radius + 1.4, cz: PLAZA.z + 2.8, hx: r.hz, hz: r.hx, rot: Math.PI / 2 });
+      this.colliders.push(worldBox({ cx: 0, cz: 0, hx: r.hx, hz: r.hz }, PLAZA.x - PLAZA.radius + 1.4, PLAZA.z + 2.8, Math.PI / 2));
     });
     this.landmarks.push({ name: 'market stall', x: PLAZA.x - PLAZA.radius + 2, z: PLAZA.z, r: 3 });
     // The alchemist and the armourer on the plaza's east edge; the smith's

@@ -30,6 +30,9 @@ export function createItemMaterials(m) {
     emeraldEdge: mat({ color: 0x5ad28a, roughness: 0.05, metalness: 0.2, emissive: 0x2a9a55, emissiveIntensity: 0.8 }),
     ironBand: m.iron,
     velvet: mat({ color: 0x6a1a2a, roughness: 1.0, metalness: 0 }),
+    awning: awningMaterial(),
+    purseLeather: mat({ color: 0x8a5a34, roughness: 0.8, metalness: 0, side: THREE.DoubleSide }),
+    velvetDrape: mat({ color: 0x5a1424, roughness: 0.92, metalness: 0, side: THREE.DoubleSide }),
     coin: mat({ color: 0xe6c05a, roughness: 0.35, metalness: 1.0 }),
     gemRed: mat({ color: 0xb8203a, roughness: 0.1, metalness: 0.1, emissive: 0x5a0a18, emissiveIntensity: 0.5 }),
     gemBlue: mat({ color: 0x2a5ad8, roughness: 0.1, metalness: 0.1, emissive: 0x0a1a60, emissiveIntensity: 0.5 }),
@@ -37,6 +40,28 @@ export function createItemMaterials(m) {
   };
   for (const k of ['obsidianEdge', 'emeraldEdge', 'emerald', 'obsidian', 'gemRed', 'gemBlue']) items[k].userData.noShadow = false;
   return items;
+}
+
+// Striped market canvas: cream and madder red, a little weathered.
+function awningMaterial() {
+  const c = document.createElement('canvas');
+  c.width = 128;
+  c.height = 64;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#e6d8b8';
+  ctx.fillRect(0, 0, 128, 64);
+  ctx.fillStyle = '#8a2a22';
+  ctx.fillRect(0, 0, 64, 64);
+  const rng = mulberry32(5);
+  for (let i = 0; i < 400; i++) {
+    ctx.fillStyle = `rgba(60,40,20,${rng() * 0.08})`;
+    ctx.fillRect(rng() * 128, rng() * 64, 1 + rng() * 6, 1 + rng() * 3);
+  }
+  const map = new THREE.CanvasTexture(c);
+  map.colorSpace = THREE.SRGBColorSpace;
+  map.wrapS = map.wrapT = THREE.RepeatWrapping;
+  map.anisotropy = 4;
+  return new THREE.MeshStandardMaterial({ map, roughness: 0.95, side: THREE.DoubleSide });
 }
 
 // Per-kind material sets for a weapon: blade, edge highlight, guard, grip, pommel.
@@ -350,42 +375,53 @@ export const CHESTS = [chestOak, chestGilt, chestRelic];
 export function coinPurse(kit, m, im, { fill = 0.8, seed = 1, colour = 'leather' } = {}) {
   const rng = mulberry32(seed);
   const h = 0.16 + fill * 0.05;
-  const pts = [];
-  const steps = 14;
-  for (let i = 0; i <= steps; i++) {
-    const t = i / steps;
-    // Round belly, pinched neck at ~75%, flaring mouth.
-    let r = Math.sin(t * Math.PI * 0.95) * (0.06 + 0.04 * fill);
-    if (t > 0.72) r = 0.028 + (t - 0.72) * 0.15 + Math.sin((t - 0.72) * 30) * 0.004;
-    pts.push(new THREE.Vector2(Math.max(0.001, r), t * h));
-  }
-  const g = new THREE.LatheGeometry(pts, 16);
-  // Wrinkle the surface a little.
+  const R = 0.06 + 0.035 * fill;
+  // A sack: rounded bottom, full belly, pinched neck, a gathered mouth
+  // flaring open above the drawstring.
+  const ctrl = [[0, 0], [R * 0.7, 0.004], [R, 0.05], [R * 1.02, 0.09], [R * 0.78, 0.13], [0.028, 0.152], [0.024, 0.163], [0.034, 0.18], [0.046, 0.197], [0.042, 0.202]];
+  const pts = new THREE.SplineCurve(ctrl.map(([r, y]) => new THREE.Vector2(r, (y / 0.2) * h))).getPoints(24).map((v) => new THREE.Vector2(Math.max(0.001, v.x), v.y));
+  const g = new THREE.LatheGeometry(pts, 28);
+  // Soft leather: slumped wide at the bottom under its weight, lumpy where
+  // coins press out, and gathered into deep pleats above the neck.
   const pos = g.attributes.position;
+  const lean = (rng() - 0.5) * 0.25;
   for (let i = 0; i < pos.count; i++) {
     const y = pos.getY(i);
+    const t = y / h;
     const a = Math.atan2(pos.getZ(i), pos.getX(i));
-    const k = 1 + 0.04 * Math.sin(a * 7 + y * 40) * (1 - y / h);
-    pos.setX(i, pos.getX(i) * k);
-    pos.setZ(i, pos.getZ(i) * k);
+    const slump = 1 + 0.2 * Math.pow(Math.max(0, 1 - t / 0.6), 2) * Math.min(1, t / 0.08);
+    const lumps = 1 + 0.06 * Math.sin(a * 3 + seed) * Math.sin(t * 9 + seed) + 0.04 * Math.sin(a * 5 + t * 7 + seed);
+    const pleat = t > 0.74 ? 1 + 0.32 * Math.pow(Math.abs(Math.sin(a * 5.5 + seed)), 0.6) * Math.min(1, (t - 0.74) / 0.12) : 1 + 0.05 * Math.sin(a * 11) * Math.max(0, t - 0.55);
+    const k = slump * lumps * pleat;
+    pos.setXYZ(i, pos.getX(i) * k + lean * y, y * (1 - 0.12 * (1 - t) * (1 - t)), pos.getZ(i) * k * 0.92);
   }
   g.computeVertexNormals();
-  kit.add(colour === 'velvet' ? im.velvet : im.leather, g);
-  // Drawstring: a torus round the neck and two dangling cords.
+  kit.add(colour === 'velvet' ? im.velvet : im.purseLeather, g);
+  // Drawstring: a cord wound twice round the neck, knotted, two ends
+  // hanging with knots in them.
   const neckY = h * 0.78;
-  kit.add(m.rope, new THREE.TorusGeometry(0.031, 0.004, 6, 16), { y: neckY, rx: Math.PI / 2 });
-  for (const s of [-1, 1]) {
-    kit.cylinder(m.rope, 0.003, 0.003, 0.07, { x: s * 0.025, y: neckY - 0.03, z: 0.02, rz: s * 0.4 }, { segments: 5 });
-    kit.add(m.rope, new THREE.SphereGeometry(0.006, 6, 5), { x: s * 0.04, y: neckY - 0.065, z: 0.025 });
+  for (let k = 0; k < 2; k++) {
+    const pts = [];
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      pts.push([Math.cos(a) * 0.032, neckY + k * 0.006 + Math.sin(a * 2) * 0.002, Math.sin(a) * 0.032]);
+    }
+    kit.add(m.rope, tube(pts, 0.0035, { radial: 4, closed: true, tubular: 32 }));
   }
-  // Coins at the mouth and beside it.
+  kit.add(m.rope, blob(0.008, 0.007, 0.007, { seed, dent: 0.2, detail: 0 }), { y: neckY + 0.003, z: 0.034 });
+  for (const s of [-1, 1]) {
+    const pts = [[s * 0.004, neckY, 0.036], [s * 0.016, neckY - 0.03, 0.045], [s * 0.022, neckY - 0.07, 0.05]];
+    kit.add(m.rope, tube(pts, 0.0028, { radial: 4 }));
+    kit.add(m.rope, blob(0.006, 0.007, 0.006, { seed: seed + s, dent: 0.2, detail: 0 }), { x: s * 0.022, y: neckY - 0.072, z: 0.05 });
+  }
+  // Coins at the mouth and spilled beside it.
   for (let i = 0; i < 5; i++) {
-    kit.cylinder(im.coin, 0.016, 0.016, 0.003, { x: (rng() - 0.5) * 0.04, y: h - 0.005 + rng() * 0.01, z: (rng() - 0.5) * 0.04, rx: (rng() - 0.5) * 0.9, rz: (rng() - 0.5) * 0.9 }, { segments: 12 });
+    coin(kit, im, { x: (rng() - 0.5) * 0.04, y: h - 0.005 + rng() * 0.01, z: (rng() - 0.5) * 0.04, rx: (rng() - 0.5) * 0.9, rz: (rng() - 0.5) * 0.9 });
   }
   for (let i = 0; i < 4; i++) {
     const a = rng() * Math.PI * 2;
     const r = 0.1 + rng() * 0.06;
-    kit.cylinder(im.coin, 0.016, 0.016, 0.003, { x: Math.cos(a) * r, y: 0.0015, z: Math.sin(a) * r, ry: rng() * 3 }, { segments: 12 });
+    coin(kit, im, { x: Math.cos(a) * r, y: 0.0006, z: Math.sin(a) * r, ry: rng() * 3 });
   }
   return { r: 0.12, name: 'coin purse' };
 }
@@ -396,27 +432,266 @@ export function displayTable(kit, m, im) {
   const w = 2.6;
   const d = 0.9;
   const h = 0.82;
-  kit.box(m.planks, w, 0.05, d, { y: h }, { metres: 1.2 });
+  const rng = mulberry32(17);
+  const wood = (mat, g, t) => kit.add(mat, g, t);
+  // Top: five bevelled boards, each a little uneven.
+  const boards = 5;
+  const bw = d / boards;
+  for (let i = 0; i < boards; i++) {
+    wood(m.planks, bevelBox(w - rng() * 0.012, 0.05, bw - 0.005, 0.009, { metres: 1.2, grain: true }), { x: (rng() - 0.5) * 0.01, y: h - 0.025 + (rng() - 0.5) * 0.003, z: -d / 2 + bw * (i + 0.5), rx: (rng() - 0.5) * 0.01 });
+  }
+  // Two splayed trestles: legs, a bearer under the top, a foot; a wedged stretcher.
   for (const sx of [-1, 1]) {
-    kit.frame({ x: sx * (w / 2 - 0.3) }, () => {
-      kit.beamBetween(m.timber, -0.3, 0.02, 0.0, h - 0.03, 0.06, 0.08, 0.25);
-      kit.beamBetween(m.timber, 0.3, 0.02, 0.0, h - 0.03, 0.06, 0.08, 0.25);
-      kit.beamBetween(m.timber, -0.3, 0.02, 0.0, h - 0.03, 0.06, 0.08, -0.25);
-      kit.beamBetween(m.timber, 0.3, 0.02, 0.0, h - 0.03, 0.06, 0.08, -0.25);
+    kit.frame({ x: sx * (w / 2 - 0.32) }, () => {
+      for (const sz of [-1, 1]) wood(m.timber, bevelBox(0.075, 0.86, 0.085, 0.014, { metres: 1, grain: true }), { y: 0.42, z: sz * 0.15, rx: -sz * 0.33 });
+      wood(m.timber, bevelBox(0.08, 0.07, d - 0.06, 0.015, { metres: 1, grain: true }), { y: h - 0.085 });
+      wood(m.timber, bevelBox(0.09, 0.06, d - 0.12, 0.015, { metres: 1, grain: true }), { y: 0.03 });
+      wood(m.timber, bevelBox(0.03, 0.12, 0.05, 0.008), { x: sx * 0.07, y: 0.32 });
     });
   }
-  kit.box(m.timber, w - 0.5, 0.06, 0.08, { y: 0.3 }, { metres: 1.2, grain: true });
-  // Cloth runner.
-  kit.box(im.velvet, w - 0.3, 0.006, d - 0.2, { y: h + 0.028 });
-  // Items on the table: daggers and purses.
-  const kinds = WEAPON_KINDS;
-  kinds.forEach((kind, i) => {
-    kit.frame({ x: -w / 2 + 0.35 + i * 0.62, y: h + 0.04, z: -0.2, ry: 0.15 }, () => dagger(kit, im, kind, i));
+  wood(m.timber, bevelBox(w - 0.5, 0.07, 0.07, 0.015, { metres: 1.2, grain: true }), { y: 0.32 });
+  // Velvet drape hanging over the front and back, folded, gold-hemmed.
+  drape(kit, im, w - 0.42, d, h, 0.34, rng);
+  const top = h + 0.006;
+  // A sloped display board along the back, velvet-covered, tilted toward
+  // the customer: the daggers lie on it with their sheaths.
+  kit.frame({ y: top + 0.13, z: -0.24, rx: 0.75 }, () => {
+    kit.add(m.planks, bevelBox(w - 0.7, 0.025, 0.34, 0.008, { metres: 1.2, grain: true }));
+    kit.add(im.velvet, bevelBox(w - 0.74, 0.012, 0.3, 0.005), { y: 0.016 });
+    kit.add(m.timber, bevelBox(w - 0.7, 0.03, 0.025, 0.008), { y: 0.03, z: 0.165 });
+    WEAPON_KINDS.forEach((kind, i) => {
+      const x = -(w - 0.7) / 2 + 0.2 + i * 0.42;
+      kit.frame({ x, y: 0.034, z: 0.05, ry: 0.12 + (rng() - 0.5) * 0.1, rx: Math.PI / 2 }, () => dagger(kit, im, kind, i));
+      kit.frame({ x: x + 0.02, y: 0.03, z: -0.08, ry: 0.06 }, () => sheath(kit, im, 0.29, i));
+    });
   });
-  kit.frame({ x: -0.9, y: h + 0.03, z: 0.22 }, () => coinPurse(kit, m, im, { fill: 0.9, seed: 1 }));
-  kit.frame({ x: -0.3, y: h + 0.03, z: 0.25 }, () => coinPurse(kit, m, im, { fill: 0.5, seed: 2, colour: 'velvet' }));
-  kit.frame({ x: 0.35, y: h + 0.03, z: 0.2 }, () => coinPurse(kit, m, im, { fill: 1.0, seed: 3 }));
-  return { hx: w / 2 + 0.1, hz: d / 2 + 0.1 };
+  // Feet of the board on the table.
+  for (const sx of [-1, 1]) kit.add(m.timber, bevelBox(0.04, 0.22, 0.04, 0.008), { x: sx * (w / 2 - 0.4), y: top + 0.08, z: -0.36 });
+  const poles = awning(kit, m, im, w + 0.3, d, rng);
+  kit.frame({ x: -0.95, y: top, z: 0.22 }, () => coinPurse(kit, m, im, { fill: 0.9, seed: 1 }));
+  kit.frame({ x: -0.55, y: top, z: 0.28, ry: 1 }, () => coinPurse(kit, m, im, { fill: 0.5, seed: 2, colour: 'velvet' }));
+  kit.frame({ x: -0.2, y: top, z: 0.18 }, () => coinStacks(kit, im, rng));
+  kit.frame({ x: 0.2, y: top, z: 0.22, ry: -0.4 }, () => ringCushion(kit, im, rng));
+  kit.frame({ x: 0.55, y: top, z: 0.2, ry: 0.5 }, () => casket(kit, m, im, rng));
+  kit.frame({ x: 0.92, y: top, z: 0.18 }, () => goblet(kit, im));
+  kit.frame({ x: 1.08, y: top, z: 0.3 }, () => coinPurse(kit, m, im, { fill: 1.0, seed: 3 }));
+  return { hx: w / 2 + 0.1, hz: d / 2 + 0.1, colliders: [{ cx: 0, cz: 0, hx: w / 2 + 0.1, hz: d / 2 + 0.1 }, ...poles] };
+}
+
+// A striped canvas awning over the stall: two posts at the back, two
+// poles at the front, the canvas sagging between them and a scalloped
+// valance along the front edge.
+function awning(kit, m, im, w, d, rng) {
+  const zb = -d / 2 - 0.12;
+  const zf = d / 2 + 0.55;
+  const yb = 2.35;
+  const yf = 2.0;
+  for (const sx of [-1, 1]) {
+    kit.add(m.timber, bevelBox(0.09, yb + 0.05, 0.09, 0.015, { metres: 1, grain: true }), { x: sx * (w / 2), y: (yb + 0.05) / 2, z: zb });
+    kit.add(m.timber, organicLathe([[0.03, 0], [0.026, yf * 0.5], [0.024, yf], [0.032, yf + 0.04], [0, yf + 0.07]], { segments: 8, seed: sx + 2, dent: 0.04 }), { x: sx * (w / 2), z: zf });
+  }
+  kit.add(m.timber, bevelBox(w + 0.1, 0.07, 0.07, 0.014, { metres: 1.2, grain: true }), { y: yb, z: zb });
+  const nx = 40;
+  const nz = 14;
+  const pos = [];
+  const uv = [];
+  const point = (u, v) => {
+    const x = -w / 2 - 0.05 + u * (w + 0.1);
+    const z = zb + v * (zf - zb);
+    // Sag between the supports and a little billow.
+    const y = yb + (yf - yb) * v - 0.09 * Math.sin(Math.PI * u) * Math.sin(Math.PI * Math.min(1, v * 1.05)) - 0.015 * Math.sin(u * 23 + v * 4);
+    return [x, y, z];
+  };
+  for (let j = 0; j <= nz; j++) {
+    for (let i = 0; i <= nx; i++) {
+      pos.push(...point(i / nx, j / nz));
+      uv.push((i / nx) * (w + 0.1) / 0.32, j / nz);
+    }
+  }
+  // Valance: hangs from the front edge, scalloped hem.
+  const vrows = 4;
+  const base = pos.length / 3;
+  for (let j = 1; j <= vrows; j++) {
+    for (let i = 0; i <= nx; i++) {
+      const u = i / nx;
+      const [x, y0, z] = point(u, 1);
+      const scallop = 0.07 * Math.abs(Math.sin((u * (w + 0.1) * Math.PI) / 0.32));
+      const depth = (0.12 + scallop) * (j / vrows);
+      pos.push(x, y0 - depth, z + 0.004 * j);
+      uv.push((u * (w + 0.1)) / 0.32, 1 + depth);
+    }
+  }
+  const idx = [];
+  const row = nx + 1;
+  const quad = (a, b) => {
+    for (let i = 0; i < nx; i++) idx.push(a + i, b + i, a + i + 1, a + i + 1, b + i, b + i + 1);
+  };
+  for (let j = 0; j < nz; j++) quad(j * row, (j + 1) * row);
+  quad(nz * row, base);
+  for (let j = 0; j < vrows - 1; j++) quad(base + j * row, base + (j + 1) * row);
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  kit.add(im.awning, g);
+  // The front poles, for collision.
+  return [-1, 1].map((sx) => ({ cx: sx * (w / 2), cz: zf, hx: 0.06, hz: 0.06 }));
+}
+
+// Velvet cloth laid over a table top (width w, depth d, top at h) and
+// hanging `hang` metres over the front and back, in folds that deepen
+// toward the hem; a gold cord trims both hems and tassels hang at the
+// corners.
+function drape(kit, im, w, d, h, hang, rng) {
+  const nx = 64;
+  const ns = 36;
+  const L = hang * 2 + d;
+  const phase = rng() * 6;
+  // Where along the unrolled cloth (s) and across (x) a point lies.
+  const at = (x, s) => {
+    let y;
+    let z;
+    let fold = 0;
+    const edgeR = 0.025;
+    if (s < hang) {
+      const down = hang - s;
+      y = h - down;
+      z = d / 2 + edgeR;
+      fold = down / hang;
+    } else if (s > hang + d) {
+      const down = s - hang - d;
+      y = h - down;
+      z = -d / 2 - edgeR;
+      fold = down / hang;
+    } else {
+      y = h + 0.004;
+      z = d / 2 - (s - hang);
+    }
+    // Folds: broad soft pleats plus finer creases, growing toward the hem.
+    const f = Math.pow(fold, 0.8);
+    const out = f * (0.022 * Math.sin(x * 13 + phase) + 0.008 * Math.sin(x * 37 + phase * 2) + 0.004 * Math.sin(x * 71));
+    z += Math.sign(z) * out;
+    // The hem dips where the pleats bunch.
+    if (fold > 0) y -= f * 0.012 * (1 + Math.sin(x * 13 + phase + 1.2));
+    return [x, y, z];
+  };
+  const pos = [];
+  for (let j = 0; j <= ns; j++) {
+    // Denser rows near the table edges.
+    const s = (j / ns) * L;
+    for (let i = 0; i <= nx; i++) pos.push(...at(-w / 2 + (i / nx) * w, s));
+  }
+  const idx = [];
+  const row = nx + 1;
+  for (let j = 0; j < ns; j++) {
+    for (let i = 0; i < nx; i++) {
+      const a = j * row + i;
+      idx.push(a, a + row, a + 1, a + 1, a + row, a + row + 1);
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setIndex(idx);
+  g.computeVertexNormals();
+  // Make sure the outside faces out (the top must face up).
+  const mid = Math.round(ns / 2) * row + Math.round(nx / 2);
+  if (g.attributes.normal.getY(mid) < 0) {
+    for (let k = 0; k < idx.length; k += 3) [idx[k + 1], idx[k + 2]] = [idx[k + 2], idx[k + 1]];
+    g.setIndex(idx);
+    g.computeVertexNormals();
+  }
+  kit.add(im.velvetDrape, g);
+  // Hem cords and corner tassels.
+  for (const s of [0, L]) {
+    const pts = [];
+    for (let i = 0; i <= 40; i++) {
+      const p = at(-w / 2 + (i / 40) * w, s);
+      pts.push([p[0], p[1] + 0.004, p[2] + Math.sign(p[2]) * 0.004]);
+    }
+    kit.add(im.gold, tube(pts, 0.006, { radial: 5, tubular: 120 }));
+    for (const end of [pts[0], pts[pts.length - 1]]) {
+      kit.add(im.gold, blob(0.012, 0.016, 0.012, { seed: s, dent: 0.1 }), { x: end[0], y: end[1] - 0.02, z: end[2] });
+      kit.add(im.gold, organicLathe([[0, 0], [0.012, 0.004], [0.016, 0.05], [0.006, 0.06], [0, 0.062]], { segments: 8, seed: 1, dent: 0.15 }), { x: end[0], y: end[1] - 0.095, z: end[2] });
+    }
+  }
+}
+
+// One coin: a thin disc with a raised rim, so it catches the light at its edge.
+function coin(kit, im, t = {}, r = 0.015) {
+  const pts = [[0, 0], [r, 0.0002], [r * 1.02, 0.0012], [r, 0.0026], [r * 0.86, 0.0026], [r * 0.82, 0.0019], [0, 0.0021]];
+  kit.add(im.coin, organicLathe(pts, { segments: 14, seed: (t.x || 0) * 50, dent: 0.03, oval: 0.03 }), t);
+}
+
+// Stacks of coins, a little out of true, and a few spilled.
+function coinStacks(kit, im, rng) {
+  for (let s = 0; s < 3; s++) {
+    const n = 4 + Math.floor(rng() * 7);
+    const cx = (s - 1) * 0.05 + (rng() - 0.5) * 0.01;
+    const cz = (rng() - 0.5) * 0.04;
+    for (let i = 0; i < n; i++) coin(kit, im, { x: cx + (rng() - 0.5) * 0.004, y: i * 0.0027, z: cz + (rng() - 0.5) * 0.004, ry: rng() * 6, rx: (rng() - 0.5) * 0.04 });
+  }
+  for (let i = 0; i < 5; i++) {
+    const a = rng() * Math.PI * 2;
+    const r = 0.06 + rng() * 0.07;
+    coin(kit, im, { x: Math.cos(a) * r, y: 0.0006, z: Math.sin(a) * r, rx: (rng() - 0.5) * 0.15, rz: (rng() - 0.5) * 0.15 });
+  }
+}
+
+// A velvet cushion with gold rings set into it, each with a stone.
+function ringCushion(kit, im, rng) {
+  kit.add(im.velvet, blob(0.075, 0.025, 0.06, { seed: 3, dent: 0.12, detail: 2 }), { y: 0.022 });
+  for (const sx of [-1, 1]) for (const sz of [-1, 1]) kit.add(im.gold, blob(0.006, 0.006, 0.006, { seed: sx + sz, dent: 0.1, detail: 0 }), { x: sx * 0.066, y: 0.018, z: sz * 0.05 });
+  const stones = [im.gemRed, im.gemBlue, im.emerald];
+  for (let i = 0; i < 3; i++) {
+    kit.frame({ x: (i - 1) * 0.04, y: 0.05, z: (rng() - 0.5) * 0.02, rz: (rng() - 0.5) * 0.3 }, () => {
+      const pts = [];
+      for (let k = 0; k < 16; k++) {
+        const a = (k / 16) * Math.PI * 2;
+        pts.push([Math.cos(a) * 0.011, Math.sin(a) * 0.011, 0]);
+      }
+      kit.add(im.gold, tube(pts, 0.0024, { radial: 5, closed: true, tubular: 32 }));
+      kit.add(im.gold, organicLathe([[0, 0], [0.005, 0.001], [0.006, 0.004], [0, 0.005]], { segments: 6, seed: i }), { y: 0.011 });
+      kit.add(stones[i], organicLathe([[0, 0], [0.0045, 0.002], [0.003, 0.0055], [0, 0.006]], { segments: 8, seed: i, flat: true }), { y: 0.014 });
+    });
+  }
+}
+
+// A small iron-bound casket, lid thrown back, lined with velvet and full of gems.
+function casket(kit, m, im, rng) {
+  const w = 0.22;
+  const d = 0.14;
+  const h = 0.09;
+  kit.add(m.planks, bevelBox(w, h, d, 0.008, { metres: 0.6, grain: true }), { y: h / 2 });
+  kit.add(im.velvet, bevelBox(w - 0.02, 0.01, d - 0.02, 0.003), { y: h - 0.012 });
+  for (const sx of [-1, 1]) kit.add(im.gold, bevelBox(0.014, h + 0.004, d + 0.004, 0.003), { x: sx * w * 0.32, y: h / 2 });
+  kit.add(im.gold, bevelBox(0.03, 0.035, 0.008, 0.003), { y: h - 0.025, z: d / 2 + 0.003 });
+  // The lid, hinged at the back and thrown open.
+  kit.frame({ y: h, z: -d / 2, rx: -1.9 }, () => {
+    kit.frame({ z: d / 2 }, () => vaultLid(kit, m.planks, d, w, 0.045, { ry: Math.PI / 2 }));
+  });
+  const stones = [im.gemRed, im.gemBlue, im.emerald, im.gemRed];
+  for (let i = 0; i < 9; i++) {
+    const s = 0.008 + rng() * 0.006;
+    kit.add(stones[i % 4], organicLathe([[0, 0], [s, s * 0.9], [s * 0.98, s * 1.05], [s * 0.6, s * 1.4], [0, s * 1.4]], { segments: 8, seed: i, flat: true }), { x: (rng() - 0.5) * (w - 0.05), y: h - 0.01, z: (rng() - 0.5) * (d - 0.05), rx: rng() * 1.4, ry: rng() * 6 });
+  }
+  for (let i = 0; i < 4; i++) coin(kit, im, { x: (rng() - 0.5) * (w - 0.06), y: h - 0.006, z: (rng() - 0.5) * (d - 0.06), rx: (rng() - 0.5) * 0.6 });
+}
+
+// A silver goblet: footed, knopped stem, a cup with a lip.
+function goblet(kit, im) {
+  const pts = [[0, 0], [0.034, 0.001], [0.036, 0.006], [0.02, 0.012], [0.008, 0.025], [0.007, 0.05], [0.013, 0.058], [0.007, 0.066], [0.009, 0.08], [0.03, 0.1], [0.038, 0.135], [0.04, 0.155], [0.037, 0.156], [0.034, 0.135], [0.026, 0.104], [0, 0.092]];
+  kit.add(im.steel, organicLathe(pts, { segments: 18, seed: 4, dent: 0.02, oval: 0.02 }));
+  kit.add(im.velvet, organicLathe([[0.032, 0], [0.02, 0.003], [0, 0.004]], { segments: 14, seed: 2 }), { y: 0.13 });
+}
+
+// A leather sheath lying along +x: tapered and flattened, a steel chape
+// at the tip and a locket at the mouth.
+function sheath(kit, im, len, seed) {
+  const pts = [[0, 0], [0.008, 0.01], [0.016, len * 0.4], [0.02, len * 0.95], [0.021, len], [0, len]];
+  kit.add(im.leatherDark, organicLathe(pts, { segments: 10, seed, dent: 0.04, oval: -0.6 }), { rz: Math.PI / 2, x: len, y: 0.012 });
+  kit.add(im.steelDark, organicLathe([[0, 0], [0.01, 0.012], [0.012, 0.035], [0, 0.036]], { segments: 10, seed: seed + 1, oval: -0.55 }), { rz: Math.PI / 2, x: len, y: 0.012 });
+  kit.add(im.steelDark, organicLathe([[0.022, 0], [0.023, 0.01], [0.023, 0.025], [0.021, 0.03]], { segments: 10, seed: seed + 2, oval: -0.55 }), { rz: Math.PI / 2, x: 0.032, y: 0.012 });
 }
 
 // Sword stand: swords hang tip-down in a slotted trough, guards resting on
