@@ -9,7 +9,7 @@ import { PixelatePass } from '../world/PixelatePass.js';
 
 import { Terrain } from '../world/Terrain.js';
 import { GroundMask } from '../world/GroundMask.js';
-import { createTerrainMaterial, createTurfMaterial } from '../world/TerrainMaterial.js';
+import { createTerrainMaterial, createTurfMaterial, TERRAIN_DEBUG } from '../world/TerrainMaterial.js';
 import { createNoiseTexture } from '../util/noiseTexture.js';
 import { Environment } from '../world/Environment.js';
 import { Wind } from '../world/Wind.js';
@@ -684,7 +684,11 @@ export class Game {
   }
 
   // Pixelation level: 0 is the plain image, higher is chunkier.
-  setPixelLevel(i, { quiet = false } = {}) {
+  set terrainDebug(v) {
+    TERRAIN_DEBUG.value = v | 0;
+  }
+
+    setPixelLevel(i, { quiet = false } = {}) {
     i = Math.max(0, Math.min(PIXEL_LEVELS.length - 1, i | 0));
     this.pixelLevel = i;
     rememberPixelLevel(i);

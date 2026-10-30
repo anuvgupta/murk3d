@@ -126,7 +126,7 @@ const STYLES = {
         vec2 st = churn( uvHi, T * 1.4, 0.55 );
         float streak = fbm( vec2( st.x * 0.6, st.y * 1.9 ) * 1.1, T * 0.5 ) * 0.5 + 0.5;
         float breakup = noise( st * 0.35 + 4.0 ) * 0.5 + 0.5;
-        float cirrus = smoothstep( 0.58, 0.8, streak ) * smoothstep( 0.4, 0.7, breakup ) * 0.3;
+        float cirrus = smoothstep( 0.64, 0.82, streak ) * smoothstep( 0.46, 0.72, breakup ) * 0.22;
         vec3 cirrusColor = ( skyAmb * 1.1 + sunCol * 1.1 ) * max( dayFactor, 0.03 );
         texColor = mix( texColor, mix( texColor, cirrusColor, Fex ), cirrus * horizonFade );
       }
@@ -140,10 +140,10 @@ const STYLES = {
       float horizonFade = smoothstep( 0.0, 0.06, direction.y );
       float T = time * cloudSpeed * 600.0;
       // A low deck, so the towers loom large overhead.
-      vec2 uv = direction.xz / ( max( direction.y, 0.02 ) * 0.55 ) * cloudScale * 800.0;
-      uv += vec2( 0.9, 0.35 ) * T * 0.8;
+      vec2 uv = direction.xz / ( max( direction.y, 0.02 ) * 0.4 ) * cloudScale * 1900.0;
+      uv += vec2( 0.9, 0.35 ) * T * 1.6;
       // The masses churn and roll: lobes bulge, split and swallow each other.
-      vec2 q = churn( uv, T * 1.3, 1.2 );
+      vec2 q = churn( uv, T * 1.3, 0.9 );
       float region = noise( q * 0.08 ) * 0.5 + 0.5;
       float cov = clamp( cloudCoverage * 1.3 + ( region - 0.5 ) * 0.8, 0.0, 1.0 );
       float th = 1.0 - cov;
@@ -152,7 +152,7 @@ const STYLES = {
       float lobes = billow( q * 0.7 + T * 0.4 ) * 0.5 + billow( q * 1.6 + 5.0 - T * 0.6 ) * 0.3 + billow( q * 3.6 + 11.0 + T * 0.9 ) * 0.2;
       float field = body * 0.7 + lobes * 0.7;
       float depth = max( 0.0, field - th );
-      float dens = smoothstep( 0.0, 0.09, depth );   // a definite rim, but not a cut-out
+      float dens = smoothstep( 0.0, 0.05, depth );   // a definite rim, but not a cut-out
       float thick = smoothstep( 0.0, 0.35, depth );  // how deep into the mass we look
       // Shading from the field's slope toward the sun: each lobe has a lit
       // crown and a shaded flank, painted in broad soft steps.
@@ -160,15 +160,15 @@ const STYLES = {
       vec2 qs = q - toSun;
       float fieldS = ( fbm( qs * 0.3, T * 0.5 ) * 0.5 + 0.5 ) * 0.7 + ( billow( qs * 0.7 + T * 0.4 ) * 0.5 + billow( qs * 1.6 + 5.0 - T * 0.6 ) * 0.3 + billow( qs * 3.6 + 11.0 + T * 0.9 ) * 0.2 ) * 0.7;
       float slope = ( fieldS - field ) * 6.0;
-      float lit = smoothstep( 0.1, 0.9, clamp( 0.5 - slope, 0.0, 1.0 ) );
+      float lit = smoothstep( 0.2, 0.8, clamp( 0.5 - slope, 0.0, 1.0 ) );
       // Flat shaded bellies low on the sky; the tops stay bright.
       float belly = 1.0 - smoothstep( 0.04, 0.35, direction.y );
       lit *= 1.0 - 0.6 * belly * thick;
       vec3 top = skyAmb * 0.7 + sunCol * 1.45;
-      vec3 shade = skyAmb * 1.35 + sunCol * 0.22;
+      vec3 shade = skyAmb * 1.2 + sunCol * 0.16;
       vec3 cloudColor = mix( shade, top, lit );
       // The heart of a thick mass, turned from the sun, goes a shade deeper.
-      cloudColor *= 1.0 - 0.18 * thick * ( 1.0 - lit );
+      cloudColor *= 1.0 - 0.28 * thick * ( 1.0 - lit );
       // Silver lining toward the sun.
       float silver = clamp( 0.51 / pow( 1.49 - cosTheta * 1.4, 1.5 ), 0.0, 3.0 );
       float edge = dens * ( 1.0 - dens ) * 4.0;
@@ -200,8 +200,8 @@ const STYLES = {
       vec2 toSun = vSunDirection.xz * 0.06;
       // Soft banks, brushed: low-contrast masses with feathered edges that
       // curl and tear as the wind works them.
-      vec2 uvLo = direction.xz / ( max( direction.y, 0.02 ) * 0.5 ) * cloudScale * 1000.0;
-      uvLo += drift * T * 1.1;
+      vec2 uvLo = direction.xz / ( max( direction.y, 0.02 ) * 0.42 ) * cloudScale * 1600.0;
+      uvLo += drift * T * 1.7;
       vec2 q = churn( uvLo, T, 0.8 );
       float region = noise( q * 0.12 ) * 0.5 + 0.5;
       float cov = clamp( cloudCoverage * 1.15 + ( region - 0.5 ) * 0.6, 0.0, 1.0 );
@@ -227,7 +227,7 @@ const STYLES = {
       vec2 st = churn( uvHi, T * 1.5, 0.6 );
       float streak = fbm( vec2( st.x * 0.55, st.y * 2.0 ) * 1.2, T * 0.7 ) * 0.5 + 0.5;
       float breakup = noise( st * 0.4 + 4.0 ) * 0.5 + 0.5;
-      float cirrus = smoothstep( 0.56, 0.8, streak ) * smoothstep( 0.42, 0.7, breakup ) * 0.45;
+      float cirrus = smoothstep( 0.62, 0.82, streak ) * smoothstep( 0.48, 0.72, breakup ) * 0.32;
       vec3 cirrusColor = ( skyAmb * 1.2 + sunCol * 1.0 ) * max( dayFactor, 0.03 );
       texColor = mix( texColor, mix( texColor, cirrusColor, Fex ), cirrus * horizonFade );
     }

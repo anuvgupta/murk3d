@@ -174,7 +174,7 @@ export const REGIONS = [
     tagline: 'A ring of stone in red rock',
     ...at(9), r: 150,
     floor: 24,
-    palette: { ground: [1.3, 0.84, 0.58], grass: [1.1, 0.95, 0.6], fog: [0.92, 0.82, 0.7], fogDensity: 0.7, saturation: 1.15, grassDensity: 0.45, grassTint: [1.1, 0.95, 0.6] },
+    palette: { ground: [1.25, 0.78, 0.5], grass: [1.1, 0.95, 0.6], fog: [0.92, 0.82, 0.7], fogDensity: 0.7, saturation: 1.1, grassDensity: 0.3, grassTint: [1.15, 0.9, 0.5] },
     canyon: { width: 34, depth: 30 }, // a gorge running east–west through the bowl
     arches: [{ dx: -58, dz: 8.6, r: 24, tube: 4.5, ry: -1.17 }, { dx: 44, dz: 2.9, r: 24, tube: 4.2, ry: 1.3 }], // spanning the gorge
     gate: { dx: 0, dz: 0, face: 0 }, // the shrine ring on the canyon floor

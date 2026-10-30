@@ -9,12 +9,15 @@ import { TERRAIN_HEIGHT_GLSL } from './Terrain.js';
 // MeshStandardMaterial whose albedo is computed per pixel from world position:
 // meadow, dirt roads, cobbles, river beds, rock and snow. No tiled textures, so
 // nothing looks blocky up close or repeats at a distance.
+export const TERRAIN_DEBUG = { value: 0 }; // 0 off, 1 world normal, 2 carpet/rock amounts, 3 unlit colour, 4 shading normal
+
 export function createTerrainMaterial({ noise, mask, heightMap }) {
   const material = new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0, envMapIntensity: 1.35 });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uNoise = { value: noise };
     shader.uniforms.uMask = { value: mask };
     shader.uniforms.uHeightMap = { value: heightMap };
+    shader.uniforms.uDebug = TERRAIN_DEBUG;
     Object.assign(shader.uniforms, regionUniforms());
 
     shader.vertexShader = shader.vertexShader
@@ -54,6 +57,8 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         varying vec3 vWNormal;
         float rockAmtOut;
         float rockHOut;
+        uniform int uDebug;
+        vec3 dbgGround; float dbgCarpet;
         float rockDetail;
         uniform sampler2D uHeightMap;
         ${TERRAIN_HEIGHT_GLSL}
@@ -96,7 +101,16 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
           rockC = mix( rockC, vec3( 0.88, 0.91, 0.97 ) * ( 0.78 + 0.36 * rockHOut ), clamp( sn, 0.0, 1.0 ) * 0.9 * smoothstep( 0.25, 0.7, wn.y + rockHOut * 0.3 ) );
           ground = mix( ground, rockC, rockAmtOut );
         }
-        diffuseColor.rgb *= ground;`
+        diffuseColor.rgb *= ground;
+        dbgGround = ground; dbgCarpet = carpet;`
+      )
+      .replace(
+        '#include <opaque_fragment>',
+        `if ( uDebug == 1 ) { gl_FragColor = vec4( normalize( vWNormal ) * 0.5 + 0.5, 1.0 ); return; }
+        if ( uDebug == 2 ) { gl_FragColor = vec4( dbgCarpet, rockAmtOut, 0.0, 1.0 ); return; }
+        if ( uDebug == 3 ) { gl_FragColor = vec4( dbgGround, 1.0 ); return; }
+        if ( uDebug == 4 ) { gl_FragColor = vec4( normal * 0.5 + 0.5, 1.0 ); return; }
+        #include <opaque_fragment>`
       )
       .replace(
         '#include <roughnessmap_fragment>',
