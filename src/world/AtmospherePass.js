@@ -58,6 +58,7 @@ const compositeShader = {
     uShaftStrength: { value: 0 },
     uGlowStrength: { value: 0 },
     uDiscStrength: { value: 0 },
+    uMoon: { value: 0 },
     uSunRadius: { value: 0.016 },
     uAspect: { value: 1 },
     uCameraNear: { value: 0.1 },
@@ -100,6 +101,7 @@ const compositeShader = {
     uniform float uShaftStrength;
     uniform float uGlowStrength;
     uniform float uDiscStrength;
+    uniform float uMoon;
     uniform float uSunRadius;
     uniform float uAspect;
     uniform float uCameraNear;
@@ -221,12 +223,49 @@ const compositeShader = {
         open = max( open / 8.0, texture2D( tOcclusion, uSunScreen ).r );
         // Disc: white-hot core with a soft limb, only where the sky shows.
         float disc = smoothstep( uSunRadius * 1.15, uSunRadius * 0.75, r ) * float( isSky );
+        if ( uMoon > 0.5 ) {
+          // The moon: a crisp, slightly irregular limb, dark maria, a few
+          // craters with bright rims, and a soft terminator a little short
+          // of full so it is never a perfect disc.
+          vec2 m = off / uSunRadius;
+          float wob = ( texture2D( uNoise, m * 0.9 + 0.37 ).g - 0.5 ) * 0.05;
+          float limb = 1.0 - smoothstep( 0.93 + wob, 1.0 + wob, length( m ) );
+          float maria = smoothstep( 0.35, 0.75, texture2D( uNoise, m * 0.42 + vec2( 0.21, 0.63 ) ).r );
+          vec2 cm = m * 3.3;
+          vec2 ci = floor( cm );
+          vec2 cf = fract( cm ) - 0.5;
+          float ch = fract( sin( dot( ci, vec2( 127.1, 311.7 ) ) ) * 43758.5453 );
+          vec2 cc = cf - ( vec2( fract( ch * 7.0 ), fract( ch * 13.0 ) ) - 0.5 ) * 0.5;
+          float cr = 0.12 + 0.2 * fract( ch * 3.3 );
+          float crater = step( 0.45, ch ) * ( 1.0 - smoothstep( cr * 0.8, cr, length( cc ) ) );
+          float rim = step( 0.45, ch ) * smoothstep( cr * 0.7, cr * 0.95, length( cc ) ) * ( 1.0 - smoothstep( cr, cr * 1.25, length( cc ) ) );
+          float terminator = smoothstep( -0.25, 0.2, dot( m, vec2( 0.86, 0.5 ) ) + 0.72 );
+          float shade = ( 1.0 - 0.38 * maria ) * ( 1.0 - 0.35 * crater ) * ( 1.0 + 0.25 * rim );
+          shade *= mix( 0.08, 1.0, terminator ) * ( 0.85 + 0.15 * ( 1.0 - length( m ) ) );
+          disc = limb * shade * float( isSky );
+        }
         // Corona: a bright inner halo and a wide soft skirt.
         float corona = exp( -r * r / ( uSunRadius * uSunRadius * 12.0 ) ) * 0.55 + exp( -r / ( uSunRadius * 14.0 ) ) * 0.45;
         float headroom = 1.0 - smoothstep( 0.6, 1.6, dot( color, vec3( 0.33 ) ) );
         color += uSunColor * disc * uDiscStrength;
         color += uSunColor * corona * uGlowStrength * ( 0.35 + 0.65 * open ) * ( 0.5 + 0.5 * headroom );
         color += uSunColor * shaft * uShaftStrength * ( 0.4 + 0.6 * headroom );
+        // Lens glare: looking near the sun, a few faint ghosts along the line
+        // through the frame's centre and a thin horizontal streak. Subtle.
+        if ( uMoon < 0.5 ) {
+          vec2 c = ( uSunScreen - 0.5 ) * vec2( uAspect, 1.0 );
+          vec2 pv = ( vUv - 0.5 ) * vec2( uAspect, 1.0 );
+          float facing = 1.0 - smoothstep( 0.1, 0.55, length( c ) );
+          float ghosts = 0.0;
+          for ( int i = 0; i < 4; i++ ) {
+            float k = float( i ) * 0.55 - 0.75; // positions along the sun->centre axis
+            float gr = 0.03 + 0.025 * float( i );
+            float gd = length( pv - c * k ) / gr;
+            ghosts += ( 1.0 - smoothstep( 0.6, 1.0, gd ) ) * ( 0.5 + 0.5 * smoothstep( 0.0, 0.8, gd ) ) * 0.06;
+          }
+          float streak = exp( -abs( pv.y - c.y ) * 140.0 ) * exp( -abs( pv.x - c.x ) * 2.2 ) * 0.12;
+          color += uSunColor * ( ghosts + streak ) * facing * open * uSunVisible * ( 0.3 + 0.7 * headroom );
+        }
       }
 
       // ---- Grade.
@@ -283,7 +322,7 @@ export class AtmospherePass extends Pass {
   }
 
   // Called by the game each frame with the current lighting state.
-  update({ sunDir, sunColor, sunVisible, fogColor, fogSunColor, fogDensity, fogHeight, fogFalloff, groundMist, mistFill, shaft, glow, disc, saturation, lift, vignette, underwater, contrast }, wind, noise, time) {
+  update({ sunDir, sunColor, sunVisible, fogColor, fogSunColor, fogDensity, fogHeight, fogFalloff, groundMist, mistFill, shaft, glow, disc, moon, saturation, lift, vignette, underwater, contrast }, wind, noise, time) {
     const u = this.material.uniforms;
     if (wind) {
       u.uWindDir.value.copy(wind.direction);
@@ -292,6 +331,7 @@ export class AtmospherePass extends Pass {
     }
     if (noise) u.uNoise.value = noise;
     u.uDiscStrength.value = disc;
+    u.uMoon.value = moon || 0;
     // Angular radius of the drawn sun, in screen height units.
     const halfFov = THREE.MathUtils.degToRad(this.camera.fov / 2);
     u.uSunRadius.value = Math.tan(THREE.MathUtils.degToRad(1.3)) / Math.tan(halfFov) * 0.5;

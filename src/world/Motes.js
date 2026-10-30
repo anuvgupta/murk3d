@@ -5,7 +5,8 @@ import { mulberry32 } from '../util/noise.js';
 // catch the light, and a few faint sparks at night. One point cloud; the
 // particles live in a box that follows the player and wrap round when they
 // leave it, so the air is never empty.
-const COUNT = 900;
+const COUNT = 1500; // particles
+const TRAIL = 2; // ghost points behind each trailing particle
 const BOX = 28; // metres across
 const HEIGHT = 10;
 
@@ -14,19 +15,36 @@ export class Motes {
     this.wind = wind;
     const random = mulberry32(5);
     const positions = new Float32Array(COUNT * 3);
-    const seeds = new Float32Array(COUNT * 4);
+    // Particles, then the trail ghosts: each trailing particle (kind 0.08-0.22)
+    // owns TRAIL extra points drawn a little way back along its motion.
+    const trailers = [];
+    const seedsAll = [];
+    const speeds = new Float32Array(COUNT);
     for (let i = 0; i < COUNT; i++) {
       positions[i * 3] = (random() - 0.5) * BOX;
       positions[i * 3 + 1] = random() * HEIGHT;
       positions[i * 3 + 2] = (random() - 0.5) * BOX;
-      seeds[i * 4] = random(); // phase
-      seeds[i * 4 + 1] = 0.5 + random(); // size
-      seeds[i * 4 + 2] = random(); // kind: < 0.08 sparks, else motes
-      seeds[i * 4 + 3] = random(); // twinkle rate
+      const kind = random();
+      // Sizes skew small: many fine specks, a few larger glowing motes.
+      seedsAll.push(random(), Math.pow(random(), 1.6) * 1.2 + 0.15, kind, random());
+      speeds[i] = 0.35 + Math.pow(random(), 1.5) * 1.6; // each drifts at its own pace
+      if (kind >= 0.08 && kind < 0.22) trailers.push(i);
     }
+    this.trailers = trailers;
+    this.speeds = speeds;
+    const total = COUNT + trailers.length * TRAIL;
+    for (let t = 0; t < trailers.length; t++) {
+      const i = trailers[t];
+      for (let k = 0; k < TRAIL; k++) {
+        // A ghost: same look as its particle, fainter the further back.
+        seedsAll.push(seedsAll[i * 4], seedsAll[i * 4 + 1] * (0.85 - 0.25 * k), seedsAll[i * 4 + 2], -1 - k);
+      }
+    }
+    const seeds = new Float32Array(seedsAll);
     this.offsets = positions;
+    this.total = total;
     const geometry = new THREE.BufferGeometry();
-    this.posAttr = new THREE.BufferAttribute(new Float32Array(COUNT * 3), 3);
+    this.posAttr = new THREE.BufferAttribute(new Float32Array(total * 3), 3);
     this.posAttr.setUsage(THREE.DynamicDrawUsage);
     geometry.setAttribute('position', this.posAttr);
     geometry.setAttribute('aSeed', new THREE.BufferAttribute(seeds, 4));
@@ -51,16 +69,19 @@ export class Motes {
           vec4 mv = modelViewMatrix * vec4( position, 1.0 );
           float spark = step( aSeed.z, 0.08 );
           vKind = spark;
+          // Trail ghosts carry a negative rate: fainter, and no twinkle of their own.
+          float ghost = aSeed.w < 0.0 ? ( aSeed.w < -1.5 ? 0.22 : 0.45 ) : 1.0;
+          float rate = max( aSeed.w, 0.3 );
           // Motes glint when between the viewer and the sun; sparks glow at night.
           vec3 toCam = normalize( position - cameraPosition );
           float back = pow( max( dot( toCam, uSunDir ), 0.0 ), 3.0 );
-          float twinkle = 0.55 + 0.45 * sin( uTime * ( 1.5 + aSeed.w * 3.0 ) + aSeed.x * 6.283 );
-          float mote = ( 0.25 + 0.75 * back ) * twinkle * ( 1.0 - uNight * 0.6 );
-          vAlpha = mix( mote, twinkle * uNight, spark );
+          float twinkle = 0.6 + 0.4 * sin( uTime * ( 0.8 + rate * 1.6 ) + aSeed.x * 6.283 );
+          float mote = ( 0.3 + 0.8 * back ) * twinkle * ( 1.0 - uNight * 0.55 );
+          vAlpha = mix( mote, twinkle * uNight, spark ) * ghost;
           // Fade with distance so they never read as a wall of dots.
           float d = -mv.z;
           vAlpha *= smoothstep( 1.0, 3.0, d ) * ( 1.0 - smoothstep( 10.0, 16.0, d ) );
-          gl_PointSize = ( 0.035 + 0.025 * aSeed.y ) * mix( 1.0, 1.8, spark ) * uPixelScale / d;
+          gl_PointSize = ( 0.012 + 0.03 * aSeed.y ) * mix( 1.0, 1.6, spark ) * uPixelScale / d;
           gl_Position = projectionMatrix * mv;
         }
       `,
@@ -71,10 +92,11 @@ export class Motes {
         varying float vKind;
         void main() {
           float r = length( gl_PointCoord - 0.5 ) * 2.0;
-          float a = exp( -r * r * 4.0 ) * vAlpha;
-          vec3 mote = mix( vec3( 0.9, 0.86, 0.72 ), uSunColor / max( 0.001, length( uSunColor ) ), 0.5 ) * ( 0.3 + 0.7 * uLight );
-          vec3 spark = vec3( 1.0, 0.75, 0.4 );
-          gl_FragColor = vec4( mix( mote, spark, vKind ), a * 0.55 );
+          // A hot core with a soft glow round it.
+          float a = ( exp( -r * r * 9.0 ) * 0.7 + exp( -r * r * 2.2 ) * 0.5 ) * vAlpha;
+          vec3 mote = mix( vec3( 0.95, 0.9, 0.74 ), uSunColor / max( 0.001, length( uSunColor ) ), 0.5 ) * ( 0.35 + 0.75 * uLight );
+          vec3 spark = vec3( 1.0, 0.78, 0.42 );
+          gl_FragColor = vec4( mix( mote, spark, vKind ), a * 0.7 );
         }
       `,
       transparent: true,
@@ -103,12 +125,20 @@ export class Motes {
     const cz = playerPos.z;
     const baseY = playerPos.y;
     const half = BOX / 2;
+    const sp = this.speeds;
+    const vel = this.vel || (this.vel = new Float32Array(COUNT * 3));
     for (let i = 0; i < COUNT; i++) {
       const k = i * 3;
-      // Drift downwind with a slow swirl and a gentle bob; wrap inside the box.
-      off[k] += dx + Math.sin(this.time * 0.7 + i) * 0.12 * dt;
-      off[k + 2] += dz + Math.cos(this.time * 0.6 + i * 1.3) * 0.12 * dt;
-      off[k + 1] += Math.sin(this.time * 0.5 + i * 0.7) * 0.08 * dt + (i % 11 === 0 ? 0.3 * dt : 0.0);
+      // Drift downwind at its own pace with a slow swirl and a gentle bob; wrap inside the box.
+      const mx = dx * sp[i] + Math.sin(this.time * 0.7 * sp[i] + i) * 0.12 * dt;
+      const mz = dz * sp[i] + Math.cos(this.time * 0.6 * sp[i] + i * 1.3) * 0.12 * dt;
+      const my = Math.sin(this.time * 0.5 + i * 0.7) * 0.08 * dt + (i % 11 === 0 ? 0.3 * dt : 0.0);
+      vel[k] = mx;
+      vel[k + 1] = my;
+      vel[k + 2] = mz;
+      off[k] += mx;
+      off[k + 2] += mz;
+      off[k + 1] += my;
       if (off[k] > half) off[k] -= BOX;
       if (off[k] < -half) off[k] += BOX;
       if (off[k + 2] > half) off[k + 2] -= BOX;
@@ -122,6 +152,19 @@ export class Motes {
       arr[k] = x;
       arr[k + 1] = Math.max(ground, baseY - 3) + 0.2 + off[k + 1];
       arr[k + 2] = z;
+    }
+    // Trail ghosts sit a little way back along the particle's recent motion.
+    const inv = dt > 1e-4 ? 1 / dt : 0;
+    for (let t = 0; t < this.trailers.length; t++) {
+      const i = this.trailers[t];
+      const k = i * 3;
+      for (let g = 0; g < TRAIL; g++) {
+        const j = (COUNT + t * TRAIL + g) * 3;
+        const back = (g + 1) * 0.18; // seconds behind
+        arr[j] = arr[k] - vel[k] * inv * back;
+        arr[j + 1] = arr[k + 1] - vel[k + 1] * inv * back;
+        arr[j + 2] = arr[k + 2] - vel[k + 2] * inv * back;
+      }
     }
     this.posAttr.needsUpdate = true;
     this.material.uniforms.uTime.value = this.time;

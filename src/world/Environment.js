@@ -298,6 +298,7 @@ export class Environment {
     a.saturation = THREE.MathUtils.lerp(0.84, 1.12 + 0.06 * day + 0.1 * golden, day);
     a.lift.setRGB(0.012, 0.009, 0.006).lerp(this._tmpColor.setRGB(0.03, 0.018, 0.01), low);
     a.vignette = 0.22;
+    a.moon = 0;
     // Punchier by day; flat light at dusk and night stays soft.
     a.contrast = 1.0 + 0.14 * day * (1 - 0.5 * golden);
     // By night the pass draws the moon instead: a small pale disc, faint halo.
@@ -306,6 +307,7 @@ export class Environment {
       a.sunVisible = smoothstep(-0.05, -0.16, elev);
       a.sunColor.setRGB(0.8, 0.86, 0.98);
       a.disc = 3.5;
+      a.moon = 1;
       a.glow = 0.18;
       a.shaft = 0.03;
     }
@@ -331,6 +333,7 @@ export class Environment {
 
     const starFactor = smoothstep(-0.04, -0.2, elev) * 0.85;
     this.stars.material.opacity = starFactor;
+    if (this.stars.material.userData.shader) this.stars.material.userData.shader.uniforms.uTime.value = this.skyTime || 0;
     this.stars.visible = starFactor > 0.01;
     this.stars.rotation.y = (this.timeOfDay / 24) * Math.PI * 2 * 0.25;
     this.stars.position.copy(focus);
@@ -382,25 +385,46 @@ function createStars() {
     const warm = random();
     colors.set([b * (0.85 + warm * 0.15), b * 0.9, b * (1 - warm * 0.15)], i * 3);
   }
+  // Per star: size (a few bright, most faint), twinkle phase and rate.
+  const star = new Float32Array(count * 3);
+  for (let i = 0; i < count; i++) {
+    const r = random();
+    star[i * 3] = r < 0.06 ? 3.2 + random() * 1.4 : r < 0.3 ? 2.4 + random() * 0.6 : 1.9 + random() * 0.4;
+    star[i * 3 + 1] = random() * 6.2832;
+    star[i * 3 + 2] = 0.15 + random() * 0.35; // radians per second: a wink takes seconds, not frames
+  }
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  g.setAttribute('aStar', new THREE.BufferAttribute(star, 3));
   const m = new THREE.PointsMaterial({
-    size: 1.6,
+    size: 2.4,
     sizeAttenuation: false,
     vertexColors: true,
     transparent: true,
     depthWrite: false,
     fog: false,
   });
-  // Stars dim toward the horizon, where the air is thickest.
+  // Soft round sprites (a hard 1-2 px point shimmers as the view moves), dim
+  // toward the horizon where the air is thickest, and a slow twinkle that
+  // only a handful of stars are doing at any moment.
   m.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = { value: 0 };
+    m.userData.shader = shader;
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying float vElev;')
-      .replace('#include <project_vertex>', '#include <project_vertex>\nvElev = normalize( position ).y;');
+      .replace('#include <common>', '#include <common>\nattribute vec3 aStar;\nuniform float uTime;\nvarying float vElev;\nvarying float vTwinkle;')
+      .replace('#include <project_vertex>', '#include <project_vertex>\nvElev = normalize( position ).y;\nvTwinkle = smoothstep( 0.82, 1.0, sin( uTime * aStar.z + aStar.y ) );')
+      .replace('gl_PointSize = size;', 'gl_PointSize = aStar.x * ( 1.0 + 0.35 * vTwinkle );');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying float vElev;')
-      .replace('#include <opaque_fragment>', 'diffuseColor.a *= smoothstep( 0.02, 0.35, vElev );\n#include <opaque_fragment>');
+      .replace('#include <common>', '#include <common>\nvarying float vElev;\nvarying float vTwinkle;')
+      .replace(
+        '#include <opaque_fragment>',
+        `{
+          float rr = length( gl_PointCoord - 0.5 ) * 2.0;
+          diffuseColor.a *= exp( -rr * rr * 3.2 ) * smoothstep( 0.02, 0.35, vElev ) * ( 0.75 + 0.6 * vTwinkle );
+        }
+        #include <opaque_fragment>`
+      );
   };
   const points = new THREE.Points(g, m);
   points.frustumCulled = false;
