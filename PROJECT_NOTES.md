@@ -652,3 +652,11 @@ screenshot-checked.
   cull by min(baked, local 0.6 m gradient groundN.y) and the terrain
   carpet by min(baked, face normal). Verify BI (+ Rift golden, glade
   dusk as new critique frames).
+- 11:00 Bank strip finally understood by full/nograss/terrain-only
+  renders + PIL: the remaining strip is just the thin carpet→bare
+  transition; the real defect is that the GROUND under the grass renders
+  (110,155,3) in sun — blue ≈ 0, acid green (the user's exact complaint)
+  — while blades are (112,143,50). Under-grass colour now desaturated
+  40% toward warm grey-olive; blades 15%. Measure again (batch58 reruns
+  diagbank2) and view BJ (overlook noon, bridge morning, road golden).
+  Also: BI5 glade at dusk is a keeper; BI2 overlook cliffs clean.
