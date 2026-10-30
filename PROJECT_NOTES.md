@@ -922,3 +922,14 @@ screenshot-checked.
   the outer gate + keep (4 per castle) to keep NUM_POINT_LIGHTS small.
   Verify with DL1–DL6 (batch105). Candidate next: #52 fairy-light strings
   on poles through the village (night decor), karst backdrop wall.
+- DL verified: midnight is navy/silver now (DL1), village 22:00 with moon
+  and lit windows a keeper (DL4), overlook 23:30 a keeper (DL5). Castle
+  bridge gate at 22:00 was a black hole: the gatehouses had no lanterns →
+  lanterns on the outer face + in the passage of every gatehouse (ca04e95),
+  the outer gate's pair are the first two `lamps` so they get the point
+  lights; hemi +0.14 at night. Fairy lights (#52, 531cbfd) in
+  `buildings/fairyLights.js` + `m.fairy` (aux-hashed colour/twinkle,
+  noShadow); poles 8.5 m apart zig-zag across the main road within 92 m of
+  the plaza (skip bridge/houses), 8-pole ring at r 12.7, 6-pole ring at
+  r 4.7 (4.3 m tall) with 3 crossings over the well. Bank scree (c3f5c9d)
+  in groundColor behind `groundDetail`. Verify DM (plaza), DN (bank).
