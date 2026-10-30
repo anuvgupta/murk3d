@@ -61,6 +61,7 @@ const PALETTE = {
   sunHigh: C(0xfff1d6),
   sunLow: C(0xff7a2e),
   moon: C(0x8fa8ea),
+  dusk: C(0xff6a6a),
   fogDay: C(0xb9cde4),
   fogGolden: C(0xe2a383),
   fogNight: C(0x0b0f19),
@@ -258,11 +259,20 @@ export class Environment {
     // Direct light: the sun by day, a dim cool moon by night. Their intensities
     // both pass through ~0 around the horizon, hiding the swap in direction.
     const sunI = 4.4 * smoothstep(-0.03, 0.14, elev) * (0.72 + 0.28 * smoothstep(0.1, 0.5, elev));
-    const moonI = 2.0 * smoothstep(-0.03, -0.14, elev);
-    if (sunI > 0.0001 || moonI <= 0.0001) {
+    // Civil twilight: with the sun just under the horizon the sky on that side
+    // still lights the land, a dim rose rim light from low in the west (or
+    // east), so dusk and dawn are not a flat window between sun and moon.
+    const duskI = 1.1 * smoothstep(-0.17, -0.06, elev) * (1 - smoothstep(-0.06, 0.0, elev));
+    const moonI = 2.0 * smoothstep(-0.1, -0.2, elev);
+    if (sunI + duskI > moonI || moonI <= 0.0001) {
       this.lightDir.copy(sunDir);
+      if (this.lightDir.y < 0.1) {
+        this.lightDir.y = 0.1;
+        this.lightDir.normalize();
+      }
       this.sun.color.copy(PALETTE.sunLow).lerp(PALETTE.sunHigh, smoothstep(0.04, 0.6, elev));
-      this.sun.intensity = sunI;
+      this.sun.color.lerp(PALETTE.dusk, duskI / (sunI + duskI + 1e-6));
+      this.sun.intensity = sunI + duskI;
     } else {
       this.lightDir.copy(sunDir).negate();
       this.lightDir.y = Math.max(this.lightDir.y, 0.25);
@@ -300,8 +310,9 @@ export class Environment {
     // Atmosphere pass settings for this time of day.
     const a = this.atmosphere;
     const low = 1 - smoothstep(0.05, 0.45, elev); // sun near the horizon
-    a.sunDir.copy(this.lightDir);
-    a.sunVisible = this.sun.intensity > 0.05 && this.lightDir === this.lightDir ? smoothstep(-0.08, 0.02, elev) : 0;
+    // The glow sits on the true sun, not the clamped twilight light direction.
+    a.sunDir.copy(sunDir);
+    a.sunVisible = smoothstep(-0.08, 0.02, elev);
     // Glow colour: white-gold high, apricot low.
     a.sunColor.setRGB(1.0, 0.93, 0.8).lerp(this._tmpColor.setRGB(1.0, 0.72, 0.45), low);
     a.shaft = 0.12 + 0.6 * low; // god rays: strongest at a low sun, where trees and roofs cut them
@@ -327,7 +338,11 @@ export class Environment {
     a.contrast = 1.0 + 0.14 * day * (1 - 0.5 * golden) + 0.06 * (1 - day);
     // By night the pass draws the moon instead: a small pale disc, faint halo.
     if (moonI > 0.0001 && sunI <= 0.0001) {
-      a.sunDir.copy(this.lightDir);
+      // The moon disc is drawn from the moon's own direction even while the
+      // dusk light still comes from the sunset side.
+      a.sunDir.copy(sunDir).negate();
+      a.sunDir.y = Math.max(a.sunDir.y, 0.25);
+      a.sunDir.normalize();
       a.sunVisible = smoothstep(-0.05, -0.16, elev);
       a.sunColor.setRGB(0.8, 0.86, 0.98);
       a.disc = 0.75; // below clipping, so the maria and craters read
