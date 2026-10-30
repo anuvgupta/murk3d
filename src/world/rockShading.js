@@ -9,6 +9,8 @@ const lin = (hex) => {
 // strata, branching cracks, lichen, moss on upward faces, and a height value
 // for derivative bump mapping. Needs `uniform sampler2D uNoise;` declared.
 export const ROCK_GLSL = /* glsl */ `
+  // Close-range detail factor (0 far .. 1 near); set by the caller before rockAlbedo.
+  float rockDetailF = 0.0;
   vec3 triWeights( vec3 n ) {
     vec3 w = pow( abs( n ), vec3( 4.0 ) );
     return w / ( w.x + w.y + w.z );
@@ -49,11 +51,11 @@ export const ROCK_GLSL = /* glsl */ `
     vec3 c = mix( ${lin(0x6f6a64)}, ${lin(0xb3aa9c)}, smoothstep( 0.2, 0.8, broad ) );
     c = mix( c, c * ${lin(0xd2b08f)} * 1.25, band * 0.35 );
     // Cavities: hollows and cracks sit in shadow; ridges catch the light.
-    c *= 0.5 + 0.75 * h;
+    c *= mix( 0.5 + 0.75 * h, 0.28 + 1.15 * h, rockDetailF );
     // Mid-scale variation and gullies streaking down the slope, visible from afar.
     float meso = tri( p, w, 0.05, 2 );
     float gully = tri( vec3( p.x, p.y * 0.22, p.z ), w, 0.045, 3 );
-    c *= ( 0.86 + 0.28 * meso ) * ( 0.88 + 0.24 * smoothstep( 0.35, 0.7, gully ) );
+    c *= ( 0.86 + 0.28 * meso ) * ( 0.92 + 0.16 * smoothstep( 0.35, 0.7, gully ) );
     // Lichen in patches.
     float lichen = smoothstep( 0.64, 0.8, tri( p, w, 0.08, 0 ) ) * 0.45;
     c = mix( c, ${lin(0x8b8a52)}, lichen );

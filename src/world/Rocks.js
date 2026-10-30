@@ -106,6 +106,7 @@ export function createRockMaterial(noise) {
         vec3 wn = normalize( vWNormal );
         vec3 tw = triWeights( wn );
         float detail = 1.0 - smoothstep( 12.0, 70.0, length( vViewPosition ) );
+        rockDetailF = detail;
         rockH = rockHeight( vWPos, tw, detail );
         diffuseColor.rgb *= rockAlbedo( vWPos, wn, tw, rockH );
         {

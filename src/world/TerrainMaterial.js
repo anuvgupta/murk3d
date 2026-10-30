@@ -64,6 +64,7 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         vec3 tw = triWeights( wn );
         float detail = 1.0 - smoothstep( 12.0, 70.0, length( vViewPosition ) );
         rockDetail = detail;
+        rockDetailF = detail;
         rockHOut = rockHeight( vWPos, tw, detail );
         rockAmtOut = smoothstep( 0.42, 0.58, 1.0 - wnClass.y + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.1 );
         ground = mix( ground, rockAlbedo( vWPos, wnClass, tw, rockHOut ), rockAmtOut );
