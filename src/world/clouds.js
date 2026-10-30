@@ -2,12 +2,16 @@
 // its stock cloud block. All are 2D noise on a cloud plane, lit by the sky's
 // own radiance, so they cost nothing beyond the sky's one draw.
 //
-//   realistic  two layers of cumulus with cauliflower edges, sun-lit tops,
-//              shaded undersides and silver linings
+//   realistic  two decks of cumulus with cauliflower edges, sun-lit tops,
+//              shaded undersides and silver linings, under a combed cirrus veil
 //   ghibli     towering cauliflower cumulus: domain-warped lobes stacked big
 //              to small, opaque, bright crowns and blue-grey flanks, churning
 //              slowly as they drift
 //   painterly  brushed cirrus streaks and soft banks, like a painted backdrop
+//
+// Every style runs on one cloud clock T (sky time × cloudSpeed) and passes its
+// cloud plane through churn(): a rotational domain warp, so the masses roll,
+// curl and tear as they drift rather than sliding across the sky as a stamp.
 
 export const CLOUD_STYLES = ['realistic', 'ghibli', 'painterly'];
 
@@ -48,6 +52,14 @@ const COMMON = /* glsl */ `
     }
     return 1.0 - sqrt( d );
   }
+
+  // Churn: a slow rotational domain warp. Masses roll, curl and tear instead
+  // of sliding across the sky as one stamp. T is the cloud clock.
+  vec2 churn( vec2 uv, float T, float amp ) {
+    vec2 g = vec2( fbm( uv * 0.22 + vec2( T * 0.6, 1.7 ), T * 0.2 ), fbm( uv * 0.22 + vec2( 5.3, -T * 0.5 ), T * 0.2 ) );
+    vec2 h = vec2( fbm( uv * 0.7 + vec2( -T * 0.9, 2.2 ), T * 0.3 ), fbm( uv * 0.7 + vec2( 8.1, T * 0.8 ), T * 0.3 ) );
+    return uv + vec2( -g.y, g.x ) * amp + h * amp * 0.35;
+  }
 `;
 
 // Lighting shared by the styles: a cloud's colour from its density, the
@@ -74,25 +86,28 @@ const STYLES = {
       vec3 sunCol = vSunE * Fex * 0.22 * 0.04;
       vec3 skyAmb = Lin * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
       float horizonFade = smoothstep( 0.0, 0.08, direction.y );
+      float T = time * cloudSpeed * 2500.0;
+      vec2 drift = vec2( 0.9, 0.35 );
       vec2 toSun = vSunDirection.xz * 0.06;
       // Two decks: broken cumulus below, a thinner higher layer above.
       for ( int layer = 0; layer < 2; layer++ ) {
         float elev = layer == 0 ? 0.45 : 0.22;
         vec2 uv = direction.xz / ( max( direction.y, 0.02 ) * elev ) * cloudScale * 1000.0;
-        uv += time * cloudSpeed * ( layer == 0 ? 900.0 : 1500.0 ) + float( layer ) * 37.0;
-        float evolve = time * cloudSpeed * 300.0;
-        float region = noise( uv * 0.12 + 5.0 ) * 0.5 + 0.5;
+        uv += drift * T * ( layer == 0 ? 1.0 : 1.6 ) + float( layer ) * 37.0;
+        float Tl = T * ( layer == 0 ? 1.0 : 0.7 );
+        vec2 q = churn( uv, Tl, layer == 0 ? 1.1 : 0.7 );
+        float region = noise( q * 0.12 + 5.0 ) * 0.5 + 0.5;
         float cov = clamp( cloudCoverage * ( layer == 0 ? 1.0 : 0.55 ) + ( region - 0.5 ) * 0.8, 0.0, 1.0 );
         float th = 1.0 - cov;
-        // Base shape eroded by cauliflower billows.
-        float base = fbm( uv * 0.5, evolve ) * 0.5 + 0.5;
-        float lobes = billow( uv * 2.2 ) * 0.55 + billow( uv * 5.5 + 3.0 ) * 0.3 + billow( uv * 12.0 ) * 0.15;
+        // Base shape eroded by cauliflower billows that roll as they drift.
+        float base = fbm( q * 0.5, Tl * 0.4 ) * 0.5 + 0.5;
+        float lobes = billow( q * 2.2 + Tl * 0.3 ) * 0.55 + billow( q * 5.5 + 3.0 - Tl * 0.5 ) * 0.3 + billow( q * 12.0 + Tl ) * 0.15;
         float field = base * 0.7 + lobes * 0.45;
         float depth = max( 0.0, field - th );
         float dens = 1.0 - exp( -depth * ( layer == 0 ? 16.0 : 9.0 ) * cloudDensity );
         // Self-shadow: how much denser the cloud is toward the sun.
-        vec2 uvS = uv - toSun;
-        float fieldS = ( fbm( uvS * 0.5, evolve ) * 0.5 + 0.5 ) * 0.7 + ( billow( uvS * 2.2 ) * 0.55 + billow( uvS * 5.5 + 3.0 ) * 0.3 + billow( uvS * 12.0 ) * 0.15 ) * 0.45;
+        vec2 qs = q - toSun;
+        float fieldS = ( fbm( qs * 0.5, Tl * 0.4 ) * 0.5 + 0.5 ) * 0.7 + ( billow( qs * 2.2 + Tl * 0.3 ) * 0.55 + billow( qs * 5.5 + 3.0 - Tl * 0.5 ) * 0.3 + billow( qs * 12.0 + Tl ) * 0.15 ) * 0.45;
         float shadow = clamp( ( fieldS - field ) * 3.0 + depth * 1.5, 0.0, 1.0 );
         // Low on the sky we see the bellies, high up the tops.
         shadow = mix( shadow + 0.35, shadow, smoothstep( 0.05, 0.5, direction.y ) );
@@ -103,6 +118,17 @@ const STYLES = {
         vec3 aerial = mix( texColor, cloudColor, Fex );
         texColor = mix( texColor, aerial, alpha );
       }
+      // A high veil of cirrus, combed by the wind and curling at the ends.
+      {
+        vec2 uvHi = direction.xz / ( max( direction.y, 0.02 ) * 0.16 ) * cloudScale * 1000.0;
+        uvHi += drift * T * 2.4;
+        vec2 st = churn( uvHi, T * 1.4, 0.8 );
+        float streak = fbm( vec2( st.x * 0.6, st.y * 1.9 ) * 1.1, T * 0.5 ) * 0.5 + 0.5;
+        float breakup = noise( st * 0.35 + 4.0 ) * 0.5 + 0.5;
+        float cirrus = smoothstep( 0.58, 0.8, streak ) * smoothstep( 0.4, 0.7, breakup ) * 0.3;
+        vec3 cirrusColor = ( skyAmb * 1.1 + sunCol * 1.1 ) * max( dayFactor, 0.03 );
+        texColor = mix( texColor, mix( texColor, cirrusColor, Fex ), cirrus * horizonFade );
+      }
     }
   `,
   ghibli: /* glsl */ `
@@ -111,19 +137,18 @@ const STYLES = {
       vec3 sunCol = vSunE * Fex * 0.22 * 0.04;
       vec3 skyAmb = Lin * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
       float horizonFade = smoothstep( 0.0, 0.06, direction.y );
+      float T = time * cloudSpeed * 2500.0;
       // A low deck, so the towers loom large overhead.
       vec2 uv = direction.xz / ( max( direction.y, 0.02 ) * 0.55 ) * cloudScale * 800.0;
-      uv += time * cloudSpeed * 600.0;
-      float evolve = time * cloudSpeed * 150.0;
-      // Domain warp: the masses churn and roll instead of sliding as a stamp.
-      vec2 warp = vec2( fbm( uv * 0.25 + evolve * 0.05, evolve ), fbm( uv * 0.25 + 13.0 - evolve * 0.04, evolve ) ) * 1.6;
-      vec2 q = uv + warp;
+      uv += vec2( 0.9, 0.35 ) * T * 0.8;
+      // The masses churn and roll: lobes bulge, split and swallow each other.
+      vec2 q = churn( uv, T * 1.3, 1.6 );
       float region = noise( q * 0.08 ) * 0.5 + 0.5;
       float cov = clamp( cloudCoverage * 1.1 + ( region - 0.5 ) * 0.9, 0.0, 1.0 );
       float th = 1.0 - cov;
       // Cauliflower: round lobes stacked big to small, each eroding the last.
-      float body = fbm( q * 0.3, evolve ) * 0.5 + 0.5;
-      float lobes = billow( q * 0.7 + evolve * 0.2 ) * 0.5 + billow( q * 1.6 + 5.0 - evolve * 0.15 ) * 0.3 + billow( q * 3.6 + 11.0 ) * 0.2;
+      float body = fbm( q * 0.3, T * 0.5 ) * 0.5 + 0.5;
+      float lobes = billow( q * 0.7 + T * 0.4 ) * 0.5 + billow( q * 1.6 + 5.0 - T * 0.6 ) * 0.3 + billow( q * 3.6 + 11.0 + T * 0.9 ) * 0.2;
       float field = body * 0.55 + lobes * 0.6;
       float depth = max( 0.0, field - th );
       float dens = smoothstep( 0.0, 0.09, depth );   // a definite rim, but not a cut-out
@@ -132,7 +157,7 @@ const STYLES = {
       // crown and a shaded flank, painted in broad soft steps.
       vec2 toSun = vSunDirection.xz * 0.08;
       vec2 qs = q - toSun;
-      float fieldS = ( fbm( qs * 0.3, evolve ) * 0.5 + 0.5 ) * 0.55 + ( billow( qs * 0.7 + evolve * 0.2 ) * 0.5 + billow( qs * 1.6 + 5.0 - evolve * 0.15 ) * 0.3 + billow( qs * 3.6 + 11.0 ) * 0.2 ) * 0.6;
+      float fieldS = ( fbm( qs * 0.3, T * 0.5 ) * 0.5 + 0.5 ) * 0.55 + ( billow( qs * 0.7 + T * 0.4 ) * 0.5 + billow( qs * 1.6 + 5.0 - T * 0.6 ) * 0.3 + billow( qs * 3.6 + 11.0 + T * 0.9 ) * 0.2 ) * 0.6;
       float slope = ( fieldS - field ) * 6.0;
       float lit = smoothstep( 0.1, 0.9, clamp( 0.5 - slope, 0.0, 1.0 ) );
       // Flat shaded bellies low on the sky; the tops stay bright.
@@ -152,6 +177,15 @@ const STYLES = {
       texColor -= L0 * 0.04 * alpha;
       vec3 aerial = mix( texColor, cloudColor, Fex );
       texColor = mix( texColor, aerial, alpha );
+      // Small fast puffs scudding under the towers.
+      {
+        vec2 uvLo = direction.xz / ( max( direction.y, 0.02 ) * 0.9 ) * cloudScale * 800.0 + vec2( 0.9, 0.35 ) * T * 1.9 + 23.0;
+        vec2 ql = churn( uvLo, T * 1.6, 0.9 );
+        float puff = billow( ql * 1.8 + T * 0.5 ) * 0.6 + ( fbm( ql * 0.6, T * 0.4 ) * 0.5 + 0.5 ) * 0.5;
+        float pd = smoothstep( 0.78, 0.86, puff ) * ( 1.0 - dens );
+        vec3 puffColor = mix( shade, top, 0.8 ) * max( dayFactor, 0.03 );
+        texColor = mix( texColor, mix( texColor, puffColor, Fex ), pd * horizonFade * 0.9 );
+      }
     }
   `,
   painterly: /* glsl */ `
@@ -160,20 +194,24 @@ const STYLES = {
       vec3 sunCol = vSunE * Fex * 0.22 * 0.04;
       vec3 skyAmb = Lin * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
       float horizonFade = smoothstep( 0.0, 0.06, direction.y );
-      float evolve = time * cloudSpeed * 200.0;
+      float T = time * cloudSpeed * 2500.0;
+      vec2 drift = vec2( 0.9, 0.35 );
       vec2 toSun = vSunDirection.xz * 0.06;
-      // Soft banks, brushed: low-contrast masses with feathered edges.
+      // Soft banks, brushed: low-contrast masses with feathered edges that
+      // curl and tear as the wind works them.
       vec2 uvLo = direction.xz / ( max( direction.y, 0.02 ) * 0.5 ) * cloudScale * 1000.0;
-      uvLo += time * cloudSpeed * 800.0;
-      float region = noise( uvLo * 0.12 ) * 0.5 + 0.5;
+      uvLo += drift * T * 1.1;
+      vec2 q = churn( uvLo, T, 1.2 );
+      float region = noise( q * 0.12 ) * 0.5 + 0.5;
       float cov = clamp( cloudCoverage + ( region - 0.5 ) * 0.6, 0.0, 1.0 );
       float th = 1.0 - cov;
-      float bank = fbm( uvLo * 0.45, evolve ) * 0.5 + 0.5;
-      float brush = fbm( vec2( uvLo.x * 1.4, uvLo.y * 0.6 ) * 1.6 + 9.0, evolve ) * 0.5 + 0.5;
+      float bank = fbm( q * 0.45, T * 0.4 ) * 0.5 + 0.5;
+      float brush = fbm( vec2( q.x * 1.4, q.y * 0.6 ) * 1.6 + 9.0, T * 0.6 ) * 0.5 + 0.5;
       float field = bank * 0.7 + brush * 0.4;
       float depth = max( 0.0, field - th );
       float dens = smoothstep( 0.0, 0.22, depth );
-      float fieldS = ( fbm( ( uvLo - toSun ) * 0.45, evolve ) * 0.5 + 0.5 ) * 0.7 + ( fbm( vec2( ( uvLo.x - toSun.x ) * 1.4, ( uvLo.y - toSun.y ) * 0.6 ) * 1.6 + 9.0, evolve ) * 0.5 + 0.5 ) * 0.4;
+      vec2 qs = q - toSun;
+      float fieldS = ( fbm( qs * 0.45, T * 0.4 ) * 0.5 + 0.5 ) * 0.7 + ( fbm( vec2( qs.x * 1.4, qs.y * 0.6 ) * 1.6 + 9.0, T * 0.6 ) * 0.5 + 0.5 ) * 0.4;
       float shadow = clamp( ( fieldS - field ) * 2.5 + depth * 0.8, 0.0, 1.0 ) * 0.7;
       float edge = dens * ( 1.0 - dens ) * 3.0;
       vec3 bankColor = cloudLight( dens, shadow, edge, sunCol, skyAmb, cosTheta, dayFactor );
@@ -182,13 +220,13 @@ const STYLES = {
       float aBank = dens * horizonFade * clamp( cloudDensity * 2.2, 0.0, 0.95 );
       texColor -= L0 * 0.04 * aBank;
       texColor = mix( texColor, mix( texColor, bankColor, Fex ), aBank );
-      // High cirrus: short brush strokes across the wind, sparse.
+      // High cirrus: long strokes combed along the wind, their tails curling.
       vec2 uvHi = direction.xz / ( max( direction.y, 0.02 ) * 0.18 ) * cloudScale * 1000.0;
-      uvHi += time * cloudSpeed * 2000.0;
-      vec2 st = vec2( uvHi.x * 0.7, uvHi.y * 1.8 );
-      float streak = fbm( st * 1.2, evolve ) * 0.5 + 0.5;
-      float breakup = noise( uvHi * 0.5 + 4.0 ) * 0.5 + 0.5;
-      float cirrus = smoothstep( 0.6, 0.8, streak ) * smoothstep( 0.45, 0.7, breakup ) * 0.4;
+      uvHi += drift * T * 2.6;
+      vec2 st = churn( uvHi, T * 1.5, 1.0 );
+      float streak = fbm( vec2( st.x * 0.55, st.y * 2.0 ) * 1.2, T * 0.7 ) * 0.5 + 0.5;
+      float breakup = noise( st * 0.4 + 4.0 ) * 0.5 + 0.5;
+      float cirrus = smoothstep( 0.56, 0.8, streak ) * smoothstep( 0.42, 0.7, breakup ) * 0.45;
       vec3 cirrusColor = ( skyAmb * 1.2 + sunCol * 1.0 ) * max( dayFactor, 0.03 );
       texColor = mix( texColor, mix( texColor, cirrusColor, Fex ), cirrus * horizonFade );
     }
