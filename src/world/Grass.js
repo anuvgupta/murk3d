@@ -327,6 +327,12 @@ export class Grass {
           // Width tapers to a rounded tip.
           // Width: nearly constant, tapering only near the tip.
           float wprof = 1.0 - smoothstep( 0.55, 1.0, hy ) * 0.9;
+          // Wildflowers: in the lusher sweeps a few blades carry a coloured
+          // head, a little taller than the sward around them.
+          float flowerPatch = smoothstep( 0.56, 0.74, texture( uNoise, root * 0.045 + 0.61 ).r );
+          float isFlower = step( br2, 0.045 * flowerPatch ) * step( 0.45, density );
+          wprof = mix( wprof, 0.35 + 3.4 * smoothstep( 0.74, 0.87, hy ) * ( 1.0 - 0.55 * smoothstep( 0.94, 1.0, hy ) ), isFlower );
+          bladeH *= 1.0 + 0.3 * isFlower;
           vec3 world = vec3( root.x, ground - 0.02, root.y );
           world += up * ( hy * bladeH * ( 1.0 - curl * hy * hy ) );
           world += bend3 * ( hy * hy * bladeH );
@@ -350,6 +356,11 @@ export class Grass {
           vec3 rootCol = base * 0.38;
           vec3 col = mix( rootCol, tip * tuftTone, smoothstep( 0.0, 0.9, hy ) );
           col = mix( col, mix( vec3( 0.25, 0.2, 0.08 ), vec3( 0.62, 0.52, 0.28 ), hy ), dry );
+          {
+            float fh = fract( br * 7.31 + tr * 3.7 );
+            vec3 fcol = fh < 0.3 ? vec3( 0.95, 0.93, 0.86 ) : fh < 0.55 ? vec3( 0.98, 0.82, 0.22 ) : fh < 0.8 ? vec3( 0.62, 0.42, 0.9 ) : vec3( 0.95, 0.5, 0.62 );
+            col = mix( col, fcol, isFlower * smoothstep( 0.8, 0.88, hy ) );
+          }
           vColor.rgb = col * ( 0.96 + 0.08 * br ) * realmGrassTint( root );
           // Olive rather than lime: ease the saturation toward a warm grey.
           { float gl = dot( vColor.rgb, vec3( 0.3, 0.59, 0.11 ) ); vColor.rgb = mix( vColor.rgb, vec3( gl ) * vec3( 1.06, 1.0, 0.8 ), 0.15 ); }`
