@@ -117,7 +117,7 @@ export const ROCK_GLSL = /* glsl */ `
       float far = 1.0 - 0.55 * rockDetailF;
       float steep = 1.0 - w.y;
       float flute = tri( vec3( p.x, p.y * 0.12, p.z ), w, 0.07, 1 );
-      c *= 1.0 - steep * far * 0.3 * ( 1.0 - smoothstep( 0.3, 0.7, flute ) * 2.0 ) * 0.5 - steep * far * 0.15 + steep * far * 0.3 * smoothstep( 0.3, 0.7, flute );
+      c *= 1.0 + steep * far * 0.4 * ( smoothstep( 0.3, 0.7, flute ) - 0.5 );
       float mac = macroHeight( p, w );
       c *= mix( 1.0, 0.72 + 0.56 * mac, far * 0.8 );
     }
