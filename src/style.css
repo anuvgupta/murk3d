@@ -86,6 +86,108 @@ body {
   font-style: italic;
 }
 
+/* Loading: a spinner, the stage being made, and a bar. The spinner and the
+   bar's shimmer are transform animations, so they keep moving even while
+   a heavy stage holds up the page. */
+.load {
+  width: min(360px, 80vw);
+  margin: 22px auto 0;
+  transition: opacity 0.6s ease;
+}
+
+.load.done {
+  opacity: 0;
+  pointer-events: none;
+  height: 0;
+  margin: 0 auto;
+  overflow: hidden;
+}
+
+.load-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-style: italic;
+  font-size: 15px;
+  color: rgba(244, 228, 188, 0.75);
+}
+
+#load-label {
+  flex: 1;
+  text-align: left;
+}
+
+#load-pct {
+  font-family: 'Cinzel', serif;
+  font-style: normal;
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  opacity: 0.8;
+}
+
+.load-spinner {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid rgba(244, 228, 188, 0.2);
+  border-top-color: #f4e4bc;
+  animation: load-spin 0.9s linear infinite;
+  will-change: transform;
+}
+
+.load-bar {
+  position: relative;
+  height: 3px;
+  margin-top: 10px;
+  background: rgba(244, 228, 188, 0.14);
+  overflow: hidden;
+}
+
+#load-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #a8843a, #f4e4bc);
+  box-shadow: 0 0 8px rgba(244, 210, 140, 0.6);
+  transition: width 0.4s ease;
+}
+
+.load-bar::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgba(255, 245, 220, 0.45), transparent);
+  animation: load-shimmer 1.6s ease-in-out infinite;
+  will-change: transform;
+}
+
+@keyframes load-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes load-shimmer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+/* Clicked Play before the world was ready: the button waits with the bar. */
+#menu.entering #play {
+  pointer-events: none;
+  opacity: 0.85;
+  border-color: rgba(244, 228, 188, 0.9);
+}
+
+#menu.entering .worlds,
+#menu.entering .pixels {
+  display: none;
+}
+
 /* ---------- HUD ---------- */
 
 #hud {

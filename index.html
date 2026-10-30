@@ -94,6 +94,10 @@
         <h1>Murk</h1>
         <p class="subtitle">A tale of the Vale</p>
         <button id="play">Click to begin</button>
+        <div id="load" class="load" role="progressbar" aria-label="Loading the world">
+          <div class="load-row"><span class="load-spinner" aria-hidden="true"></span><span id="load-label">Kindling the sky&hellip;</span><span id="load-pct">0%</span></div>
+          <div class="load-bar"><div id="load-fill"></div></div>
+        </div>
         <p class="hint" id="loading">Shaping the land&hellip;</p>
         <div class="pixels"><span>Pixels</span><div id="pixels" role="radiogroup" aria-label="Pixelation"></div></div>
         <details class="worlds">

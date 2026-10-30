@@ -40,6 +40,44 @@ import { settings, QUALITY, PRESET_ORDER, rememberQuality, PIXEL_LEVELS, loadPix
 import { Feedback } from '../ui/Feedback.js';
 import { MapScreen } from '../ui/MapScreen.js';
 
+// Loading stages in order: name (as marked in init), a weight (its share of
+// the load time, from measured timings) and what the menu says while it is
+// being made. 'frame' is the first full frame: shader linking and the first
+// draw, which on a GPU is the last second or so.
+const STAGES = [
+  ['environment', 1, 'Kindling the sky'],
+  ['terrain', 10, 'Raising the mountains'],
+  ['mask', 13, 'Carving the rivers and roads'],
+  ['grass', 1.5, 'Sowing the meadows'],
+  ['water', 1.5, 'Filling the lakes'],
+  ['textures', 9, 'Quarrying stone and timber'],
+  ['village', 4.5, 'Building the village'],
+  ['castle', 1, 'Raising the castles'],
+  ['mushrooms', 1, 'Opening the realm gates'],
+  ['realms', 1, 'Pouring the waterfalls'],
+  ['ruins', 1, 'Weathering the ruins'],
+  ['trees', 13, 'Growing the forests'],
+  ['world0', 5, 'Gathering the light'],
+  ['compile', 3, 'Waking the world'],
+  ['frame', 10, 'Waking the world'],
+];
+const STAGE_TOTAL = STAGES.reduce((a, s) => a + s[1], 0);
+
+// Give the browser a turn: paint the progress bar and handle input. Falls
+// back to a timer so loading continues in a background tab (no frames there).
+function nextTask() {
+  return new Promise((resolve) => {
+    let done = false;
+    const go = () => {
+      if (done) return;
+      done = true;
+      resolve();
+    };
+    requestAnimationFrame(() => setTimeout(go, 0));
+    setTimeout(go, 50);
+  });
+}
+
 export class Game {
   constructor(container) {
     this.container = container;
@@ -77,21 +115,33 @@ export class Game {
     window.addEventListener('resize', () => this.onResize());
   }
 
-  // Builds the world. Synchronous and a little slow (terrain generation).
-  init() {
+  // Builds the world in stages, handing the browser back control between
+  // them so the page stays responsive while the land is made. After each
+  // stage onProgress(fraction, label) reports how far along it is, and once
+  // the land, sky and water exist the view behind the menu is drawn as the
+  // rest fills in. Resolves when the world is ready to walk in.
+  async init(onProgress = () => {}) {
     const scene = this.scene;
     const t0 = performance.now();
     this.timings = {};
-    const mark = (name) => {
+    let done = 0;
+    onProgress(0, STAGES[0][2]);
+    const mark = async (name) => {
       this.timings[name] = Math.round(performance.now() - t0);
+      const i = STAGES.findIndex((st) => st[0] === name);
+      done += i >= 0 ? STAGES[i][1] : 0;
+      onProgress(Math.min(1, done / STAGE_TOTAL), (STAGES[i + 1] || STAGES[i])[2]);
+      this.previewFrame();
+      await nextTask();
     };
 
     this.environment = new Environment(scene, this.renderer);
-    mark('environment');
+    await mark('environment');
 
     this.noiseTexture = createNoiseTexture();
     this.terrain = new Terrain();
-    mark('terrain');
+    this.placePreviewCamera();
+    await mark('terrain');
     this.rocks = new RockField(this.terrain);
     const cutouts = [
       ...this.rocks.footprints,
@@ -102,8 +152,9 @@ export class Game {
       ...REGIONS.map((R) => ({ x: R.x + (R.gate || { dx: 50 }).dx, z: R.z + (R.gate || { dz: 50 }).dz, r: 3.5 })),
     ];
     this.groundMask = new GroundMask(this.terrain, { cutouts });
-    mark('mask');
+    await mark('mask');
     this.wind = new Wind();
+    this.setupPostProcessing();
     // Sun (or moon) direction and colour × intensity, for shader effects.
     this.sunInfo = { direction: this.environment.lightDir, color: new THREE.Color() };
 
@@ -122,23 +173,23 @@ export class Game {
       sun: this.sunInfo,
     });
     scene.add(this.grass.group);
-    mark('grass');
+    await mark('grass');
 
     this.water = new Water({ terrain: this.terrain, noise: this.noiseTexture, wind: this.wind });
     scene.add(this.water.group);
-    mark('water');
+    await mark('water');
 
     this.buildingMaterials = createBuildingMaterials(this.noiseTexture, this.terrain.heightTexture);
     this.buildingMaterials.turf = createTurfMaterial({ noise: this.noiseTexture, mask: this.groundMask.texture });
     this.plates = new Plates({ terrain: this.terrain, noise: this.noiseTexture, turf: this.buildingMaterials.turf });
     scene.add(this.plates.group);
-    mark('textures');
+    await mark('textures');
     this.village = new Village({ terrain: this.terrain, materials: this.buildingMaterials });
     scene.add(this.village.group);
-    mark('village');
+    await mark('village');
     this.castles = CASTLES.map((cfg) => new Castle({ terrain: this.terrain, materials: this.buildingMaterials, castle: cfg }));
     for (const c of this.castles) scene.add(c.group);
-    mark('castle');
+    await mark('castle');
     this.islands = new SkyIslands({ noise: this.noiseTexture, materials: this.buildingMaterials });
     scene.add(this.islands.group);
     this.grass.setDiscs(this.islands.tops);
@@ -148,12 +199,12 @@ export class Game {
     scene.add(this.crystals.group);
     this.mushrooms = new Mushrooms({ terrain: this.terrain });
     scene.add(this.mushrooms.group);
-    mark('mushrooms');
+    await mark('mushrooms');
     this.falls = new Falls({ terrain: this.terrain, noise: this.noiseTexture });
     scene.add(this.falls.group);
     this.arches = new Arches({ terrain: this.terrain, noise: this.noiseTexture });
     scene.add(this.arches.group);
-    mark('realms');
+    await mark('realms');
     this.ruins = new Ruins({ terrain: this.terrain, materials: this.buildingMaterials, items: this.village.itemMaterials, noise: this.noiseTexture });
     scene.add(this.ruins.group);
     for (const l of this.ruins.lights) {
@@ -161,11 +212,11 @@ export class Game {
       light.position.set(l.x, l.y, l.z);
       scene.add(light);
     }
-    mark('ruins');
+    await mark('ruins');
 
     this.forest = new Forest({ terrain: this.terrain, mask: this.groundMask, noise: this.noiseTexture, wind: this.wind, rocks: this.rocks, sun: this.sunInfo });
     scene.add(this.forest.group);
-    mark('trees');
+    await mark('trees');
 
     this.motes = new Motes({ wind: this.wind, sun: this.sunInfo });
     scene.add(this.motes.points);
@@ -192,16 +243,62 @@ export class Game {
     });
     this.map = new MapScreen(this);
 
-    this.setupPostProcessing();
-    mark('post');
+    this.applyPixelTuning();
+    this.preview = false;
 
     // Prime shaders and the first frame behind the menu.
     this.updateWorld(0);
-    mark('world0');
+    await mark('world0');
     this.renderer.compile(scene, this.camera);
-    mark('compile');
+    await mark('compile');
     this.render();
-    mark('ready');
+    await mark('frame');
+    this.timings.ready = Math.round(performance.now() - t0);
+    this.ready = true;
+    onProgress(1, '');
+  }
+
+  // Where the view will open: a shared view link, the last save, or the
+  // spawn. Used to point the camera at the land while the rest loads.
+  startPose() {
+    const at = new URLSearchParams(location.search).get('at');
+    if (at) {
+      const [x, z, yaw = 0, pitch = 0, time] = at.split(',').map(Number);
+      if (Number.isFinite(x) && Number.isFinite(z)) return { x, z, yaw, pitch, time };
+    }
+    try {
+      const d = JSON.parse(localStorage.getItem('murk.save') || 'null');
+      if (d && Number.isFinite(d.x) && Number.isFinite(d.z)) return { x: d.x, z: d.z, yaw: d.yaw || 0, pitch: d.pitch || 0, time: d.time };
+    } catch (e) {
+      /* private mode */
+    }
+    return { x: SPAWN.x, z: SPAWN.z, yaw: SPAWN.yaw, pitch: 0 };
+  }
+
+  placePreviewCamera() {
+    const p = this.startPose();
+    this.camera.position.set(p.x, this.terrain.heightAt(p.x, p.z) + 1.7, p.z);
+    this.camera.rotation.set(p.pitch, p.yaw, 0, 'YXZ');
+    if (Number.isFinite(p.time)) this.environment.setTime(p.time);
+    this.preview = new URLSearchParams(location.search).get('preview') !== '0';
+  }
+
+  // One frame of the half-built world behind the menu, once there is land,
+  // sky, water and the atmosphere to see it through.
+  previewFrame() {
+    if (!this.preview || !this.water || !this.composer) return;
+    const env = this.environment;
+    env.update(0, this.camera.position, this.wind);
+    this.renderer.toneMappingExposure = env.exposure;
+    this.atmosphere.update(env.atmosphere, this.wind, this.noiseTexture, this.elapsed);
+    this.sunInfo.color.copy(env.sun.color).multiplyScalar(env.sun.intensity);
+    if (this.grass) this.grass.update(this.camera, this.camera.position);
+    if (this.forest) this.forest.update(this.camera, this.elapsed);
+    if (this.water.material.envMap !== env.envTexture) {
+      this.water.material.envMap = env.envTexture;
+      this.water.material.needsUpdate = true;
+    }
+    this.render();
   }
 
   // ?at=x,z,yaw,pitch,time drops you at a saved view (used by feedback notes).
