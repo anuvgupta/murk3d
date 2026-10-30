@@ -764,3 +764,31 @@ screenshot-checked.
 - Concurrency: another session pushes to main continuously — fetch +
   rebase before every push; one conflict so far (Castle wallRun lift vs
   block scale), resolved keeping both.
+- Later on 2026-10-30 (owner asks, all pushed): #50 far leaves vanish in
+  Strong pixels → leaf alpha boosted with distance in pixel modes only
+  (uLeafBoost). #51 roads+mushrooms → GroundMask road width wobbles
+  (roadWobble), shader roadAmount() adds metre/hand-scale edge noise with a
+  short fade, roadColor() (packed-earth patches, ruts, cracks, gravel, pale
+  verge), grass right up to the edge (grass stroke width+0.2, blades culled
+  by roadAmount), Rocks.placeRoadsides() pebble groups + odd boulder,
+  world/Mushrooms.js (merged lathe geometry per kind, vertex colour +
+  glow attribute, uGlow 0.12+1.3*night, giants bounce: Player.bouncers,
+  BOUNCE_SPEED 10.5, stem colliders). Autosave: murk.save {x,y,z,yaw,
+  pitch,time,paused} every 2 s + pagehide; restored unless ?at=. #53/#54
+  potions/cauldron: Kit keeps + transforms an 'aux' attribute (liquid
+  centre+radius) → shader works in bottle space: murmur (deep vs deep*0.35,
+  5× slower) + eel (8-sample gaussian trail along a Lissajous path, visible
+  in bursts); cauldron kind 6 with vertex-animated bubbles (phase .4-.8) and
+  splashes (>.8), flame ring (flicker() vertex wobble on fm.flame), logs,
+  ladle. Kit.build drops 'aux' where a material's parts disagree (the empty
+  bottle's dregs broke mergeGeometries). #55 plaza edge → river bank
+  e*0.3+max(0,e-6)²*0.015, plaza plot eases over 16 m, rubble retaining
+  wall + ashlar kerb where drop>0.45. #57 rock/turf boundary: wnClass mix
+  0.55 (was 0.9) + noisier threshold. Clouds: masses thickened after CA
+  renders showed thin skies; churn's second octave is plain noise now.
+- GLSL reserved word `patch` has now bitten three times (sweep, quilt,
+  packed). Never name a float `patch`.
+- Headless renders are slow since the cloud overhaul (~8-10 min/frame in
+  swiftshader at 800×450); batches 68-72 queued back to back. Verify CA
+  (clouds), CB (isle sea, flowers, tundra), CC (roads, mushrooms, pixel
+  trees), CD (potions, cauldron), CE (plaza edge, hill rock, ghibli).
