@@ -33,7 +33,7 @@ import { SPAWN } from '../world/plan.js';
 import { Input } from '../player/Input.js';
 import { Player } from '../player/Player.js';
 import { HUD } from '../ui/HUD.js';
-import { settings, QUALITY, PRESET_ORDER, rememberQuality } from './settings.js';
+import { settings, QUALITY, PRESET_ORDER, rememberQuality, PIXEL_LEVELS, loadPixelLevel, rememberPixelLevel } from './settings.js';
 import { Feedback } from '../ui/Feedback.js';
 import { MapScreen } from '../ui/MapScreen.js';
 
@@ -42,7 +42,11 @@ export class Game {
     this.container = container;
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, settings.pixelRatio));
+    // Rendering resolution: the preset's ratio, or a coarse grid when pixelated.
+    this.baseRatio = Math.min(window.devicePixelRatio, settings.pixelRatio);
+    this.pixelLevel = loadPixelLevel();
+    renderer.setPixelRatio(this.effectiveRatio());
+    renderer.domElement.style.imageRendering = PIXEL_LEVELS[this.pixelLevel].px ? 'pixelated' : 'auto';
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -301,6 +305,7 @@ export class Game {
         this.fDownAt = undefined;
       }
       if (input.wasPressed('KeyC')) this.cycleClouds();
+      if (input.wasPressed('KeyP')) this.setPixelLevel((this.pixelLevel + 1) % PIXEL_LEVELS.length);
       if (input.wasPressed('KeyM')) this.map.show(!this.map.open);
       if (input.wasPressed('F3')) {
         this.perf.show = !this.perf.show;
@@ -337,8 +342,8 @@ export class Game {
     a.step++;
     a.settleUntil = this.elapsed + 4;
     if (a.step === 1) {
-      this.renderer.setPixelRatio(Math.max(0.85, this.renderer.getPixelRatio() * 0.8));
-      this.onResize();
+      this.baseRatio = Math.max(0.85, this.baseRatio * 0.8);
+      this.applyResolution();
       this.hud.toast('Lowering resolution for a smoother frame rate');
     } else if (a.step === 2) {
       this.grass.radiusScale = 0.7;
@@ -415,6 +420,30 @@ export class Game {
   render() {
     if (this.composer) this.composer.render();
     else this.renderer.render(this.scene, this.camera);
+  }
+
+  // Device pixels per CSS pixel: the preset's ratio, or 1/px when pixelated.
+  effectiveRatio() {
+    const px = PIXEL_LEVELS[this.pixelLevel].px;
+    return px ? 1 / px : this.baseRatio;
+  }
+
+  applyResolution() {
+    const ratio = this.effectiveRatio();
+    this.renderer.setPixelRatio(ratio);
+    this.renderer.domElement.style.imageRendering = PIXEL_LEVELS[this.pixelLevel].px ? 'pixelated' : 'auto';
+    if (this.composer) this.composer.setPixelRatio(ratio);
+    this.onResize();
+  }
+
+  // Pixelation level: 0 is the plain image, higher is chunkier.
+  setPixelLevel(i, { quiet = false } = {}) {
+    i = Math.max(0, Math.min(PIXEL_LEVELS.length - 1, i | 0));
+    this.pixelLevel = i;
+    rememberPixelLevel(i);
+    this.applyResolution();
+    if (!quiet && this.hud) this.hud.toast(`Pixels: ${PIXEL_LEVELS[i].name.toLowerCase()}`);
+    window.dispatchEvent(new CustomEvent('murk:pixels', { detail: i }));
   }
 
   onResize() {

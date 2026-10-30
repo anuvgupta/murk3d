@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Game } from './core/Game.js';
 import { REGIONS } from './world/regions.js';
+import { PIXEL_LEVELS } from './core/settings.js';
 
 const menu = document.getElementById('menu');
 const play = document.getElementById('play');
@@ -37,6 +38,24 @@ for (const R of [{ id: 'vale', name: 'The Vale', tagline: 'Home' }, ...REGIONS])
   });
   worlds.appendChild(b);
 }
+
+// Pixelation: Off / Mild / Strong (P in the game cycles them too).
+const pixels = document.getElementById('pixels');
+const pixelButtons = PIXEL_LEVELS.map((L, i) => {
+  const b = document.createElement('button');
+  b.className = 'pix';
+  b.type = 'button';
+  b.setAttribute('role', 'radio');
+  b.textContent = L.name;
+  b.addEventListener('click', () => game.setPixelLevel(i, { quiet: true }));
+  pixels.appendChild(b);
+  return b;
+});
+function refreshPixels() {
+  pixelButtons.forEach((b, i) => b.setAttribute('aria-checked', String(i === game.pixelLevel)));
+}
+window.addEventListener('murk:pixels', refreshPixels);
+refreshPixels();
 
 game.input.on('lock', () => {
   menu.classList.add('hidden');

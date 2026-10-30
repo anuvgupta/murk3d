@@ -24,3 +24,33 @@ export function rememberQuality(name) {
   }
 }
 export const settings = PRESETS[QUALITY];
+
+// Pixelation: the frame is rendered at a lower resolution and scaled up
+// with nearest-neighbour sampling, so the pixels are real and the whole
+// post chain (atmosphere, bloom) stays consistent. `px` is the size of one
+// game pixel in CSS pixels; 0 means the normal resolution.
+export const PIXEL_LEVELS = [
+  { name: 'Off', px: 0 },
+  { name: 'Mild', px: 3 },
+  { name: 'Strong', px: 6 },
+];
+export function loadPixelLevel() {
+  const q = new URLSearchParams(window.location.search).get('pixels');
+  let v = q;
+  if (v === null) {
+    try {
+      v = localStorage.getItem('murk.pixels');
+    } catch (e) {
+      v = null;
+    }
+  }
+  const i = parseInt(v ?? '0', 10);
+  return Number.isInteger(i) && i >= 0 && i < PIXEL_LEVELS.length ? i : 0;
+}
+export function rememberPixelLevel(i) {
+  try {
+    localStorage.setItem('murk.pixels', String(i));
+  } catch (e) {
+    /* private mode */
+  }
+}

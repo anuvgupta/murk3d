@@ -582,3 +582,29 @@ body {
   opacity: 1;
   transition: opacity 0.05s;
 }
+
+/* Pixelation control in the menu. */
+#menu .pixels {
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+#menu .pixels > span {
+  font-family: 'Cinzel', serif;
+  font-size: 13px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  opacity: 0.7;
+  margin-right: 6px;
+}
+#menu button.pix {
+  padding: 6px 16px;
+  font-size: 13px;
+  letter-spacing: 0.12em;
+}
+#menu button.pix[aria-checked='true'] {
+  background: rgba(120, 90, 40, 0.75);
+  border-color: #f4e4bc;
+}
