@@ -850,3 +850,22 @@ screenshot-checked.
 - Realm tour (CO): citadel castle is a keeper; moonlit grove good; canyon
   and karst walls over-striped (fixed above); river-town white ashlar
   blobby up close (todo: per-block tone + finer joints at house scale).
+- Verified (CT/CU): tundra rim smooth after the gradient-normal
+  classification (faceN now = height-texture gradient over 0.8 cell,
+  mixed 0.7*steepK; carpet uses min(wn.y, faceN.y)); hill rock + lip
+  closed #57/#24 with a render. Karst spire close-up showed the carpet
+  cut-off as a texel staircase → terrainSlope() is bilinear now. Karst
+  wall still monotone warm beige at distance (rockAlbedo's warm band
+  beats the grey realm tint) — candidate: per-spire tint from a
+  low-frequency noise on xz, and lichen/vegetation ledges on karst.
+- Falls shader: ropes (noise b, slow), finer streak octave, wavering
+  edges, spray flecks in the plume. Tundra snow 0.9/0.93/0.99 with cover
+  0.72–1.0 (was a grey-green 0.45 mix).
+- Headless timings are inflated ~10× while a render batch runs (the
+  staged init renders a preview frame at each `await mark`, 20–80 s each
+  in swiftshader). Not a real regression; judge load time on a GPU.
+- Open design list: karst wall tint variety; river-town white ashlar at
+  house scale; far tree cards; noon haze; interior crypt detail at 2 m;
+  rock close-range (ongoing). Keepers to re-shoot after every big change:
+  overlook golden, bridge morning, village golden, castle gate 16:00,
+  lake jetty 18:24, citadel 16:00, glade 19:12.
