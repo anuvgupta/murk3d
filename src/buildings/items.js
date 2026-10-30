@@ -9,6 +9,7 @@
 
 import * as THREE from 'three';
 import { mulberry32 } from '../util/noise.js';
+import { bevelBox, organicLathe, tube, blob } from './shapes.js';
 
 // --- Weapon materials --------------------------------------------------------
 
@@ -121,6 +122,42 @@ function edgeStrips(kit, material, len, width, thick) {
   }
 }
 
+// --- Hilts ---------------------------------------------------------------------
+
+// A hilt laid along -x from the guard at x = 0: a turned grip swelling in
+// the middle with a leather wrap spiralling round it, a guard curving
+// toward the blade with knobbed ends, a collar and an oblong wheel pommel.
+function hilt(kit, k, { gripLen, gripR, guardSpan, guardR, pommel, seed = 1, wrap = true, quillons = 0.35 }) {
+  const grip = [[gripR * 0.92, 0], [gripR * 1.05, gripLen * 0.35], [gripR * 1.08, gripLen * 0.6], [gripR * 0.95, gripLen]];
+  kit.add(k.grip, organicLathe(grip, { segments: 10, seed, dent: 0.04, oval: 0.12 }), { rz: Math.PI / 2 });
+  if (wrap) {
+    const turns = Math.max(4, Math.round(gripLen / 0.02));
+    const pts = [];
+    for (let i = 0; i <= turns * 8; i++) {
+      const f = i / (turns * 8);
+      const a = f * turns * Math.PI * 2;
+      const r = gripR * (1.02 + 0.08 * Math.sin(f * Math.PI)) + 0.0012;
+      pts.push([-f * gripLen, Math.cos(a) * r, Math.sin(a) * r * 0.88]);
+    }
+    kit.add(k.grip, tube(pts, gripR * 0.16, { radial: 3, tubular: turns * 8 }));
+  }
+  // Guard: a block at the root, quillons curving toward the blade.
+  kit.add(k.guard, bevelBox(guardR * 3.2, guardR * 3.6, guardR * 2.4, guardR * 0.6), { x: guardR * 1.2 });
+  for (const sy of [-1, 1]) {
+    const pts = [];
+    for (let i = 0; i <= 6; i++) {
+      const f = i / 6;
+      pts.push([guardR + Math.pow(f, 2) * guardSpan * quillons, sy * (guardR * 1.5 + f * (guardSpan - guardR * 1.5)), 0]);
+    }
+    kit.add(k.guard, tube(pts, guardR, { radial: 6, tip: guardR * 0.7 }));
+    const end = pts[pts.length - 1];
+    kit.add(k.guard, blob(guardR * 1.5, guardR * 1.7, guardR * 1.5, { seed: seed + sy, dent: 0.1 }), { x: end[0], y: end[1], z: 0 });
+  }
+  // Collar and pommel.
+  kit.add(k.pommel, organicLathe([[0, 0], [gripR * 1.25, 0.002], [gripR * 1.35, pommel * 0.25], [gripR * 1.1, pommel * 0.45], [0, pommel * 0.5]], { segments: 10, seed: seed + 3, dent: 0.03, oval: 0.1 }), { x: -gripLen + 0.002, rz: Math.PI / 2 });
+  kit.add(k.pommel, blob(pommel * 0.55, pommel, pommel * 0.62, { seed: seed + 5, dent: 0.06, detail: 2 }), { x: -gripLen - pommel * 0.75 });
+}
+
 // --- Weapons ------------------------------------------------------------------
 
 export function sword(kit, im, kind, seed = 1) {
@@ -131,23 +168,12 @@ export function sword(kit, im, kind, seed = 1) {
   const bladeT = 0.009;
   const gripLen = 0.11;
   // Grip, guard, blade, pommel laid along +x; grip from -gripLen..0.
-  kit.cylinder(k.grip, 0.014, 0.016, gripLen, { x: -gripLen / 2, rz: Math.PI / 2 }, { segments: 10 });
-  // Leather wrap ridges.
-  for (let i = 0; i < 5; i++) kit.cylinder(k.grip, 0.0165, 0.0165, 0.008, { x: -gripLen * 0.1 - i * gripLen * 0.19, rz: Math.PI / 2 }, { segments: 10 });
-  // Cross guard, slightly curved toward the blade.
-  kit.box(k.guard, 0.03, 0.17, 0.016, { x: 0.012 });
-  for (const s of [-1, 1]) kit.box(k.guard, 0.02, 0.03, 0.02, { x: 0.02, y: s * 0.09 });
+  hilt(kit, k, { gripLen, gripR: 0.0145, guardSpan: 0.095, guardR: 0.0075, pommel: 0.024, seed, wrap: kind !== 'wooden' });
   // Blade.
   kit.frame({ x: 0.027 }, () => {
     kit.add(k.blade, bladeGeometry(bladeLen, bladeW, bladeT));
     if (kind !== 'wooden') edgeStrips(kit, k.edge, bladeLen, bladeW, bladeT);
   });
-  // Pommel.
-  if (kind === 'wooden') kit.add(k.pommel, new THREE.SphereGeometry(0.022, 10, 8), { x: -gripLen - 0.016 });
-  else {
-    kit.add(k.pommel, new THREE.SphereGeometry(0.02, 12, 10), { x: -gripLen - 0.016 });
-    kit.cylinder(k.pommel, 0.012, 0.016, 0.012, { x: -gripLen - 0.003, rz: Math.PI / 2 }, { segments: 10 });
-  }
   return { length: gripLen + 0.03 + bladeLen, name: `${kind} sword` };
 }
 
@@ -158,16 +184,12 @@ export function dagger(kit, im, kind, seed = 1) {
   const bladeW = 0.036;
   const bladeT = 0.007;
   const gripLen = 0.095;
-  kit.cylinder(k.grip, 0.011, 0.013, gripLen, { x: -gripLen / 2, rz: Math.PI / 2 }, { segments: 10 });
-  for (let i = 0; i < 4; i++) kit.cylinder(k.grip, 0.0135, 0.0135, 0.006, { x: -gripLen * 0.12 - i * gripLen * 0.22, rz: Math.PI / 2 }, { segments: 10 });
-  // Short swept guard.
-  kit.box(k.guard, 0.018, 0.085, 0.012, { x: 0.008, rz: 0 });
-  for (const s of [-1, 1]) kit.box(k.guard, 0.025, 0.014, 0.012, { x: 0.017, y: s * 0.045, rz: s * 0.5 });
+  // Short guard swept hard toward the blade.
+  hilt(kit, k, { gripLen, gripR: 0.0115, guardSpan: 0.05, guardR: 0.006, pommel: 0.018, seed: seed + 7, wrap: kind !== 'wooden', quillons: 0.6 });
   kit.frame({ x: 0.018 }, () => {
     kit.add(k.blade, bladeGeometry(bladeLen, bladeW, bladeT, { taperStart: 0.45 }));
     if (kind !== 'wooden') edgeStrips(kit, k.edge, bladeLen, bladeW, bladeT);
   });
-  kit.add(k.pommel, new THREE.SphereGeometry(0.014, 10, 8), { x: -gripLen - 0.01 });
   return { length: gripLen + 0.02 + bladeLen, name: `${kind} dagger` };
 }
 
@@ -178,13 +200,10 @@ export function greatsword(kit, im, kind, seed = 1) {
   const bladeW = 0.075;
   const bladeT = 0.012;
   const gripLen = 0.3;
-  // Long two-hand grip with a leather wrap and a steel collar in the middle.
-  kit.cylinder(k.grip, 0.017, 0.019, gripLen, { x: -gripLen / 2, rz: Math.PI / 2 }, { segments: 10 });
-  kit.cylinder(k.guard, 0.02, 0.02, 0.025, { x: -gripLen / 2, rz: Math.PI / 2 }, { segments: 10 });
-  for (let i = 0; i < 9; i++) kit.cylinder(k.grip, 0.0195, 0.0195, 0.007, { x: -gripLen * 0.06 - i * gripLen * 0.105, rz: Math.PI / 2 }, { segments: 10 });
-  // Wide guard with down-turned tips and a ricasso (unsharpened blade root).
-  kit.box(k.guard, 0.035, 0.3, 0.022, { x: 0.018 });
-  for (const s of [-1, 1]) kit.box(k.guard, 0.05, 0.03, 0.024, { x: 0.035, y: s * 0.16, rz: -s * 0.35 });
+  // Long two-hand grip, wrapped, with a wide guard swept toward the blade.
+  hilt(kit, k, { gripLen, gripR: 0.0175, guardSpan: 0.16, guardR: 0.01, pommel: 0.032, seed: seed + 13, wrap: kind !== 'wooden', quillons: 0.3 });
+  // A collar dividing the two hands.
+  kit.add(k.guard, organicLathe([[0.019, 0], [0.022, 0.008], [0.022, 0.016], [0.019, 0.024]], { segments: 10, seed, dent: 0.03 }), { x: -gripLen / 2 + 0.012, rz: Math.PI / 2 });
   kit.frame({ x: 0.036 }, () => {
     // Ricasso: a blunt rectangular root before the edge begins.
     kit.box(k.blade, 0.16, bladeW * 0.8, bladeT * 1.3, { x: 0.08 });
@@ -195,9 +214,6 @@ export function greatsword(kit, im, kind, seed = 1) {
       if (kind !== 'wooden') edgeStrips(kit, k.edge, bladeLen - 0.16, bladeW, bladeT);
     });
   });
-  // Heavy pommel.
-  kit.add(k.pommel, new THREE.SphereGeometry(0.028, 12, 10), { x: -gripLen - 0.022 });
-  kit.cylinder(k.pommel, 0.016, 0.022, 0.016, { x: -gripLen - 0.004, rz: Math.PI / 2 }, { segments: 10 });
   return { length: gripLen + 0.04 + bladeLen, name: `${kind} greatsword` };
 }
 
@@ -403,26 +419,70 @@ export function displayTable(kit, m, im) {
   return { hx: w / 2 + 0.1, hz: d / 2 + 0.1 };
 }
 
-// A-frame rack: swords stand in the front row, greatswords lean behind.
+// Sword stand: swords hang tip-down in a slotted trough, guards resting on
+// a pegged rail; greatsword hilts stand above a back rail. A round shield
+// hangs on one end post, two spears lean on the other.
 export function weaponRack(kit, m, im) {
   const w = 2.4;
-  const h = 1.75;
+  const rng = mulberry32(31);
+  const wood = (g, t) => kit.add(m.timber, g, t);
   for (const sx of [-1, 1]) {
     kit.frame({ x: sx * (w / 2) }, () => {
-      kit.beamBetween(m.timber, -0.28, 0, 0, h, 0.07, 0.07, 0);
-      kit.beamBetween(m.timber, 0.28, 0, 0, h, 0.07, 0.07, 0);
+      wood(bevelBox(0.11, 0.09, 0.78, 0.02, { metres: 1, grain: true }), { y: 0.045 });
+      wood(bevelBox(0.09, 1.72, 0.09, 0.015, { metres: 1, grain: true }), { y: 0.95 });
+      // Braces from the post to the foot.
+      for (const sz of [-1, 1]) wood(bevelBox(0.06, 0.5, 0.06, 0.012, { metres: 1, grain: true }), { y: 0.25, z: sz * 0.17, rx: sz * 0.75 });
     });
   }
-  kit.box(m.timber, w + 0.1, 0.07, 0.07, { y: h }, { metres: 1.2, grain: true });
-  kit.box(m.timber, w + 0.1, 0.06, 0.09, { y: 0.12 }, { metres: 1.2, grain: true });
-  // Notched rail the blades rest against.
-  kit.box(m.timber, w, 0.05, 0.06, { y: 1.0, z: 0.12 }, { metres: 1.2, grain: true });
-  WEAPON_KINDS.forEach((kind, i) => {
-    const x = -w / 2 + 0.3 + i * 0.6;
-    // Sword standing hilt-up, flat face to the viewer, leaning on the rail.
-    kit.frame({ x, y: 0.15, z: 0.14, rz: Math.PI / 2 - 0.1 }, () => sword(kit, im, kind, i));
-    // Greatsword behind, hilt up, leaning back.
-    kit.frame({ x: x + 0.2, y: 0.15, z: -0.12, rz: Math.PI / 2 + 0.12 }, () => greatsword(kit, im, kind, i + 4));
+  // Cap rail with rounded ends, rails, troughs.
+  wood(bevelBox(w + 0.24, 0.07, 0.2, 0.025, { metres: 1.2, grain: true }), { y: 1.84 });
+  const front = 0.13;
+  const back = -0.13;
+  // Each rail is a pair of bars with a slot between for the blades.
+  for (const [y, z] of [[1.0, front], [1.42, back]]) {
+    for (const sz of [-1, 1]) wood(bevelBox(w, 0.06, 0.035, 0.012, { metres: 1.2, grain: true }), { y, z: z + sz * 0.03 });
+  }
+  for (const z of [front, back]) {
+    wood(bevelBox(w, 0.04, 0.2, 0.012, { metres: 1.2, grain: true }), { y: 0.1, z });
+    for (const sz of [-1, 1]) wood(bevelBox(w, 0.12, 0.03, 0.01, { metres: 1.2, grain: true }), { y: 0.16, z: z + sz * 0.085 });
+  }
+  // Turned pegs between the hanging swords.
+  for (let i = 0; i <= 7; i++) {
+    const x = -w / 2 + 0.15 + i * 0.3;
+    wood(organicLathe([[0, 0], [0.016, 0.002], [0.013, 0.05], [0.02, 0.07], [0.011, 0.085], [0, 0.088]], { segments: 8, seed: i, dent: 0.05 }), { x, y: 1.03, z: front + 0.03 });
+  }
+  // Tip-down through the slot, flat of the blade to the front, the guard
+  // resting across the rail; one slot left empty, as if just sold.
+  for (let i = 0; i < 7; i++) {
+    if (i === 4) continue;
+    const kind = WEAPON_KINDS[(i * 3) % WEAPON_KINDS.length];
+    kit.frame({ x: -w / 2 + 0.3 + i * 0.3 + (rng() - 0.5) * 0.03, y: 1.045, z: front, rz: -Math.PI / 2 + (rng() - 0.5) * 0.03, ry: (rng() - 0.5) * 0.2 }, () => sword(kit, im, kind, i));
+  }
+  for (let i = 0; i < 5; i++) {
+    const kind = WEAPON_KINDS[(i + 1) % WEAPON_KINDS.length];
+    kit.frame({ x: -w / 2 + 0.3 + i * 0.45, y: 1.47, z: back, rz: -Math.PI / 2 + (rng() - 0.5) * 0.03, ry: (rng() - 0.5) * 0.2 }, () => greatsword(kit, im, kind, i + 4));
+  }
+  // Round shield on the left post, facing out: planked, iron rim and boss.
+  kit.frame({ x: -w / 2 - 0.07, y: 1.15, rz: Math.PI / 2, ry: 0 }, () => {
+    const disc = organicLathe([[0, 0.045], [0.12, 0.04], [0.26, 0.022], [0.32, 0], [0.32, -0.012], [0, -0.012]].reverse(), { segments: 24, seed: 2, dent: 0.02, oval: 0.02 });
+    kit.add(m.planks, disc, { ry: 0.3 });
+    const rim = [];
+    for (let k = 0; k < 24; k++) rim.push([Math.cos((k / 24) * Math.PI * 2) * 0.322, Math.sin((k / 24) * Math.PI * 2) * 0.322]);
+    kit.add(im.steelDark, ringXZ(rim, -0.004, 0.012));
+    kit.add(im.steelDark, organicLathe([[0, 0.11], [0.045, 0.09], [0.075, 0.05], [0.085, 0.04], [0.085, 0.03], [0, 0.03]].reverse(), { segments: 16, seed: 4, dent: 0.03 }));
   });
-  return { hx: w / 2 + 0.2, hz: 0.35 };
+  // Two spears leaning on the right post.
+  for (let i = 0; i < 2; i++) {
+    kit.frame({ x: w / 2 + 0.12 + i * 0.05, y: 0.02, z: -0.08 + i * 0.16, rz: 0.12 - i * 0.05, rx: (i - 0.5) * 0.1 }, () => {
+      kit.add(im.wood, tube([[0, 0, 0], [0.005, 0.9, 0], [0, 1.85, 0]], 0.016, { radial: 7, tubular: 10 }));
+      kit.add(im.steelDark, organicLathe([[0.019, 0], [0.021, 0.08], [0, 0.09]], { segments: 8, seed: i }), { y: 1.84 });
+      kit.add(im.steel, organicLathe([[0.012, 0], [0.045, 0.09], [0.035, 0.18], [0, 0.3]], { segments: 4, seed: i + 2, dent: 0.02, oval: -0.75, flat: true }), { y: 1.92 });
+    });
+  }
+  return { hx: w / 2 + 0.25, hz: 0.42 };
+}
+
+// A closed ring in a horizontal plane (local y) through xz points.
+function ringXZ(pts, y, r) {
+  return tube(pts.map(([x, z]) => [x, y, z]), r, { radial: 5, closed: true, tubular: pts.length * 2 });
 }
