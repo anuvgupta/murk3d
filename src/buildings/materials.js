@@ -106,8 +106,10 @@ export function createBuildingMaterials(noiseTexture, heightMap) {
     lamp: new THREE.MeshStandardMaterial({ color: 0x302418, emissive: 0xffb060, emissiveIntensity: 0.2, roughness: 0.3 }),
     // Castle: pale limestone, a slightly warmer dressed stone, blue-grey slate, gilt.
     // Limestone picks up a lot of sky light, so its shadow side stays luminous.
-    white: std(whiteAshlar, 1.2, 0.8, { color: 0xfaf7f0, envMapIntensity: 2.0 }),
-    whiteDark: std(whiteAshlar, 1.6, 0.85, { color: 0xe4ddd0, envMapIntensity: 1.8 }),
+    // Limestone, not paper: a touch of warm grey and less sky bounce, so the
+    // blocks keep their tone and the weathering shows in full sun.
+    white: std(whiteAshlar, 1.6, 0.82, { color: 0xe9e3d8, envMapIntensity: 1.4 }),
+    whiteDark: std(whiteAshlar, 2.0, 0.86, { color: 0xd3cbbd, envMapIntensity: 1.3 }),
     cobbleWhite: std(whiteCobble, 2.5, 0.9, { color: 0xe6e0d4, envMapIntensity: 1.6 }),
     whiteHouse: std(whiteFine, 1.0, 0.85, { color: 0xf4f0e8, envMapIntensity: 1.6 }),
     slateBlue: std(slate, 2, 0.7, { color: 0x6f7f96 }),
