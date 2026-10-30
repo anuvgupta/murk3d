@@ -831,3 +831,22 @@ screenshot-checked.
   clean.
 - Render infra: view2 goto 240 s, waitForFunction 900 s (page loads
   take 4 min when a build runs alongside); 'sky' option sets skyTime.
+- Faceted realm floors solved by the debug views (TERRAIN_DEBUG /
+  g.terrainDebug / view2 `tdebug`): constant output was smooth (post
+  chain innocent), world and shading normals smooth, baked slope smooth,
+  but wnClass.y faceted → the dFdx/dFdy face normal mixed 55 % into the
+  classification normal painted the triangles into carpet/ground colour.
+  Fix: steepK = smoothstep(0.9, 0.62, wn.y); mix(wn, faceN, 0.55*steepK)
+  — face normal only where the smooth one lies about a cliff. Keep the
+  debug views; they cost nothing and save an hour of guessing.
+- Strata on steep rock: first pass (sin p.y*2.2, ±0.3) turned canyon and
+  karst into zebra stripes; now p.y*1.1 with warp*14 + tri(0.05) jitter,
+  amplitude 0.07–0.16 height and 0.16/0.10 colour. Mesa lips: position
+  noise on the edge radius (2.2 m + 0.7 m) and width ×(0.8–1.3).
+- Clouds after rescale (CN6–8): Ghibli towers now distinct lobed masses
+  (p300 dusk good), noon sky still carries a thin veil; painterly noon
+  mostly clear with streaks. Watch for "whole sky one mass" at other
+  phases.
+- Realm tour (CO): citadel castle is a keeper; moonlit grove good; canyon
+  and karst walls over-striped (fixed above); river-town white ashlar
+  blobby up close (todo: per-block tone + finer joints at house scale).
