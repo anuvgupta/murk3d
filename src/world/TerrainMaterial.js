@@ -7,7 +7,7 @@ import { TERRAIN_HEIGHT_GLSL } from './Terrain.js';
 // meadow, dirt roads, cobbles, river beds, rock and snow. No tiled textures, so
 // nothing looks blocky up close or repeats at a distance.
 export function createTerrainMaterial({ noise, mask, heightMap }) {
-  const material = new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0 });
+  const material = new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0, envMapIntensity: 1.35 });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uNoise = { value: noise };
     shader.uniforms.uMask = { value: mask };

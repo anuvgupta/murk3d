@@ -73,7 +73,8 @@ export function rockGeometry(seed, kind = 'boulder', detail = 5) {
 }
 
 export function createRockMaterial(noise) {
-  const material = new THREE.MeshStandardMaterial({ roughness: 0.92, metalness: 0 });
+  // Rock in shadow still takes a good deal of sky light; without it the shaded side of a hill is one black mass.
+  const material = new THREE.MeshStandardMaterial({ roughness: 0.92, metalness: 0, envMapIntensity: 1.6 });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uNoise = { value: noise };
     Object.assign(shader.uniforms, regionUniforms());
