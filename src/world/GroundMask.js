@@ -148,7 +148,8 @@ export class GroundMask {
     // Rocks and other objects sitting on the ground.
     for (const c of cutouts) {
       grass.beginPath();
-      grass.arc(toPx(c.x), toPx(c.z), Math.max(0.6, c.r * PX), 0, Math.PI * 2);
+      if (c.rx) grass.ellipse(toPx(c.ex), toPx(c.ez), Math.max(0.6, c.rx * PX), Math.max(0.6, c.rz * PX), -c.rot, 0, Math.PI * 2);
+      else grass.arc(toPx(c.x), toPx(c.z), Math.max(0.6, c.r * PX), 0, Math.PI * 2);
       grass.fill();
     }
 

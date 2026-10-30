@@ -226,6 +226,34 @@ export class Player {
       // World -> box local (inverse of the yaw rotation).
       const lx = c * dx - s * dz;
       const lz = s * dx + c * dz;
+      if (b.round) {
+        // Elliptical collider (boulders): grow it by the body radius, and if
+        // inside, move out to its rim and slide along the rim's normal.
+        const ex = b.hx + RADIUS;
+        const ez = b.hz + RADIUS;
+        const e2 = (lx * lx) / (ex * ex) + (lz * lz) / (ez * ez);
+        if (e2 >= 1) continue;
+        const e = Math.sqrt(e2);
+        const rx = e > 1e-4 ? lx / e : ex;
+        const rz = e > 1e-4 ? lz / e : 0;
+        const mlx = rx - lx;
+        const mlz = rz - lz;
+        p.x += c * mlx + s * mlz;
+        p.z += -s * mlx + c * mlz;
+        let gx = rx / (ex * ex);
+        let gz = rz / (ez * ez);
+        const gl = Math.hypot(gx, gz) || 1;
+        gx /= gl;
+        gz /= gl;
+        const nx = c * gx + s * gz;
+        const nz = -s * gx + c * gz;
+        const into = this.velocity.x * nx + this.velocity.z * nz;
+        if (into < 0) {
+          this.velocity.x -= nx * into;
+          this.velocity.z -= nz * into;
+        }
+        continue;
+      }
       const qx = THREE.MathUtils.clamp(lx, -b.hx, b.hx);
       const qz = THREE.MathUtils.clamp(lz, -b.hz, b.hz);
       let ox = lx - qx;

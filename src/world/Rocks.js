@@ -316,9 +316,19 @@ export class RockField {
     }
   }
 
-  // Footprints for keeping grass off rocks: { x, z, r }.
+  // Rock spots: `r` keeps trees clear of the whole rock; the ellipse
+  // (ex, ez, rx, rz, rot) is where it actually meets the ground plus a short margin,
+  // so the grass thins out around it instead of burying low rocks.
   get footprints() {
-    return [...this.instances.filter((i) => Math.max(i.sx, i.sz) > 0.35).map((i) => ({ x: i.x, z: i.z, r: Math.max(i.sx, i.sz) * 0.85 })), ...this.extraFootprints];
+    if (this._footprints) return this._footprints;
+    const out = [];
+    for (const i of this.instances) {
+      if (Math.max(i.sx, i.sz) <= 0.35) continue;
+      const o = this.outline(i, -0.05, 0.3);
+      const r = Math.max(i.sx, i.sz) * 0.85;
+      out.push({ x: i.x, z: i.z, r, ex: o ? o.cx : i.x, ez: o ? o.cz : i.z, rx: o ? o.hx + 0.35 : 0.1, rz: o ? o.hz + 0.35 : 0.1, rot: i.ry });
+    }
+    return (this._footprints = [...out, ...this.extraFootprints]);
   }
 
   // Pebbles in groups along the verges, and the odd boulder in the road.
@@ -353,19 +363,93 @@ export class RockField {
     }
   }
 
-  // Colliders for rocks big enough to block the player.
+  // The outline of one rock where its surface lies between `lo` and `hi`
+  // metres above the ground, as an ellipse in the rock's own frame, or null
+  // if no part of it is at that height. Traced from the mesh itself, since
+  // most boulders are sunk well into the ground.
+  outline(i, lo, hi) {
+    const pts = this.surfaceSamples(i.variant);
+    const m = this._m ||= new THREE.Matrix4();
+    const v = this._v ||= new THREE.Vector3();
+    m.compose(new THREE.Vector3(i.x, i.y, i.z), new THREE.Quaternion().setFromEuler(new THREE.Euler(i.rx, i.ry, i.rz, 'YXZ')), new THREE.Vector3(i.sx, i.sy, i.sz));
+    const c = Math.cos(i.ry);
+    const s = Math.sin(i.ry);
+    // The ground under the rock as a tilted plane: three height lookups per
+    // rock instead of one per sample.
+    const t = this.terrain;
+    const ground = t.heightAt(i.x, i.z);
+    const gx = (t.heightAt(i.x + 1, i.z) - t.heightAt(i.x - 1, i.z)) / 2;
+    const gz = (t.heightAt(i.x, i.z + 1) - t.heightAt(i.x, i.z - 1)) / 2;
+    let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+    for (let k = 0; k < pts.length; k += 3) {
+      v.set(pts[k], pts[k + 1], pts[k + 2]).applyMatrix4(m);
+      const dx = v.x - i.x;
+      const dz = v.z - i.z;
+      const h = v.y - (ground + gx * dx + gz * dz);
+      if (h < lo || h > hi) continue;
+      const lx = c * dx - s * dz;
+      const lz = s * dx + c * dz;
+      if (lx < x0) x0 = lx;
+      if (lx > x1) x1 = lx;
+      if (lz < z0) z0 = lz;
+      if (lz > z1) z1 = lz;
+    }
+    if (x0 > x1) return null;
+    const mx = (x0 + x1) / 2;
+    const mz = (z0 + z1) / 2;
+    return { cx: i.x + c * mx + s * mz, cz: i.z - s * mx + c * mz, hx: (x1 - x0) / 2, hz: (z1 - z0) / 2, rot: i.ry };
+  }
+
+  // Colliders from each rock's outline at body height (knee to head), as
+  // ellipses. Rocks with nothing at that height can be stepped past.
   get colliders() {
-    return this.instances
-      .filter((i) => Math.max(i.sx, i.sz) > 0.7 && i.sy > 0.5)
-      .map((i) => ({ cx: i.x, cz: i.z, hx: i.sx * 0.75, hz: i.sz * 0.75, rot: i.ry }));
+    if (this._colliders) return this._colliders;
+    const out = [];
+    for (const i of this.instances) {
+      if (Math.max(i.sx, i.sz) < 0.5 || i.sy < 0.4) continue;
+      const o = this.outline(i, 0.4, 1.7);
+      if (o && Math.max(o.hx, o.hz) >= 0.25) out.push({ ...o, round: true });
+    }
+    return (this._colliders = out);
+  }
+
+  // Points spread over a variant's surface (a few per triangle), so the
+  // body-height slice is found even on big rocks with sparse vertices.
+  get variants() {
+    if (!this._variants) {
+      this._variants = [];
+      for (let k = 0; k < 10; k++) this._variants.push(rockGeometry(101 + k * 13, k < 5 ? 'boulder' : 'slab', k < 5 ? 4 : 5));
+    }
+    return this._variants;
+  }
+
+  surfaceSamples(variant) {
+    this._samples ||= [];
+    if (this._samples[variant]) return this._samples[variant];
+    const g = this.variants[variant];
+    const pos = g.attributes.position;
+    const idx = g.index;
+    const tris = idx ? idx.count / 3 : pos.count / 3;
+    const at = (t, j) => (idx ? idx.getX(t * 3 + j) : t * 3 + j);
+    const N = 3;
+    const out = [];
+    for (let t = 0; t < tris; t++) {
+      const a = at(t, 0), b = at(t, 1), c = at(t, 2);
+      for (let u = 0; u <= N; u++) {
+        for (let w = 0; w <= N - u; w++) {
+          const ku = u / N, kw = w / N, kv = 1 - ku - kw;
+          for (const get of ['getX', 'getY', 'getZ']) out.push(pos[get](a) * kv + pos[get](b) * ku + pos[get](c) * kw);
+        }
+      }
+    }
+    return (this._samples[variant] = new Float32Array(out));
   }
 
   build(noise) {
     const material = createRockMaterial(noise);
     const group = new THREE.Group();
     group.name = 'rocks';
-    const variants = [];
-    for (let k = 0; k < 10; k++) variants.push(rockGeometry(101 + k * 13, k < 5 ? 'boulder' : 'slab', k < 5 ? 4 : 5));
+    const variants = this.variants;
     const dummy = new THREE.Object3D();
     for (let k = 0; k < variants.length; k++) {
       const list = this.instances.filter((i) => i.variant === k);
