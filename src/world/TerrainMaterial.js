@@ -58,6 +58,7 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         float rockAmtOut;
         float rockHOut;
         uniform int uDebug;
+        const float CELL0 = 1.1488; // grid cell at the world's centre, metres
         vec3 dbgGround; float dbgCarpet;
         float rockDetail;
         uniform sampler2D uHeightMap;
@@ -74,13 +75,24 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         // ground above and below it, so steep faces would read as meadow.
         // Classify ground by the true face normal (screen-space derivatives)
         // while lighting keeps the smooth one.
-        vec3 faceN = normalize( cross( dFdx( vWPos ), dFdy( vWPos ) ) );
-        if ( faceN.y < 0.0 ) faceN = -faceN;
+        // A gradient normal from the height texture, spanning about one grid
+        // cell: it still sees a one-cell cliff, but averages neighbouring faces
+        // instead of stepping per triangle the way a screen-space derivative does.
+        vec3 faceN;
+        {
+          float mm = max( abs( vWPos.x ), abs( vWPos.z ) ) * T_SINHK / T_HALF;
+          float sp = CELL0 * sqrt( 1.0 + mm * mm ) * 0.8;
+          float hL = terrainHeight( vWPos.xz - vec2( sp, 0.0 ) );
+          float hR = terrainHeight( vWPos.xz + vec2( sp, 0.0 ) );
+          float hD = terrainHeight( vWPos.xz - vec2( 0.0, sp ) );
+          float hU = terrainHeight( vWPos.xz + vec2( 0.0, sp ) );
+          faceN = normalize( vec3( hL - hR, 2.0 * sp, hD - hU ) );
+        }
         // The flat face normal only matters where the smooth one lies about
         // steepness (a one-cell cliff); on rolling ground it just paints the
         // mesh's triangles, so it fades out there.
-        float steepK = smoothstep( 0.9, 0.62, wn.y );
-        vec3 wnClass = normalize( mix( wn, faceN, 0.55 * steepK ) );
+        float steepK = smoothstep( 0.9, 0.62, min( wn.y, faceN.y ) );
+        vec3 wnClass = normalize( mix( wn, faceN, 0.7 * steepK ) );
         // The same baked slope the blade shader culls by, so the carpet colour
         // stops exactly where the blades do.
         // On a steep sunlit bank the blades spread thin, so the lit carpet
