@@ -12,7 +12,7 @@ const VARIANTS = 5;
 // Where each species grows. Areas are circles (x, z, r) or rings around the
 // vale; density is trees per 1000 m².
 const ZONES = [
-  { species: 'giant', x: -215, z: 128, r: 88, density: 5.5, spacing: 13 },
+  { species: 'giant', x: -215, z: 128, r: 88, density: 3.1, spacing: 13 },
   { species: 'pine', ring: [230, 420], density: 4.5, spacing: 8, maxHeight: 165 },
   { species: 'oak', ring: [190, 290], density: 1.2, spacing: 12, maxHeight: 80 },
   { species: 'birch', ring: [200, 320], density: 1.5, spacing: 7, maxHeight: 110 },
@@ -340,16 +340,37 @@ export class Forest {
       };
     }
     const target = Math.round((area / 1000) * zone.density);
+    // Groves: most trees gather round a scatter of centres, closer together
+    // than the zone's spacing, with a few strays between and glades where the
+    // ground opens out, instead of one even spread.
+    const groves = [];
+    const groveN = Math.max(2, Math.round(target / 9));
+    for (let k = 0; k < groveN; k++) groves.push(sample());
+    const reach = zone.spacing * 2.6;
     let placed = 0;
-    for (let tries = 0; tries < target * 6 && placed < target; tries++) {
-      const [x, z] = sample();
+    for (let tries = 0; tries < target * 10 && placed < target; tries++) {
+      let x;
+      let z;
+      let spacing = zone.spacing;
+      if (random() < 0.78) {
+        const [gx, gz] = groves[Math.floor(random() * groves.length)];
+        const a = random() * Math.PI * 2;
+        const d = Math.abs(random() + random() + random() - 1.5) * reach;
+        x = gx + Math.cos(a) * d;
+        z = gz + Math.sin(a) * d;
+        spacing *= 0.78;
+      } else {
+        [x, z] = sample();
+        // Strays thin out where the ground opens into glades.
+        if (this.noise(x * 0.02 + 5.3, z * 0.02 - 2.1) < 0 && random() < 0.75) continue;
+      }
       // Patchy: forests have clearings.
       if (this.noise(x * 0.012, z * 0.012) < -0.35) continue;
       if (zone.maxHeight && this.terrain.heightAt(x, z) > zone.maxHeight) continue;
       // The Vale's forests stop at the realms' rims; a realm's wood stays in its bowl.
       const inRealm = REGIONS.some((R) => regionWeight(R, x, z) > 0.25);
       if (zone.region ? regionWeight(zone.region, x, z) < 0.6 : inRealm) continue;
-      if (this.tryPlace(zone.species, x, z, zone.spacing)) placed++;
+      if (this.tryPlace(zone.species, x, z, spacing)) placed++;
     }
   }
 
