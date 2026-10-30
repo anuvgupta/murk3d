@@ -278,7 +278,11 @@ export class Grass {
             // follow the lush noise, bare ground showing between them.
             float snowAmt;
             vec4 realm = realmAt( root, snowAmt );
-            float cover = smoothstep( 0.88 - realm.a, 1.08 - realm.a, gn.z * 0.55 + gn.y * 0.25 + br * 0.2 );
+            // The patch noise sits around 0.52 (quartiles 0.40 / 0.64), so a
+            // threshold placed by quantile leaves roughly the realm's share of ground covered.
+            float patchN = gn.z * 0.75 + gn.y * 0.25 + ( br - 0.5 ) * 0.04;
+            float t = 0.52 + ( 0.5 - realm.a ) * 0.48;
+            float cover = smoothstep( t - 0.03, t + 0.03, patchN );
             density *= mix( cover, 1.0, smoothstep( 0.9, 1.0, realm.a ) );
           }
           float dryPatch = smoothstep( 0.62, 0.9, 1.0 - gn.x );

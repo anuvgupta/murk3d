@@ -78,7 +78,7 @@ export function createRockMaterial(noise) {
     shader.uniforms.uNoise = { value: noise };
     Object.assign(shader.uniforms, regionUniforms());
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNormal;`)
+      .replace('#include <common>', `#include <common>\nvarying vec3 vWPos;\nvarying vec3 vWNormal;\nvarying float vLocalY;`)
       .replace(
         '#include <project_vertex>',
         `#include <project_vertex>
@@ -87,7 +87,8 @@ export function createRockMaterial(noise) {
           wm = modelMatrix * instanceMatrix;
         #endif
         vWPos = ( wm * vec4( transformed, 1.0 ) ).xyz;
-        vWNormal = normalize( mat3( wm ) * objectNormal );`
+        vWNormal = normalize( mat3( wm ) * objectNormal );
+        vLocalY = position.y;`
       );
     shader.fragmentShader = shader.fragmentShader
       .replace(
@@ -96,6 +97,7 @@ export function createRockMaterial(noise) {
         uniform sampler2D uNoise;
         varying vec3 vWPos;
         varying vec3 vWNormal;
+        varying float vLocalY;
         float rockH;
         ${ROCK_GLSL}
         ${REALM_GLSL}`
@@ -109,6 +111,12 @@ export function createRockMaterial(noise) {
         rockDetailF = detail;
         rockH = rockHeight( vWPos, tw, detail );
         diffuseColor.rgb *= rockAlbedo( vWPos, wn, tw, rockH );
+        // Grounding: the foot of every rock is darker and earthier where it
+        // meets the soil, so it sits in the ground instead of on it.
+        {
+          float foot = 1.0 - smoothstep( 0.04, 0.3 + 0.1 * tri( vWPos, tw, 0.4, 2 ), vLocalY );
+          diffuseColor.rgb = mix( diffuseColor.rgb, diffuseColor.rgb * vec3( 0.52, 0.47, 0.38 ), foot * 0.7 );
+        }
         {
           // Realm tint, and snow settling on the upper faces.
           float snow;
