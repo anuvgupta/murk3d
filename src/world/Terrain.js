@@ -445,7 +445,10 @@ export class Terrain {
         // on a long easy grade rather than a sheer step.
         const e = rq.d - w;
         const bank = level - 0.35 + e * 0.3 + Math.max(0, e - 6) ** 2 * 0.015;
-        if (!onRoad) h = Math.min(h, bank);
+        // The road corridor is held up to the bridge; its shoulders ramp down
+        // to the cut bank over a few metres instead of dropping off a wall.
+        const roadKeep = road && bandFade > 0 ? 1 - smoothstep(1.5, 5.5, road.edge) : 0;
+        h = lerp(Math.min(h, bank), h, roadKeep);
         // Keep low ground beside the river from flooding.
         if (rq.d < w + 4) h = Math.max(h, level + 0.15 * smoothstep(w, w + 1.5, rq.d));
       }
