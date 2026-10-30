@@ -626,3 +626,12 @@ screenshot-checked.
   normal only for classification; (3) BE2/BE4 lips still boxy with a
   ruler-straight top → displacement ×1.7, bedding 0.3, top swell ±0.45 m
   mirrored in surfaceAt. Verify BF.
+- 07:40 BF: lips now ragged broken shelves (BF2), mountain facets gone
+  (BF4), Shelves aerial good (BF5). The lime strip at cliff feet survived
+  the carpet fix → it was never the carpet: rockAlbedo's moss term used
+  the smoothed normal, painting steep-but-smoothed-gentle rock a lit
+  lime green. Moss now keyed to the face-classified normal, darker
+  (0x3d5424, 0.6) and only above ny 0.82. Plate faces get a 2 m jag term
+  and a noise-varied face width. BF6 was blocked by a juniper spawned
+  on the overlook (tree RNG reshuffles whenever placement rules change)
+  → 8 m clearing at OVERLOOK and SPAWN. Verify BG.
