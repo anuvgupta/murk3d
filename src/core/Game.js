@@ -100,7 +100,7 @@ export class Game {
     // Sun (or moon) direction and colour × intensity, for shader effects.
     this.sunInfo = { direction: this.environment.lightDir, color: new THREE.Color() };
 
-    const terrainMaterial = createTerrainMaterial({ noise: this.noiseTexture, mask: this.groundMask.texture });
+    const terrainMaterial = createTerrainMaterial({ noise: this.noiseTexture, mask: this.groundMask.texture, heightMap: this.terrain.heightTexture });
     this.terrainGroup = new THREE.Group();
     this.terrainGroup.name = 'terrain';
     for (const chunk of this.terrain.buildChunks(terrainMaterial)) this.terrainGroup.add(chunk);

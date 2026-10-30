@@ -1,15 +1,17 @@
 import * as THREE from 'three';
 import { regionUniforms, GROUND_GLSL } from './groundShading.js';
 import { ROCK_GLSL } from './rockShading.js';
+import { TERRAIN_HEIGHT_GLSL } from './Terrain.js';
 
 // MeshStandardMaterial whose albedo is computed per pixel from world position:
 // meadow, dirt roads, cobbles, river beds, rock and snow. No tiled textures, so
 // nothing looks blocky up close or repeats at a distance.
-export function createTerrainMaterial({ noise, mask }) {
+export function createTerrainMaterial({ noise, mask, heightMap }) {
   const material = new THREE.MeshStandardMaterial({ roughness: 0.95, metalness: 0 });
   material.onBeforeCompile = (shader) => {
     shader.uniforms.uNoise = { value: noise };
     shader.uniforms.uMask = { value: mask };
+    shader.uniforms.uHeightMap = { value: heightMap };
     Object.assign(shader.uniforms, regionUniforms());
 
     shader.vertexShader = shader.vertexShader
@@ -35,6 +37,8 @@ export function createTerrainMaterial({ noise, mask }) {
         float rockAmtOut;
         float rockHOut;
         float rockDetail;
+        uniform sampler2D uHeightMap;
+        ${TERRAIN_HEIGHT_GLSL}
         ${GROUND_GLSL}
         ${ROCK_GLSL}`
       )
@@ -50,10 +54,12 @@ export function createTerrainMaterial({ noise, mask }) {
         vec3 faceN = normalize( cross( dFdx( vWPos ), dFdy( vWPos ) ) );
         if ( faceN.y < 0.0 ) faceN = -faceN;
         vec3 wnClass = normalize( mix( wn, faceN, 0.9 ) );
-        float carpet = smoothstep( 0.56, 0.7, wn.y );
+        // The same baked slope the blade shader culls by, so the carpet colour
+        // stops exactly where the blades do.
+        float carpet = smoothstep( 0.56, 0.7, terrainSlope( vWPos.xz ) );
         vec3 ground = groundColor( vWPos, wnClass, carpet, wet );
         // Cliffs and steep ground get the detailed rock shading.
-        vec3 tw = triWeights( wnClass );
+        vec3 tw = triWeights( wn );
         float detail = 1.0 - smoothstep( 12.0, 70.0, length( vViewPosition ) );
         rockDetail = detail;
         rockHOut = rockHeight( vWPos, tw, detail );
