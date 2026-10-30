@@ -76,7 +76,11 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         // while lighting keeps the smooth one.
         vec3 faceN = normalize( cross( dFdx( vWPos ), dFdy( vWPos ) ) );
         if ( faceN.y < 0.0 ) faceN = -faceN;
-        vec3 wnClass = normalize( mix( wn, faceN, 0.55 ) );
+        // The flat face normal only matters where the smooth one lies about
+        // steepness (a one-cell cliff); on rolling ground it just paints the
+        // mesh's triangles, so it fades out there.
+        float steepK = smoothstep( 0.9, 0.62, wn.y );
+        vec3 wnClass = normalize( mix( wn, faceN, 0.55 * steepK ) );
         // The same baked slope the blade shader culls by, so the carpet colour
         // stops exactly where the blades do.
         // On a steep sunlit bank the blades spread thin, so the lit carpet
