@@ -97,7 +97,9 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         // stops exactly where the blades do.
         // On a steep sunlit bank the blades spread thin, so the lit carpet
         // colour would glow through: show earth under them there instead.
-        float carpet = smoothstep( 0.5, 0.68, min( terrainSlope( vWPos.xz ), wnClass.y ) );
+        // Whichever of the smooth or gradient normal says steeper wins: a thin
+        // spire's gradient can read flat where its smooth normal is sideways.
+        float carpet = smoothstep( 0.5, 0.68, min( terrainSlope( vWPos.xz ), min( wn.y, faceN.y ) ) );
         groundDetail = 1.0 - smoothstep( 8.0, 40.0, length( vViewPosition ) );
         vec3 ground = groundColor( vWPos, wnClass, carpet, wet );
         // Cliffs and steep ground get the detailed rock shading.
@@ -107,7 +109,7 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         rockDetailF = detail;
         rockHOut = rockHeight( vWPos, tw, detail );
         // Rock amount from the smooth normal (the face normal would step per triangle and show the mesh).
-        rockAmtOut = smoothstep( 0.42, 0.58, 1.0 - wn.y + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.14 + ( texture( uNoise, vWPos.xz * 0.31 + 0.5 ).a - 0.5 ) * 0.1 );
+        rockAmtOut = smoothstep( 0.42, 0.58, 1.0 - min( wn.y, mix( 1.0, faceN.y, steepK ) ) + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.14 + ( texture( uNoise, vWPos.xz * 0.31 + 0.5 ).a - 0.5 ) * 0.1 );
         {
           // Realm-coloured rock (red canyon, pale karst), snowed over on the tundra.
           float sn;

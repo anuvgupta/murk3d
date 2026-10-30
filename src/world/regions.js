@@ -23,7 +23,7 @@ export const REGIONS = [
     ...at(0), r: 150,
     floor: 6,
     rim: 115, // taller than the spires, so their tips don't show over the Vale's mountains
-    palette: { ground: [0.92, 1.0, 0.86], grass: [0.95, 1.04, 0.86], fog: [0.72, 0.84, 0.84], fogDensity: 1.3, saturation: 1.12 },
+    palette: { ground: [0.94, 0.98, 0.98], grass: [0.95, 1.04, 0.86], fog: [0.72, 0.84, 0.84], fogDensity: 1.3, saturation: 1.12 }, // limestone grey
     lake: { r: 54, depth: 7, level: 1.5, tint: [0.55, 1.5, 1.35] },
     spires: { count: 40, rMin: 5, rMax: 14, hMin: 34, hMax: 96, seed: 11 },
     arches: [{ dx: 75, dz: -39, r: 13, tube: 3.6, ry: 1.1 }],

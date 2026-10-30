@@ -112,7 +112,9 @@ export const ROCK_GLSL = /* glsl */ `
     // Mid-scale variation and gullies streaking down the slope, visible from afar.
     float meso = tri( p, w, 0.05, 2 );
     float gully = tri( vec3( p.x, p.y * 0.22, p.z ), w, 0.045, 3 );
-    c *= ( 0.76 + 0.46 * meso ) * ( 0.9 + 0.2 * smoothstep( 0.35, 0.7, gully ) );
+    // Rain-wash: dark streaks run down steep faces; level rock keeps an even tone.
+    float gullyK = mix( 0.16, 0.42, 1.0 - w.y );
+    c *= ( 0.76 + 0.46 * meso ) * ( 1.0 - gullyK + gullyK * smoothstep( 0.35, 0.7, gully ) );
     // Bedding colour: alternating warm and cool beds on steep faces.
     c *= 1.0 + ( 1.0 - w.y ) * 0.1 * ( sin( p.y * 1.1 + broad * 11.0 + 1.3 ) );
     // Lichen in patches.
