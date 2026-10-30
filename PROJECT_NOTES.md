@@ -991,3 +991,11 @@ screenshot-checked.
   0.38) — a4958af. Verify EA1 (mesa slope), EA2 overlook noon, EA3 karst,
   EA4 bank close, EA5 bridge: the Vale's river banks and hills must not
   turn stripy.
+- DY ground-level realm shots: the realm rim walls at 20–80 m are grey
+  felt (alpine, citadel mesa, rivercity far rim) — relief contrast and
+  strata fade with `detail`, and at dusk the light is flat. rockAlbedo now
+  has a far-structure block: flutes (tri at 0.07 with y×0.12, ±20% on
+  steep faces) and macroHeight shade (0.72+0.56·mac at weight 0.8·far),
+  bedding 0.9+0.2·band; `far = 1 − 0.55·detail` so near rock changes
+  little (aef47bb + cleanup). Verify EB1–EB5 (alpine dusk + noon, citadel
+  wall, canyon arch, Vale spires at noon — the Vale must not go stripy).
