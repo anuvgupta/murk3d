@@ -121,6 +121,39 @@ export const GROUND_GLSL = /* glsl */ `
     return c;
   }
 
+  // Detail factor for the ground (0 far .. 1 near); set by the caller.
+  float groundDetail = 0.0;
+
+  // Dirt roads: the mask's soft band made crooked and jagged at the metre and
+  // hand scale, with a short fade to the turf.
+  float roadAmount( vec2 p, float g ) {
+    float wob = ( texture( uNoise, p * 0.09 + 0.23 ).r - 0.5 ) * 0.34 + ( texture( uNoise, p * 0.7 + 0.61 ).a - 0.5 ) * 0.16;
+    return smoothstep( 0.4, 0.6, g + wob );
+  }
+
+  vec3 roadColor( vec2 p, vec4 n, float g, float detail ) {
+    vec3 c = dirtColor( n );
+    // Broad patches of paler packed earth and darker damp ground.
+    float packed = texture( uNoise, p * 0.05 + 0.4 ).g;
+    c *= 0.82 + 0.36 * packed;
+    // Streaks and ruts of darker dirt.
+    float streak = texture( uNoise, p * vec2( 0.9, 0.12 ) + 0.7 ).r * texture( uNoise, p * vec2( 0.12, 0.9 ) + 0.2 ).b;
+    c *= 1.0 - 0.22 * smoothstep( 0.2, 0.42, streak );
+    // Cracks in the dried crust, close up.
+    float cn = texture( uNoise, p * 0.45 + 0.9 ).a;
+    float crack = ( 1.0 - smoothstep( 0.0, 0.03, abs( cn - 0.5 ) ) ) * smoothstep( 0.5, 0.7, packed ) * detail;
+    c *= 1.0 - 0.3 * crack;
+    // Gravel and the odd pebble pressed into the surface.
+    vec2 cell = floor( p * 16.0 );
+    float h = fract( sin( dot( cell, vec2( 127.1, 311.7 ) ) ) * 43758.5453 );
+    vec2 f = fract( p * 16.0 ) - 0.5;
+    float peb = step( 0.9, h ) * ( 1.0 - smoothstep( 0.18, 0.34, length( f + ( vec2( fract( h * 7.0 ), fract( h * 13.0 ) ) - 0.5 ) * 0.4 ) ) );
+    c = mix( c, mix( vec3( 0.62, 0.58, 0.5 ), vec3( 0.42, 0.38, 0.34 ), fract( h * 3.1 ) ) * ( 0.9 + 0.3 * f.y ), peb * detail );
+    // Packed earth pales toward the edge where feet and wheels don't go.
+    c *= 1.0 + 0.18 * ( 1.0 - smoothstep( 0.6, 0.95, g ) );
+    return c;
+  }
+
   vec3 bedColor( vec4 n ) {
     return mix( ${lin(0x7d745f)}, ${lin(0xa89c7e)}, n.z ) * ( 0.85 + 0.3 * n.w );
   }
@@ -194,7 +227,7 @@ export const GROUND_GLSL = /* glsl */ `
     float ul = dot( under, vec3( 0.3, 0.59, 0.11 ) );
     under = mix( under, vec3( ul ) * vec3( 1.06, 1.0, 0.8 ), 0.4 );
     vec3 c = mix( bare, under, smoothstep( 0.0, 0.55, m.r ) * carpet );
-    c = mix( c, dirtColor( n ), smoothstep( 0.15, 0.85, m.g ) );
+    c = mix( c, roadColor( p.xz, n, m.g, groundDetail ), roadAmount( p.xz, m.g ) );
     c = mix( c, bedColor( n ), m.b );
     if ( m.a > 0.01 ) {
       vec4 sett = cobbleColor( p.xz, n, m.a );

@@ -3,7 +3,7 @@ import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
 import { createNoise3D, fbm3, mulberry32 } from '../util/noise.js';
 import { ROCK_GLSL } from './rockShading.js';
 import { REALM_GLSL, regionUniforms } from './groundShading.js';
-import { HILL, HOUSES, PLAZA, RIVER, LAKE, LAKES, CASTLES, PLATES, RUINS, GLADE, nearestRoad } from './plan.js';
+import { HILL, HOUSES, PLAZA, RIVER, LAKE, LAKES, CASTLES, PLATES, RUINS, GLADE, ROADS, nearestRoad } from './plan.js';
 import { REGIONS, regionWeight } from './regions.js';
 
 // Generated rock meshes: fractured, faceted and layered, so cliffs and
@@ -149,6 +149,7 @@ export class RockField {
     this.placeCliff();
     this.placeBoulders();
     this.placeRiverStones();
+    this.placeRoadsides();
     this.placeFoothills();
     this.extraFootprints = [];
     this.placePlates();
@@ -316,7 +317,39 @@ export class RockField {
 
   // Footprints for keeping grass off rocks: { x, z, r }.
   get footprints() {
-    return [...this.instances.map((i) => ({ x: i.x, z: i.z, r: Math.max(i.sx, i.sz) * 0.85 })), ...this.extraFootprints];
+    return [...this.instances.filter((i) => Math.max(i.sx, i.sz) > 0.35).map((i) => ({ x: i.x, z: i.z, r: Math.max(i.sx, i.sz) * 0.85 })), ...this.extraFootprints];
+  }
+
+  // Pebbles in groups along the verges, and the odd boulder in the road.
+  placeRoadsides() {
+    const r = this.random;
+    for (const road of ROADS) {
+      const p = road.path;
+      for (let s = 6; s < p.length - 6; s += 1.8) {
+        const c = p.pointAt(s);
+        const q = p.nearest(c.x, c.y, 2);
+        if (!q) continue;
+        if (Math.hypot(c.x - PLAZA.x, c.y - PLAZA.z) < PLAZA.radius + 10) continue;
+        const side = r() < 0.5 ? -1 : 1;
+        const roll = r();
+        if (roll < 0.3) {
+          const n = 2 + Math.floor(r() * 5);
+          const off = road.width / 2 + 0.05 + r() * 0.9;
+          const cx = c.x - q.tz * off * side;
+          const cz = c.y + q.tx * off * side;
+          for (let k = 0; k < n; k++) {
+            const size = 0.06 + Math.pow(r(), 1.6) * 0.3;
+            const x = cx + (r() - 0.5) * 0.9;
+            const z = cz + (r() - 0.5) * 0.9;
+            this.add(Math.floor(r() * 5), x, z, new THREE.Vector3(size, size * (0.5 + r() * 0.4), size * (0.7 + r() * 0.5)), { sink: 0.4, tilt: 0.5 });
+          }
+        } else if (roll < 0.318) {
+          const off = (r() - 0.5) * (road.width - 1.2);
+          const size = 0.5 + r() * 0.7;
+          this.add(Math.floor(r() * 5), c.x - q.tz * off, c.y + q.tx * off, new THREE.Vector3(size, size * 0.7, size * 0.85), { sink: 0.4 });
+        }
+      }
+    }
   }
 
   // Colliders for rocks big enough to block the player.

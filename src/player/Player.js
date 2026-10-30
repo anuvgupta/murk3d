@@ -9,6 +9,7 @@ const ACCEL_GROUND = 12;
 const ACCEL_AIR = 2.5;
 const GRAVITY = 24;
 const JUMP_SPEED = 7.2;
+const BOUNCE_SPEED = 10.5; // thrown up off a mushroom cap
 const SWIM_DEPTH = 1.25; // feet this far below the surface when afloat
 const MOUSE_SENSITIVITY = 0.0022;
 const MAX_WALK_SLOPE = 0.62; // normal.y below this is too steep to climb
@@ -24,6 +25,7 @@ export class Player {
     this.colliders = colliders;
     // Functions (x, z) -> height | null for walkable things above the terrain.
     this.surfaces = [];
+    this.bouncers = []; // (x, z) => true where landing throws you back up
     this.waterLevelAt = null; // set by the game: water surface height at (x, z), or -Infinity
     this.swimming = false;
 
@@ -126,8 +128,14 @@ export class Player {
     }
     if (this.position.y <= ground) {
       this.position.y = ground;
-      this.velocity.y = 0;
-      this.onGround = true;
+      if (this.velocity.y < -1.5 && this.bouncers.some((b) => b(this.position.x, this.position.z))) {
+        // A mushroom cap: back up you go, a little higher the harder you hit.
+        this.velocity.y = Math.max(BOUNCE_SPEED, -this.velocity.y * 0.85);
+        this.onGround = false;
+      } else {
+        this.velocity.y = 0;
+        this.onGround = true;
+      }
     } else if (this.onGround && this.velocity.y <= 0 && this.position.y - ground < 0.45) {
       this.position.y = ground;
       this.velocity.y = 0;

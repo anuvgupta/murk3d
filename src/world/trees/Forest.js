@@ -119,7 +119,14 @@ function addWind(material, uniforms, scale, leaf = false) {
           vLeafTrans = pow( max( dot( toCam, uSunDir ), 0.0 ), 4.0 );`
         );
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', `#include <common>\nuniform vec3 uSunColor;\nvarying float vLeafTrans;`)
+        .replace('#include <common>', `#include <common>\nuniform vec3 uSunColor;\nuniform float uLeafBoost;\nvarying float vLeafTrans;`)
+        // Under a coarse pixel grid the far cards' mipped alpha falls below the
+        // cut-off and whole crowns vanish; thicken their coverage with distance.
+        .replace(
+          '#include <map_fragment>',
+          `#include <map_fragment>
+          diffuseColor.a = min( 1.0, diffuseColor.a * ( 1.0 + uLeafBoost * smoothstep( 40.0, 220.0, length( vViewPosition ) ) ) );`
+        )
         .replace(
           '#include <normal_fragment_begin>',
           THREE.ShaderChunk.normal_fragment_begin.replace('gl_FrontFacing ? 1.0 : - 1.0', '1.0')
@@ -144,7 +151,7 @@ export class Forest {
     this.random = mulberry32(991);
     this.noise = createNoise2D(57);
     this.rockSpots = rocks ? rocks.footprints : [];
-    this.uniforms = { uNoise: { value: noise }, uSunDir: { value: sun.direction }, uSunColor: { value: sun.color }, ...wind.uniforms };
+    this.uniforms = { uNoise: { value: noise }, uSunDir: { value: sun.direction }, uSunColor: { value: sun.color }, uLeafBoost: { value: 0 }, ...wind.uniforms };
 
     // Grow every variant of every species.
     this.models = {};

@@ -24,6 +24,7 @@ import { Falls } from '../world/Falls.js';
 import { Arches } from '../world/Arches.js';
 import { Crystals } from '../world/Crystals.js';
 import { SkyIslands } from '../world/SkyIslands.js';
+import { Mushrooms } from '../world/Mushrooms.js';
 import { REGIONS } from '../world/regions.js';
 import { RockField } from '../world/Rocks.js';
 import { Plates } from '../world/Plates.js';
@@ -145,6 +146,8 @@ export class Game {
     scene.add(this.portals.group);
     this.crystals = new Crystals({ terrain: this.terrain });
     scene.add(this.crystals.group);
+    this.mushrooms = new Mushrooms({ terrain: this.terrain });
+    scene.add(this.mushrooms.group);
     this.falls = new Falls({ terrain: this.terrain, noise: this.noiseTexture });
     scene.add(this.falls.group);
     this.arches = new Arches({ terrain: this.terrain, noise: this.noiseTexture });
@@ -166,7 +169,7 @@ export class Game {
     this.motes = new Motes({ wind: this.wind, sun: this.sunInfo });
     scene.add(this.motes.points);
 
-    const colliders = [...this.village.colliders, ...this.castles.flatMap((c) => c.worldColliders()), ...this.ruins.colliders, ...this.portals.colliders, ...this.crystals.colliders, ...this.arches.colliders, ...this.rocks.colliders, ...this.forest.colliders];
+    const colliders = [...this.village.colliders, ...this.castles.flatMap((c) => c.worldColliders()), ...this.ruins.colliders, ...this.portals.colliders, ...this.crystals.colliders, ...this.arches.colliders, ...this.rocks.colliders, ...this.forest.colliders, ...this.mushrooms.colliders];
     this.player = new Player(this.camera, this.input, this.terrain, colliders);
     this.player.waterLevelAt = (x, z) => this.water.levelAt(x, z);
     this.player.surfaces.push((x, z) => this.village.surfaceAt(x, z));
@@ -174,6 +177,8 @@ export class Game {
     this.player.surfaces.push((x, z) => this.islands.surfaceAt(x, z));
     this.player.surfaces.push((x, z) => this.plates.surfaceAt(x, z));
     this.player.surfaces.push((x, z) => this.ruins.surfaceAt(x, z));
+    this.player.surfaces.push((x, z) => this.mushrooms.surfaceAt(x, z));
+    this.player.bouncers.push((x, z) => this.mushrooms.bounceAt(x, z));
     this.player.spawn(SPAWN.x, SPAWN.z, SPAWN.yaw);
     this.applyViewLink();
     this.feedback = new Feedback(this);
@@ -284,6 +289,8 @@ export class Game {
     if (this.wind) this.wind.stepHz = [0, 18, 12][L];
     if (this.grass) this.grass.uniforms.uPixelWiden.value = [1, 1.8, 2.6][L];
     if (this.pixelate) this.pixelate.enabled = L > 0;
+    // Far leaf cards lose their alpha-tested coverage at the coarse grid; boost it.
+    if (this.forest) this.forest.uniforms.uLeafBoost.value = [0, 1.5, 3.0][L];
     if (this.temporal) {
       this.temporal.baseWeight = [0, 0.42, 0.55][L];
       this.temporal.enabled = L > 0;
@@ -450,6 +457,7 @@ export class Game {
     this.motes.update(dt, this.player.position, this.terrain, env.nightFactor, env.lightLevel);
     if (!this.active) this.portals.update(dt, { x: 1e9, y: 0, z: 1e9 });
     this.falls.update(dt);
+    this.mushrooms.update(env.nightFactor);
   }
 
   render() {

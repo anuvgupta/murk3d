@@ -44,6 +44,11 @@ function strokePath(ctx, path, widthFn) {
   }
 }
 
+// A road's width wanders along its length, so its edge is never a ruled line.
+function roadWobble(s) {
+  return 1 + 0.1 * Math.sin(s * 0.21) + 0.1 * Math.sin(s * 0.067 + 1.3) + 0.05 * Math.sin(s * 0.53 + 0.4);
+}
+
 function fillLake(ctx, grow) {
   for (const LAKE of LAKES) {
     ctx.beginPath();
@@ -112,7 +117,7 @@ export class GroundMask {
     grass.fillStyle = '#fff';
     grass.fillRect(0, 0, SIZE, SIZE);
     grass.fillStyle = grass.strokeStyle = '#000';
-    for (const r of ROADS) strokePath(grass, r.path, r.width + 0.8);
+    for (const r of ROADS) strokePath(grass, r.path, (s) => r.width * roadWobble(s) + 0.2);
     strokePath(grass, RIVER.path, (s) => RIVER.widthAt(s) + 0.3);
     fillLake(grass, 2);
     grass.beginPath();
@@ -151,7 +156,7 @@ export class GroundMask {
     road.fillStyle = '#000';
     road.fillRect(0, 0, SIZE, SIZE);
     road.strokeStyle = road.fillStyle = '#fff';
-    for (const r of ROADS) strokePath(road, r.path, r.width);
+    for (const r of ROADS) strokePath(road, r.path, (s) => r.width * roadWobble(s));
     for (const h of HOUSES) fillRotRect(road, h.x, h.z, h.footprint.hx + 0.6, h.footprint.hz + 0.6, h.rotationY);
 
     // Water beds.

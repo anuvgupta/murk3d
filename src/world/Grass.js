@@ -270,7 +270,7 @@ export class Grass {
           float widen = clamp( inversesqrt( keep ), 1.0, 5.0 );
 
           // Tall lush patches, shorter dry patches, short at the verges.
-          float density = onDisc > 0.5 ? 0.9 : smoothstep( 0.12, 0.85, gmask.r );
+          float density = onDisc > 0.5 ? 0.9 : smoothstep( 0.12, 0.85, gmask.r ) * ( 1.0 - roadAmount( root, gmask.g ) );
           // Nothing grows on cliff faces: thin out as the ground steepens.
           // Blades hold on until the ground is steep enough to be bare rock.
           density *= onDisc > 0.5 ? 1.0 : smoothstep( 0.5, 0.68, min( terrainSlope( root ), groundN.y ) );
