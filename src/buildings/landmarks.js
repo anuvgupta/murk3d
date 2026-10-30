@@ -133,45 +133,72 @@ export function townHall(kit, m) {
   const u1 = u0 + 3.0;
   const UW = W + 0.7;
   const UD = D + 0.7;
-  // Plinth and ground floor.
-  kit.box(m.ashlar, W + 0.4, g0 + 1.2, D + 0.4, { y: g0 / 2 - 0.6 }, { metres: 2 });
-  kit.box(m.stone, W, g1 - g0, D, { y: (g0 + g1) / 2 }, { metres: 2.6 });
-  // Arcade: five arched openings along the front, recessed, with a walkway behind.
+  // Plinth and ground floor. The arcade is a real recess: the stone block
+  // stops at its back wall, end walls close it, and an arched screen wall
+  // forms the front. Trim (piers, arch rings) stands proud of the screen, never
+  // flush with it, so no two materials share a surface and flicker.
+  const H = g1 - g0;
   const arcDepth = 2.2;
-  kit.box(m.cobble, W - 1.0, 0.1, arcDepth, { y: g0 + 0.05, z: D / 2 - arcDepth / 2 }, { metres: 1.6 });
-  for (let i = 0; i < 5; i++) {
-    const x = -W / 2 + 1.6 + i * (W - 3.2) / 4;
-    // Pillar between arches.
-    if (i < 5) kit.box(m.ashlar, 0.6, g1 - g0, 0.6, { x: x - (W - 3.2) / 8, y: (g0 + g1) / 2, z: D / 2 - 0.3 }, { metres: 2 });
+  const screen = 0.5;
+  const bay = (W - 3.2) / 4;
+  const w = bay - 0.6; // clear width of each opening
+  const spring = 2.0; // height of the arch springing above the arcade floor
+  const arcX = (i) => -W / 2 + 1.6 + i * bay;
+  kit.box(m.ashlar, W + 0.4, g0 + 1.2, D + 0.4, { y: g0 / 2 - 0.6 }, { metres: 2 });
+  kit.box(m.stone, W, H, D - arcDepth, { y: (g0 + g1) / 2, z: -arcDepth / 2 }, { metres: 2.6 });
+  for (const s of [-1, 1]) kit.box(m.stone, 0.6, H, arcDepth - screen, { x: s * (W / 2 - 0.3), y: (g0 + g1) / 2, z: D / 2 - (arcDepth + screen) / 2 }, { metres: 2.6 });
+  // Screen wall: the front elevation with five round-arched openings notched
+  // up from the floor, extruded back from the front face.
+  const front = new THREE.Shape();
+  front.moveTo(-W / 2, 0);
+  front.lineTo(-W / 2, H);
+  front.lineTo(W / 2, H);
+  front.lineTo(W / 2, 0);
+  for (let i = 4; i >= 0; i--) {
+    front.lineTo(arcX(i) + w / 2, 0);
+    front.lineTo(arcX(i) + w / 2, spring);
+    front.absarc(arcX(i), spring, w / 2, 0, Math.PI, false);
+    front.lineTo(arcX(i) - w / 2, 0);
   }
-  kit.box(m.ashlar, 0.6, g1 - g0, 0.6, { x: W / 2 - 0.4, y: (g0 + g1) / 2, z: D / 2 - 0.3 }, { metres: 2 });
-  // The stone wall above and between the arches is cut back to leave arch heads.
+  front.closePath();
+  const sg = new THREE.ExtrudeGeometry(front, { depth: screen, bevelEnabled: false, curveSegments: 16 });
+  sg.translate(0, 0, -screen);
+  const suv = sg.attributes.uv;
+  for (let i = 0; i < suv.count; i++) suv.setXY(i, suv.getX(i) / 2.6, suv.getY(i) / 2.6);
+  kit.add(m.stone, sg, { y: g0, z: D / 2 });
+  // Arcade floor, its front edge just behind the screen's face.
+  kit.box(m.cobble, W - 1.0, 0.1, arcDepth - 0.01, { y: g0 + 0.05, z: D / 2 - (arcDepth + 0.01) / 2 }, { metres: 1.6 });
+  // Ashlar piers up to the springing, capped by imposts; each overlaps the
+  // opening beside it by 3 cm so it, not the screen, lines the jambs.
+  for (let i = 0; i <= 5; i++) {
+    const px = -W / 2 + i * bay;
+    const x0 = Math.max(-W / 2 - 0.04, px - 0.33);
+    const x1 = Math.min(W / 2 + 0.04, px + 0.33);
+    kit.box(m.ashlar, x1 - x0, spring, screen + 0.12, { x: (x0 + x1) / 2, y: g0 + spring / 2, z: D / 2 - screen / 2 + 0.02 }, { metres: 2 });
+    kit.box(m.ashlar, x1 - x0 + 0.1, 0.18, screen + 0.2, { x: (x0 + x1) / 2, y: g0 + spring - 0.09, z: D / 2 - screen / 2 + 0.02 }, { metres: 2 });
+  }
   for (let i = 0; i < 5; i++) {
-    const x = -W / 2 + 1.6 + i * (W - 3.2) / 4;
-    const arch = new THREE.Shape();
-    const w = (W - 3.2) / 4 - 0.6;
-    arch.moveTo(-w / 2, 0);
-    arch.lineTo(-w / 2, 2.0);
-    arch.absarc(0, 2.0, w / 2, Math.PI, 0, true);
-    arch.lineTo(w / 2, 0);
-    arch.closePath();
-    // The opening is "cut" by leaving it out: we add the dark interior wall behind instead.
-    kit.box(m.plasterCream, w, g1 - g0 - 0.2, 0.2, { x, y: (g0 + g1) / 2, z: D / 2 - arcDepth - 0.1 }, { metres: 3 });
-    // Arch ring stones.
+    const x = arcX(i);
+    // Plaster back wall of the bay, a thin skin on the stone block.
+    kit.box(m.plasterCream, w, H - 0.2, 0.04, { x, y: (g0 + g1) / 2, z: D / 2 - arcDepth + 0.02 }, { metres: 3 });
+    // Arch ring stones: proud of the screen front and back, and 3 cm inside
+    // its soffit.
     const ring = new THREE.Shape();
-    ring.absarc(0, 2.0, w / 2 + 0.25, Math.PI, 0, true);
-    ring.lineTo(w / 2, 2.0);
-    ring.absarc(0, 2.0, w / 2, 0, Math.PI, false);
+    ring.absarc(0, spring, w / 2 + 0.25, Math.PI, 0, true);
+    ring.lineTo(w / 2 - 0.03, spring);
+    ring.absarc(0, spring, w / 2 - 0.03, 0, Math.PI, false);
     ring.closePath();
-    const rg = new THREE.ExtrudeGeometry(ring, { depth: 0.5, bevelEnabled: false, curveSegments: 12 });
-    rg.translate(0, 0, -0.25);
-    kit.add(m.ashlar, rg, { x, y: g0, z: D / 2 - 0.25 });
+    const rg = new THREE.ExtrudeGeometry(ring, { depth: screen + 0.1, bevelEnabled: false, curveSegments: 16 });
+    rg.translate(0, 0, -screen - 0.04);
+    const ruv = rg.attributes.uv;
+    for (let k = 0; k < ruv.count; k++) ruv.setXY(k, ruv.getX(k) / 2, ruv.getY(k) / 2);
+    kit.add(m.ashlar, rg, { x, y: g0, z: D / 2 });
   }
   // Door at the back of the central arch.
   kit.frame({ z: D / 2 - arcDepth }, () => {
     kit.box(m.planks, 2.0, 2.6, 0.12, { y: g0 + 1.3, z: 0.06 }, { metres: 1.0 });
     kit.box(m.timber, 0.06, 2.6, 0.14, { y: g0 + 1.3, z: 0.07 });
-    for (const y of [g0 + 0.5, g0 + 2.1]) kit.box(m.iron, 1.8, 0.06, 0.03, { y, z: 0.13 });
+    for (const y of [g0 + 0.5, g0 + 2.1]) kit.box(m.iron, 1.8, 0.06, 0.03, { y, z: 0.135 });
   });
   // Jetty beam and upper floor.
   kit.box(m.timber, W + 0.9, 0.3, D + 0.9, { y: g1 + 0.15 }, { metres: 1.2, grain: true });
@@ -186,14 +213,18 @@ export function townHall(kit, m) {
   for (const f of faces) {
     kit.frame({ ry: f.ry }, () => {
       kit.frame({ z: f.z + 0.01 }, () => {
+        // Posts 1 cm proud of rails, rails 1 cm proud of braces, so crossing
+        // members never share a face.
         const t = 0.1;
+        const rail = t + 0.02;
+        const post = t + 0.04;
         const z = t / 2;
         const h = u1 - u0;
         const bw = f.width / f.bays;
-        kit.box(m.timber, f.width + 0.02, 0.2, t, { y: u0 + 0.1, z }, { metres: 1.2, grain: true });
-        kit.box(m.timber, f.width + 0.02, 0.2, t, { y: u1 - 0.1, z }, { metres: 1.2, grain: true });
-        for (let i = 0; i <= f.bays; i++) kit.box(m.timber, 0.16, h, t, { x: -f.width / 2 + i * bw, y: u0 + h / 2, z }, { metres: 1.2, grain: true });
-        kit.box(m.timber, f.width, 0.14, t, { y: u0 + h * 0.5, z }, { metres: 1.2, grain: true });
+        kit.box(m.timber, f.width + 0.02, 0.2, rail, { y: u0 + 0.1, z }, { metres: 1.2, grain: true });
+        kit.box(m.timber, f.width + 0.02, 0.2, rail, { y: u1 - 0.1, z }, { metres: 1.2, grain: true });
+        for (let i = 0; i <= f.bays; i++) kit.box(m.timber, 0.16, h - 0.02, post, { x: -f.width / 2 + i * bw, y: u0 + h / 2, z }, { metres: 1.2, grain: true });
+        kit.box(m.timber, f.width, 0.14, rail, { y: u0 + h * 0.5, z }, { metres: 1.2, grain: true });
         for (let i = 0; i < f.bays; i++) {
           const x = -f.width / 2 + (i + 0.5) * bw;
           if (i % 2 === 0) {
@@ -204,7 +235,7 @@ export function townHall(kit, m) {
           } else {
             // Brace bay: a St Andrew's cross.
             kit.beamBetween(m.timber, x - bw / 2, u0 + 0.2, x + bw / 2, u1 - 0.2, 0.12, t, z);
-            kit.beamBetween(m.timber, x + bw / 2, u0 + 0.2, x - bw / 2, u1 - 0.2, 0.12, t, z);
+            kit.beamBetween(m.timber, x + bw / 2, u0 + 0.2, x - bw / 2, u1 - 0.2, 0.12, t - 0.02, z);
           }
         }
       });
@@ -248,11 +279,11 @@ export function townHall(kit, m) {
     const g = new THREE.ExtrudeGeometry(shape, { depth: 0.16, bevelEnabled: false });
     g.translate(0, 0, -0.08);
     kit.add(m.plasterWhite, g, { x: sx * (UW / 2 - 0.07), y: u1, ry: Math.PI / 2 });
-    kit.frame({ x: sx * (UW / 2 + 0.03), y: u1, ry: Math.PI / 2 }, () => {
+    kit.frame({ x: sx * (UW / 2 + 0.03), y: u1, ry: sx * Math.PI / 2 }, () => {
       const gh = rise - 0.7 * Math.tan(pitch);
       kit.box(m.timber, 0.16, gh - 0.3, 0.1, { y: (gh - 0.3) / 2 }, { metres: 1.2, grain: true });
-      kit.box(m.timber, UD * 0.6, 0.16, 0.1, { y: gh * 0.4 }, { metres: 1.2, grain: true });
-      kit.box(m.glass, 0.7, 0.9, 0.04, { y: gh * 0.4 + 0.65, z: -0.03 });
+      kit.box(m.timber, UD * 0.6, 0.16, 0.08, { y: gh * 0.4 }, { metres: 1.2, grain: true });
+      kit.box(m.glass, 0.7, 0.9, 0.04, { y: gh * 0.4 + 0.65, z: 0.0 });
     });
   }
   // Ridge and bell turret.
@@ -278,10 +309,19 @@ export function townHall(kit, m) {
     kit.box(m.ashlar, 1.1, 0.22, 1.3, { x: sx * (UW / 2 - 1.5), y: top + 0.11, z: -1.0 }, { metres: 2 });
     chimneys.push(new THREE.Vector3(sx * (UW / 2 - 1.5), top + 0.4, -1.0));
   }
-  // Steps up to the arcade.
-  for (let i = 0; i < 3; i++) kit.box(m.ashlar, W - 2, 0.17, 0.5, { y: 0.085 + i * 0.165, z: D / 2 + 1.0 - i * 0.45 }, { metres: 2 });
+  // Steps up to the arcade; the top one butts against the plinth rather than
+  // overlapping it, since their treads are at the same height.
+  for (let i = 0; i < 3; i++) kit.box(m.ashlar, W - 2, 0.17, 0.5, { y: 0.085 + i * 0.165, z: D / 2 + 1.35 - i * 0.45 }, { metres: 2 });
+  const colliders = [{ cx: 0, cz: -arcDepth / 2, hx: W / 2 + 0.2, hz: (D - arcDepth) / 2 + 0.2 }];
+  for (let i = 0; i <= 5; i++) {
+    const px = -W / 2 + i * bay;
+    const x0 = Math.max(-W / 2 - 0.04, px - 0.33);
+    const x1 = Math.min(W / 2 + 0.04, px + 0.33);
+    colliders.push({ cx: (x0 + x1) / 2, cz: D / 2 - screen / 2, hx: (x1 - x0) / 2, hz: screen / 2 + 0.08 });
+  }
+  for (const s of [-1, 1]) colliders.push({ cx: s * (W / 2 - 0.3), cz: D / 2 - (arcDepth + screen) / 2, hx: 0.3, hz: (arcDepth - screen) / 2 });
   return {
-    colliders: [{ cx: 0, cz: -arcDepth / 2, hx: W / 2 + 0.2, hz: (D - arcDepth) / 2 + 0.2 }],
+    colliders,
     chimneys,
     lamps: [new THREE.Vector3(-3.2, g0 + 2.6, D / 2 + 0.2), new THREE.Vector3(3.2, g0 + 2.6, D / 2 + 0.2)],
     decks: [{ cx: 0, cz: D / 2 - arcDepth / 2, hx: W / 2 - 0.5, hz: arcDepth / 2, y: g0 + 0.1 }],
