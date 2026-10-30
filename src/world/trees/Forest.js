@@ -392,12 +392,22 @@ export class Forest {
     }
     if (!this.isClear(x, z, force ? 1 : 2)) return false;
     const variant = Math.floor(this.random() * VARIANTS);
-    const t = { species, variant, x, z, spacing, y: this.terrain.heightAt(x, z) - 0.15, ry: this.random() * Math.PI * 2, s: 0.85 + this.random() * 0.3 };
+    const t = { species, variant, x, z, spacing, y: 0, ry: this.random() * Math.PI * 2, s: 0.85 + this.random() * 0.3 };
+    const model = this.models[species][variant];
+    // Stand the trunk on the lowest ground under its (flared) foot: on a
+    // slope, a base set at the centre's height left the downhill side of a
+    // wide trunk in the air, its open end showing the trunk hollow inside.
+    const foot = model.trunkRadius * t.s * (1 + (SPECIES[species].trunk.flare || 0)) * 1.05;
+    let low = this.terrain.heightAt(x, z);
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      for (const f of [0.5, 1]) low = Math.min(low, this.terrain.heightAt(x + Math.cos(a) * foot * f, z + Math.sin(a) * foot * f));
+    }
+    t.y = low - 0.15;
     this.placed.push(t);
     const key = cx * 7919 + cz;
     if (!this.grid.has(key)) this.grid.set(key, []);
     this.grid.get(key).push(t);
-    const model = this.models[species][variant];
     const r = model.trunkRadius * t.s * (SPECIES[species].trunk.flare ? 1.6 : 1.1);
     if (r > 0.08) this.colliders.push({ cx: x, cz: z, hx: r, hz: r, rot: 0 });
     return true;

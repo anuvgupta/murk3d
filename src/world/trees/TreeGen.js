@@ -37,6 +37,8 @@ export function generateTree(spec, seed) {
   const stems = []; // { pts, radii, level }
   const spots = []; // { p, dir } leaf spots
   const hangs = [];
+  // Its own stream, so adding inner leaves left every tree's shape as it was.
+  const fillRng = mulberry32(seed * 2654435761 + 977);
 
   const trunkLen = R(spec.trunk.len);
   const trunkR = R(spec.trunk.radius);
@@ -140,6 +142,19 @@ export function generateTree(spec, seed) {
       }
     }
 
+    // Inner canopy: a few clumps along the limbs that carry the leafy twigs,
+    // set a little low, so from beneath the crown has leaves at every depth
+    // instead of reading as a hollow shell over bare wood.
+    if (spec.leaves && level >= 1 && level === levels - 2) {
+      const L = spec.leaves;
+      const fill = L.fill ?? (['needle', 'scale', 'willow'].includes(spec.leaf.kind) ? 0 : 3);
+      for (let i = 0; i < fill; i++) {
+        const at = sampleAt(0.35 + fillRng() * 0.5);
+        const off = new THREE.Vector3(fillRng() - 0.5, -0.2 - fillRng() * 0.4, fillRng() - 0.5).multiplyScalar(L.spread);
+        spots.push({ p: at.p.clone().add(off), dir: at.dir });
+      }
+    }
+
     const leafy = spec.leaves && (isLast || (level === 0 && spec.trunk.leafTop));
     if (leafy) {
       const L = spec.leaves;
@@ -223,10 +238,30 @@ function buildBark(spec, stems, height, rng, lod) {
   // that spiral up it, so old wood looks grown and twisted, not turned.
   const gnarl = spec.gnarl || 0;
 
-  for (const b of stems) {
-    let radial = b.level === 0 ? (flare ? 18 : 12) : b.level === 1 ? 8 : 6;
+  for (const stem of stems) {
+    let radial = stem.level === 0 ? (flare ? 30 : 12) : stem.level === 1 ? 8 : 6;
     radial = Math.max(4, Math.round(radial / (1 + lod)));
-    if (b.radii[0] < 0.015 && spec.leaves) continue;
+    if (stem.radii[0] < 0.015 && spec.leaves) continue;
+    // A flared trunk's foot gets rings every ~0.45 m, so its buttresses swell
+    // smoothly out of the ground (with the trunk's own spacing the whole flare
+    // fell between two rings: a thin skirt with knife edges, like a shell).
+    let b = stem;
+    if (stem.level === 0 && flare && lod < 2) {
+      const pts = [];
+      const radii = [];
+      for (let i = 0; i < stem.pts.length - 1; i++) {
+        const p0 = stem.pts[i];
+        const p1 = stem.pts[i + 1];
+        const steps = p0.y < 3.5 ? Math.max(1, Math.ceil(p0.distanceTo(p1) / (0.45 * (1 + lod)))) : 1;
+        for (let k = 0; k < steps; k++) {
+          pts.push(p0.clone().lerp(p1, k / steps));
+          radii.push(stem.radii[i] + (stem.radii[i + 1] - stem.radii[i]) * (k / steps));
+        }
+      }
+      pts.push(stem.pts[stem.pts.length - 1]);
+      radii.push(stem.radii[stem.radii.length - 1]);
+      b = { ...stem, pts, radii };
+    }
     const base = positions.length / 3;
     const n = b.pts.length;
     const normal = new THREE.Vector3();
@@ -237,7 +272,7 @@ function buildBark(spec, stems, height, rng, lod) {
     for (let i = 1; i < n; i++) total += b.pts[i].distanceTo(b.pts[i - 1]);
     // Made once per stem and kept on it, so every level of detail has the
     // same lumps (no visible change when the detail level switches).
-    if (!b.gnarl) {
+    if (!stem.gnarl) {
       const burls = [];
       if (gnarl && b.radii[0] > 0.03) {
         const count = b.level === 0 ? 5 : b.level === 1 ? 3 : 1;
@@ -245,9 +280,9 @@ function buildBark(spec, stems, height, rng, lod) {
           burls.push({ s: (0.08 + rng() * 0.8) * total, a: rng() * Math.PI * 2, size: gnarl * (0.25 + rng() * 0.45), len: 0.6 + rng() * 1.2 });
         }
       }
-      b.gnarl = { burls, twist: (1.2 + rng()) * (rng() < 0.5 ? -1 : 1) };
+      stem.gnarl = { burls, twist: (1.2 + rng()) * (rng() < 0.5 ? -1 : 1) };
     }
-    const { burls, twist } = b.gnarl;
+    const { burls, twist } = stem.gnarl;
     for (let i = 0; i < n; i++) {
       const p = b.pts[i];
       const t = (i < n - 1 ? b.pts[i + 1].clone().sub(p) : p.clone().sub(b.pts[i - 1])).normalize();
@@ -267,7 +302,7 @@ function buildBark(spec, stems, height, rng, lod) {
         if (b.level === 0 && flare && p.y < 3.5) {
           const f = Math.pow(1 - Math.max(0, p.y) / 3.5, 2.4);
           const lobes = 0.5 + 0.5 * Math.sin(a * 5 + flarePhase);
-          r *= 1 + flare * f * (0.3 + 0.7 * lobes * lobes);
+          r *= 1 + flare * f * (0.3 + 0.7 * Math.pow(lobes, 1.3));
         }
         r *= 1 + 0.06 * Math.sin(a * 3 + flarePhase + p.y * 0.7);
         if (gnarl && !tip) {
