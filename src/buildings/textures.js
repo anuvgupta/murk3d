@@ -213,22 +213,28 @@ export function ashlarStone(seed = 3, pale = false) {
     const ex = Math.min(uu - start, end - uu) * 6;
     const ey = Math.min(fy, 1 - fy);
     const edge = Math.min(ex, ey);
-    const joint = edge < 0.035;
+    const joint = edge < 0.026;
     const fine = nz(3, u * 8, v * 8);
+    // Weathering: rain streaks run down from the joint above each block,
+    // dirt gathers in blotches, and every block has its own tint.
+    const streak = (1 - smooth(0.0, 0.3, fy)) * (0.5 + 0.5 * nz(1, u * 40, v * 3));
+    const blot = smooth(0.6, 0.82, nz(2, u * 5 + 3, v * 5)) * (0.6 + 0.4 * fine);
+    const wear = (1 - 0.2 * streak) * (1 - 0.14 * blot);
     const t = row.tints[k] * (0.85 + 0.25 * nz(2, u * 8, v * 4)) * (0.6 + 0.4 * smooth(0.03, 0.12, edge));
     if (joint) {
-      const j = pale ? 0.68 : 1.0;
-      out[0] = 0.45 * j * (0.8 + 0.3 * fine) + (pale ? 0.2 : 0);
-      out[1] = 0.42 * j * (0.8 + 0.3 * fine) + (pale ? 0.2 : 0);
-      out[2] = 0.38 * j * (0.8 + 0.3 * fine) + (pale ? 0.19 : 0);
+      // Mortar: a little darker than the stone, never a drawn black line.
+      const j = pale ? 0.62 : 1.0;
+      out[0] = 0.45 * j * (0.8 + 0.3 * fine) + (pale ? 0.26 : 0);
+      out[1] = 0.42 * j * (0.8 + 0.3 * fine) + (pale ? 0.26 : 0);
+      out[2] = 0.38 * j * (0.8 + 0.3 * fine) + (pale ? 0.25 : 0);
       out[3] = 0.1;
     } else {
-      const base = pale ? [0.9, 0.88, 0.84] : [0.62, 0.58, 0.52];
-      const tt = pale ? 0.88 + 0.12 * t : t;
+      const base = pale ? [0.84, 0.82, 0.78] : [0.62, 0.58, 0.52];
+      const tt = (pale ? 0.76 + 0.26 * t : t) * wear;
       out[0] = clamp01(base[0] * tt);
       out[1] = clamp01(base[1] * tt);
-      out[2] = clamp01(base[2] * tt);
-      out[3] = 0.4 + 0.5 * smooth(0.03, 0.15, edge) + 0.1 * fine;
+      out[2] = clamp01(base[2] * tt * (pale ? 0.985 : 1));
+      out[3] = 0.4 + 0.5 * smooth(0.03, 0.15, edge) + 0.1 * fine - 0.08 * blot;
     }
   });
 }

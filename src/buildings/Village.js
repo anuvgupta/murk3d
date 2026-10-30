@@ -36,7 +36,7 @@ export class Village {
     const random = mulberry32(77);
 
     // White-town houses: pale plaster and blue slate in place of the Vale's palette.
-    const whiteMats = { ...m, plasterCream: m.plasterWhite, plasterOchre: m.plasterWhite, plasterRose: m.plasterWhite, thatch: m.slateBlue, shingles: m.slateBlue, clay: m.slateBlue, stone: m.white, stoneWarm: m.white, logs: m.white };
+    const whiteMats = { ...m, plasterCream: m.plasterWhite, plasterOchre: m.plasterWhite, plasterRose: m.plasterWhite, thatch: m.slateBlue, shingles: m.slateBlue, clay: m.slateBlue, stone: m.whiteHouse, stoneWarm: m.whiteHouse, logs: m.whiteHouse };
     for (const h of HOUSES) {
       let info;
       kit.frame({ x: h.x, y: h.y, z: h.z, ry: h.rotationY }, () => {

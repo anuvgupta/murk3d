@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
-import { createNoise3D, fbm3, mulberry32 } from '../util/noise.js';
+import { createNoise3D, fbm3, mulberry32, smoothstep } from '../util/noise.js';
 import { createRockMaterial } from './Rocks.js';
 import { Kit } from '../buildings/Kit.js';
 import { REGIONS } from './regions.js';
@@ -92,8 +92,11 @@ export class SkyIslands {
       const n = fbm3(noise3, v.x * 0.18 + seed, v.y * 0.18, v.z * 0.18, 3);
       const n2 = fbm3(noise3, v.x * 0.6 + seed, v.y * 0.6 + 3, v.z * 0.6, 2);
       const radial = Math.hypot(v.x, v.z) || 1;
-      const amp = r * (0.16 + 0.1 * depth) * (0.6 + 0.4 * (1 - depth));
-      const dr = (n * 1.2 + n2 * 0.5) * amp;
+      // Deep ribs and fissures run down the cone; the rim overhangs a little.
+      const ang = Math.atan2(v.z, v.x);
+      const rib = Math.pow(Math.sin(ang * 6.0 + n * 2.5) * 0.5 + 0.5, 1.6) - 0.5;
+      const amp = r * (0.26 + 0.16 * depth);
+      const dr = (n * 1.3 + n2 * 0.5 + rib * 0.9 * depth) * amp + r * 0.08 * (1 - smoothstep(0, 0.12, depth));
       v.x += (v.x / radial) * dr;
       v.z += (v.z / radial) * dr;
       // Bedding steps.
