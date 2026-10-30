@@ -73,13 +73,11 @@ export const ROCK_GLSL = /* glsl */ `
     // Macro relief: buttresses and gullies tens of metres across.
     float macro = tri( vec3( p.x, p.y * 0.35, p.z ), w, 0.022, 0 );
     // Block seams, sunk; each block sits at its own height.
-    float seam = 0.0;
-    float blockH = 0.5;
-    if ( detail > 0.02 ) {
-      vec2 j = rockJoints( p + warp * 1.5, w );
-      seam = j.x * detail;
-      blockH = mix( 0.5, j.y, detail );
-    }
+    // Joints and block heights persist at distance (at reduced weight), so a
+    // spire 50 m off still reads as jointed stone rather than a smooth cone.
+    vec2 j = rockJoints( p + warp * 1.5, w );
+    float seam = j.x * ( 0.4 + 0.6 * detail );
+    float blockH = mix( 0.5, j.y, 0.5 + 0.5 * detail );
     // Strata read strongest on steep faces (canyon walls, cliffs), barely on level ground.
     float strataW = ( 0.07 + 0.09 * ( 1.0 - w.y ) ) * ( 0.45 + 0.55 * detail ); // far walls keep only a hint of banding
     return clamp( strata * strataW + lumps * 0.26 + grain * 0.2 + fine * 0.12 + ledge * 0.08 + macro * ( 0.36 - 0.1 * ( 1.0 - w.y ) ) + ( blockH - 0.5 ) * 0.18 - cracks * 0.24 - seam * 0.2 + 0.05, 0.0, 1.0 );
