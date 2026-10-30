@@ -792,3 +792,21 @@ screenshot-checked.
   swiftshader at 800×450); batches 68-72 queued back to back. Verify CA
   (clouds), CB (isle sea, flowers, tundra), CC (roads, mushrooms, pixel
   trees), CD (potions, cauldron), CE (plaza edge, hill rock, ghibli).
+- Verification round (CB–CE frames): flowers now clumps (ok); jungle floor
+  patchy (ok); cloud sea shot from a free camera was invalid until view2's
+  cam mode also ran updateWorld(0) (atmosphere uniforms were stale);
+  road gravel read as white sprinkles → sparser, earth-toned; road edge
+  wobble needed a 4–5 m bay term; potions by night ok (eel brightened);
+  cauldron fire was hidden inside the pot's belly → ring at r 0.36–0.46;
+  plaza edge: wall+kerb good, the remaining sheer step was the ROAD cut
+  switching off within 3 m of the river → bandFade over riverHalf+1..+7;
+  hill rock shaded side one black mass → rock envMapIntensity 1.6,
+  terrain 1.35, meso/band contrast up. Bridge-at-morning (CE3) is a keeper.
+- Headless cloud checks all sit at skyTime≈0 (paused on load), i.e. the
+  same cloud phase every time → view2 gained a `sky` shot option; judge
+  coverage across 2–3 phases, never one frame.
+- Night sky / glare / motes shipped (#17 #18 #22 #23 commented): stars are
+  soft sprites with a slow per-star wink (aStar: size, phase, rate), moon
+  has maria/craters/terminator in AtmospherePass (uMoon), lens ghosts +
+  streak when the sun is near centre, motes 1500 with speeds and 2-point
+  trails, god rays 0.12+0.6*low with pow 1.35 sharpening.
