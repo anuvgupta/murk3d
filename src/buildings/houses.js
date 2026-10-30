@@ -283,6 +283,7 @@ function cottage(kit, m, rng) {
       { cx: 0, cz: 0, hx: W / 2 + 0.25, hz: D / 2 + 0.25 },
       { cx: side * (W / 2 + 0.55), cz: 0.9, hx: 0.7, hz: 0.9 },
     ],
+    decks: [{ cx: -1.2, cz: D / 2 + 0.42, hx: 1.0, hz: 0.4, y: 0.26 }],
     lamps: [new THREE.Vector3(-2.3, 2.6, D / 2 + 0.25)],
   };
 }
@@ -327,8 +328,16 @@ function hall(kit, m, rng) {
     });
   });
 
-  // Front steps up to the plinth.
-  for (let i = 0; i < 3; i++) kit.box(m.ashlar, 3.0 - i * 0.3, 0.27, 0.45, { y: 0.13 + i * 0.27, z: D / 2 + 1.175 - i * 0.4 }, { metres: 2 });
+  // Front steps up to the plinth, each a walkable deck (the top one runs
+  // back to the wall).
+  const steps = [];
+  for (let i = 0; i < 3; i++) {
+    const z = D / 2 + 1.175 - i * 0.4;
+    kit.box(m.ashlar, 3.0 - i * 0.3, 0.27, 0.45, { y: 0.13 + i * 0.27, z }, { metres: 2 });
+    const front = z + 0.225;
+    const back = i === 2 ? D / 2 : front - 0.4;
+    steps.push({ cx: 0, cz: (front + back) / 2, hx: 1.5 - i * 0.15, hz: (front - back) / 2, y: 0.265 + i * 0.27 });
+  }
 
   const pitch = deg(46);
   const roof = gableRoof(kit, m, { mat: m.clay, length: UW, span: UD, baseY: u1, pitch, eave: 0.7, overhang: 0.6, metres: 2 });
@@ -374,7 +383,13 @@ function hall(kit, m, rng) {
 
   return {
     chimneys,
-    colliders: [{ cx: 0, cz: 0, hx: W / 2 + 0.2, hz: D / 2 + 0.2 }],
+    colliders: [
+      // The front face sits close to the wall so the top step can be stood on.
+      { cx: 0, cz: -0.075, hx: W / 2 + 0.2, hz: D / 2 + 0.125 },
+      // The top step's sides are too tall to step onto.
+      ...[-1, 1].map((sx) => ({ cx: sx * 1.25, cz: D / 2 + 0.3, hx: 0.05, hz: 0.3 })),
+    ],
+    decks: steps,
     lamps: [new THREE.Vector3(-1.4, g0 + 2.2, D / 2 + 0.3), new THREE.Vector3(1.4, g0 + 2.2, D / 2 + 0.3)],
   };
 }
@@ -517,8 +532,16 @@ function tower(kit, m, rng) {
       windowAt(kit, m, 0, 7.2, 0.7, 1.0, { arch: true, frame: m.ashlar });
     }
   });
-  // Steps up to the raised door.
-  for (let i = 0; i < 4; i++) kit.box(m.ashlar, 1.8, 0.25, 0.4, { y: 0.12 + i * 0.22, z: W / 2 + 1.35 - i * 0.35 }, { metres: 2 });
+  // Steps up to the raised door, each a walkable deck (the top one runs back
+  // to the wall).
+  const steps = [];
+  for (let i = 0; i < 4; i++) {
+    const z = W / 2 + 1.35 - i * 0.35;
+    kit.box(m.ashlar, 1.8, 0.25, 0.4, { y: 0.12 + i * 0.22, z }, { metres: 2 });
+    const front = z + 0.2;
+    const back = i === 3 ? W / 2 : front - 0.35;
+    steps.push({ cx: 0, cz: (front + back) / 2, hx: 0.9, hz: (front - back) / 2, y: 0.245 + i * 0.22 });
+  }
 
   // Timber gallery on the top storey's front, on brackets.
   kit.frame({ y: 6.2, z: W / 2 }, () => {
@@ -536,9 +559,12 @@ function tower(kit, m, rng) {
   return {
     chimneys: [chim],
     colliders: [
-      { cx: 0, cz: 0, hx: W / 2 + 0.25, hz: W / 2 + 0.25 },
-      { cx: 0, cz: W / 2 + 0.9, hx: 0.95, hz: 0.75 },
+      // The front face sits close to the wall so the top step can be stood on.
+      { cx: 0, cz: -0.1, hx: W / 2 + 0.25, hz: W / 2 + 0.15 },
+      // The upper steps' sides are too tall to step onto.
+      ...[-1, 1].map((sx) => ({ cx: sx * 0.95, cz: W / 2 + 0.4, hx: 0.05, hz: 0.4 })),
     ],
+    decks: steps,
     lamps: [new THREE.Vector3(-0.95, 2.6, W / 2 + 0.25)],
   };
 }
