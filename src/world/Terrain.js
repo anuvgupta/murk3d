@@ -356,7 +356,7 @@ export class Terrain {
     let h = this.baseHeight(x, z);
 
     const dp = Math.hypot(x - PLAZA.x, z - PLAZA.z) - PLAZA.radius;
-    if (dp < 10) h = lerp(this.plazaHeight, h, smoothstep(0, 10, dp));
+    if (dp < 16) h = lerp(this.plazaHeight, h, smoothstep(0, 16, dp));
 
     for (const house of HOUSES) {
       const dx = x - house.x;
@@ -438,9 +438,10 @@ export class Terrain {
         h = level - 0.35 - RIVER.depth * (1 - k * k);
       } else {
         // Cut sloping banks, except where a road runs up to the bridge.
-        // Steepening with distance, so the cut always meets the natural ground.
+        // Steepening gently with distance, so the cut meets the natural ground
+        // on a long easy grade rather than a sheer step.
         const e = rq.d - w;
-        const bank = level - 0.35 + e * 0.32 + Math.max(0, e - 10) ** 2 * 0.04;
+        const bank = level - 0.35 + e * 0.3 + Math.max(0, e - 6) ** 2 * 0.015;
         if (!onRoad) h = Math.min(h, bank);
         // Keep low ground beside the river from flooding.
         if (rq.d < w + 4) h = Math.max(h, level + 0.15 * smoothstep(w, w + 1.5, rq.d));

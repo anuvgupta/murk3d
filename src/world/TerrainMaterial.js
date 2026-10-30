@@ -53,7 +53,7 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         // while lighting keeps the smooth one.
         vec3 faceN = normalize( cross( dFdx( vWPos ), dFdy( vWPos ) ) );
         if ( faceN.y < 0.0 ) faceN = -faceN;
-        vec3 wnClass = normalize( mix( wn, faceN, 0.9 ) );
+        vec3 wnClass = normalize( mix( wn, faceN, 0.55 ) );
         // The same baked slope the blade shader culls by, so the carpet colour
         // stops exactly where the blades do.
         // On a steep sunlit bank the blades spread thin, so the lit carpet
@@ -67,7 +67,7 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         rockDetail = detail;
         rockDetailF = detail;
         rockHOut = rockHeight( vWPos, tw, detail );
-        rockAmtOut = smoothstep( 0.42, 0.58, 1.0 - wnClass.y + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.1 );
+        rockAmtOut = smoothstep( 0.42, 0.58, 1.0 - wnClass.y + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.14 + ( texture( uNoise, vWPos.xz * 0.31 + 0.5 ).a - 0.5 ) * 0.1 );
         {
           // Realm-coloured rock (red canyon, pale karst), snowed over on the tundra.
           float sn;

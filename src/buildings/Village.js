@@ -65,6 +65,26 @@ export class Village {
       this.landmarks.push({ name: HOUSE_NAMES[h.design], x: h.x, z: h.z, r: Math.max(h.footprint.hx, h.footprint.hz) + 1 });
     }
 
+    // Where the ground falls away from the plaza, a retaining wall of rubble
+    // stone holds the paving up, with a low kerb above it.
+    {
+      const n = 72;
+      const R = PLAZA.radius + 0.25;
+      for (let i = 0; i < n; i++) {
+        const a = ((i + 0.5) / n) * Math.PI * 2;
+        const ox = PLAZA.x + Math.cos(a) * (R + 1.2);
+        const oz = PLAZA.z + Math.sin(a) * (R + 1.2);
+        const drop = terrain.plazaHeight - terrain.heightAt(ox, oz);
+        if (drop < 0.45) continue;
+        const h = drop + 0.9;
+        const len = (2 * Math.PI * R) / n + 0.06;
+        kit.frame({ x: PLAZA.x + Math.cos(a) * R, y: terrain.plazaHeight + 0.35 - h / 2, z: PLAZA.z + Math.sin(a) * R, ry: -a }, () => {
+          kit.box(m.stone, 0.55, h, len, {}, { metres: 1.6 });
+          kit.box(m.ashlar, 0.62, 0.18, len, { y: h / 2 - 0.09 }, { metres: 1.6 });
+        });
+      }
+    }
+
     // The well in the middle of the plaza.
     const wy = terrain.plazaHeight;
     kit.frame({ x: WELL.x, y: wy, z: WELL.z, ry: 0.3 }, () => well(kit, m));
