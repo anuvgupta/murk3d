@@ -60,6 +60,12 @@ export function generateTree(spec, seed) {
     const curveBack = deg(P.curveBack || 0);
     const wobbleAxis = randomAxis();
     const tropism = P.tropism || 0;
+    // Sinuous growth: a smooth S-wave about an axis across the stem, so a
+    // gnarled limb snakes rather than running straight.
+    const sinuous = deg(P.sinuous || 0);
+    const waveAxis = new THREE.Vector3().crossVectors(d, randomAxis()).normalize();
+    const wavePhase = rng() * Math.PI * 2;
+    const waves = P.waves || 1.3;
     const p = start.clone();
     for (let i = 1; i <= segs; i++) {
       const t = i / segs;
@@ -70,6 +76,7 @@ export function generateTree(spec, seed) {
       rot(d, side, -step);
       rot(d, wobbleAxis, deg(V(0, P.curveV || 0)) / segs);
       rot(d, randomAxis(), (deg(P.wander || 0) * (rng() - 0.5)) / Math.sqrt(segs));
+      if (sinuous) rot(d, waveAxis, (sinuous * Math.cos(t * Math.PI * 2 * waves + wavePhase) * 2.5) / segs);
       d.y += (tropism / segs) * (0.5 + 0.5 * t);
       d.normalize();
       side.crossVectors(UP, d);
@@ -118,7 +125,7 @@ export function generateTree(spec, seed) {
         rot(perp, at.dir, az);
         const cdir = at.dir.clone().multiplyScalar(Math.cos(down)).addScaledVector(perp, Math.sin(down)).normalize();
         let clen = len * C.lenRatio * (isLeader ? spec.trunk.leaderLen || 0.9 : shape(relT)) * V(1, C.lenV || 0.15);
-        const pr = Math.min(at.r, r0 * (isLeader ? 0.72 : 0.6));
+        const pr = Math.min(at.r, r0 * (isLeader ? 0.72 : C.thick ?? 0.6));
         const cr0 = Math.max(0.006, pr * Math.pow(Math.min(1, clen / len), 0.6));
         grow({
           start: at.p,
@@ -138,7 +145,10 @@ export function generateTree(spec, seed) {
       const L = spec.leaves;
       const per = level === 0 ? 3 : L.per;
       for (let i = 0; i < per; i++) {
-        const t = level === 0 ? 0.88 + rng() * 0.12 : 0.3 + rng() * 0.7;
+        // Leaves on the outer part of each twig; an oak's 'outer' leaves its
+        // inner limbs bare, so the crown parts into masses with wood between.
+        const inner = L.outer ?? 0.3;
+        const t = level === 0 ? 0.88 + rng() * 0.12 : inner + rng() * (1 - inner);
         const at = sampleAt(t);
         const off = new THREE.Vector3(rng() - 0.5, rng() - 0.3, rng() - 0.5).multiplyScalar(L.spread);
         spots.push({ p: at.p.clone().add(off), dir: at.dir });
@@ -204,6 +214,9 @@ function buildBark(spec, stems, height, rng, lod) {
   const indices = [];
   const flarePhase = rng() * 6;
   const flare = spec.trunk.flare || 0;
+  // Gnarl: burls (lumps swelling out of one side of a stem) and ridges
+  // that spiral up it, so old wood looks grown and twisted, not turned.
+  const gnarl = spec.gnarl || 0;
 
   for (const b of stems) {
     let radial = b.level === 0 ? (flare ? 18 : 12) : b.level === 1 ? 8 : 6;
@@ -215,6 +228,21 @@ function buildBark(spec, stems, height, rng, lod) {
     let along = 0;
     const barkScale = Math.max(1, Math.pow(spec.trunk.radius[1] / 0.45, 0.8));
     const circ = Math.max(1, Math.round((2 * Math.PI * b.radii[0]) / (1.4 * barkScale)));
+    let total = 0;
+    for (let i = 1; i < n; i++) total += b.pts[i].distanceTo(b.pts[i - 1]);
+    // Made once per stem and kept on it, so every level of detail has the
+    // same lumps (no visible change when the detail level switches).
+    if (!b.gnarl) {
+      const burls = [];
+      if (gnarl && b.radii[0] > 0.03) {
+        const count = b.level === 0 ? 5 : b.level === 1 ? 3 : 1;
+        for (let k = 0; k < count; k++) {
+          burls.push({ s: (0.08 + rng() * 0.8) * total, a: rng() * Math.PI * 2, size: gnarl * (0.25 + rng() * 0.45), len: 0.6 + rng() * 1.2 });
+        }
+      }
+      b.gnarl = { burls, twist: (1.2 + rng()) * (rng() < 0.5 ? -1 : 1) };
+    }
+    const { burls, twist } = b.gnarl;
     for (let i = 0; i < n; i++) {
       const p = b.pts[i];
       const t = (i < n - 1 ? b.pts[i + 1].clone().sub(p) : p.clone().sub(b.pts[i - 1])).normalize();
@@ -237,6 +265,15 @@ function buildBark(spec, stems, height, rng, lod) {
           r *= 1 + flare * f * (0.3 + 0.7 * lobes * lobes);
         }
         r *= 1 + 0.06 * Math.sin(a * 3 + flarePhase + p.y * 0.7);
+        if (gnarl && !tip) {
+          const r0 = b.radii[i];
+          r *= 1 + gnarl * 0.12 * Math.sin(a * 5 + (along / Math.max(0.2, r0 * 6)) * twist);
+          for (const k of burls) {
+            const ds = (along - k.s) / (k.len * Math.max(r0, 0.08) * 3);
+            const facing = Math.max(0, Math.cos(a - k.a));
+            r += r0 * k.size * Math.exp(-ds * ds) * facing * facing;
+          }
+        }
         const dir = normal.clone().multiplyScalar(Math.cos(a)).addScaledVector(binormal, Math.sin(a));
         positions.push(p.x + dir.x * r, p.y + dir.y * r, p.z + dir.z * r);
         // The closed tip's normal points along the stem.
@@ -330,7 +367,16 @@ function buildSprigs(ctx, spots, hangs, rng) {
       const away = s.p.clone().sub(ctx.crown).normalize();
       out.addScaledVector(away, 0.5).addScaledVector(UP, 0.15).normalize();
       if (L.flat) out.lerp(UP, 0.6).normalize();
-      const basePoint = s.p.clone().addScaledVector(out, clumpR * (0.3 + rng() * 0.4));
+      let basePoint = s.p.clone().addScaledVector(out, clumpR * (0.3 + rng() * 0.4));
+      if (L.round) {
+        // Round clumps: the sprig lies along the clump's surface instead of
+        // pointing out of it, so the clump reads as a soft ball of leaves
+        // and the crown's edge as billows rather than spikes.
+        const radial = out.clone();
+        basePoint = s.p.clone().addScaledVector(radial, clumpR * (0.55 + rng() * 0.45));
+        const tangent = randomTangent(radial, rng);
+        out.copy(tangent.addScaledVector(radial, 0.1 + 0.4 * (1 - L.round))).normalize();
+      }
       sprig(basePoint, out, sprigLen * (0.8 + rng() * 0.4), sprigWid * (0.8 + rng() * 0.4), tint);
     }
   }
@@ -360,6 +406,13 @@ function buildSprigs(ctx, spots, hangs, rng) {
     }
   }
   return finish({ positions, normals, uvs, colors, sway, indices });
+}
+
+function randomTangent(n, rng) {
+  const r = new THREE.Vector3(rng() - 0.5, rng() - 0.5, rng() - 0.5);
+  r.addScaledVector(n, -r.dot(n));
+  if (r.lengthSq() < 1e-6) r.set(n.y, -n.x, 0);
+  return r.normalize();
 }
 
 // Mid/far detail: one leaf-cluster card per spot.

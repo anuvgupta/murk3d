@@ -22,15 +22,19 @@ export const SPECIES = {
   oak: {
     label: 'Common oak',
     levels: 3,
-    trunk: { len: [2.6, 3.8], radius: [0.36, 0.5], lean: 0.1, taper: 0.75, curveV: 18, wander: 14, segs: 7, start: 0.45, splits: [2, 3], splitAngle: 32, leaderLen: 1.1 },
+    // An old, gnarled oak: a squat, thick bole on buttress roots, a few
+    // heavy limbs that snake up and out then droop at the ends, and a crown
+    // of round, billowing leaf masses.
+    trunk: { len: [2.6, 3.5], radius: [0.6, 0.78], lean: 0.16, taper: 0.62, curveV: 26, wander: 22, segs: 9, start: 0.5, splits: [2, 3], splitAngle: 38, leaderLen: 1.05, flare: 0.55, sinuous: 16 },
     levels_: [
-      { n: [4, 6], downAngle: 58, downAngleV: 14, lenRatio: 1.35, lenV: 0.2, taper: 0.45, curve: 8, curveV: 40, wander: 25, tropism: 0.14, segs: 8 },
-      { n: [6, 9], downAngle: 48, downAngleV: 18, lenRatio: 0.55, lenV: 0.25, taper: 0.3, curveV: 45, wander: 30, tropism: 0.1, segs: 5, start: 0.15 },
+      { n: [4, 5], downAngle: 60, downAngleV: 14, lenRatio: 1.85, lenV: 0.22, taper: 0.5, curve: 26, curveBack: -34, curveV: 34, wander: 26, tropism: 0.05, segs: 11, thick: 0.74, sinuous: 26, waves: 1.6 },
+      { n: [6, 9], downAngle: 46, downAngleV: 18, lenRatio: 0.55, lenV: 0.25, taper: 0.35, curve: -10, curveV: 40, wander: 34, tropism: 0.08, segs: 6, start: 0.2, thick: 0.62, sinuous: 22 },
     ],
     shape: round,
-    leaves: { per: 4, tipFill: 3, size: [1.5, 2.2], spread: 0.7, sprigs: 9 },
+    gnarl: 0.8,
+    leaves: { per: 6, tipFill: 4, size: [1.25, 1.8], spread: 1.0, sprigs: 15, round: 0.85, outer: 0.5 },
     bark: { color: [0.48, 0.39, 0.29], fissures: 7, depth: 1.1 },
-    leaf: { kind: 'broad', colors: ['#4a6e2a', '#587d30', '#3d5e22', '#6a8a36'] },
+    leaf: { kind: 'oak', colors: ['#4a6e2a', '#587d30', '#3d5e22', '#6a8a36'] },
     wind: 0.7,
   },
   giant: {
@@ -206,6 +210,20 @@ function leafPath(ctx, kind, len, wid) {
       const a = (p / 5) * Math.PI * 2;
       ctx.moveTo(0, 0);
       ctx.ellipse(Math.cos(a) * len * 0.5, Math.sin(a) * len * 0.5, len * 0.42, len * 0.3, a, 0, Math.PI * 2);
+    }
+  } else if (kind === 'oak') {
+    // Oak: rounded lobes down both sides, widest above the middle.
+    const steps = 28;
+    const edge = (u) => wid * Math.pow(Math.sin(Math.PI * Math.min(1, u * 1.05)), 0.7) * (0.62 + 0.38 * Math.abs(Math.cos(u * Math.PI * 4.5)));
+    for (let i = 0; i <= steps; i++) {
+      const u = i / steps;
+      const y = len * 0.5 - u * len * 1.5;
+      const x = edge(u);
+      i ? ctx.lineTo(x, y) : ctx.moveTo(0, len * 0.5);
+    }
+    for (let i = steps; i >= 0; i--) {
+      const u = i / steps;
+      ctx.lineTo(-edge(u), len * 0.5 - u * len * 1.5);
     }
   } else if (kind === 'silver' || kind === 'willow') {
     ctx.moveTo(0, -len);
@@ -443,8 +461,8 @@ export function paintSprigTexture(spec, seed = 1) {
     }
   } else {
     const n = kind === 'small' ? 14 : kind === 'silver' ? 11 : 9;
-    const len = { broad: 30, small: 20, maple: 26, silver: 34, blossom: 22 }[kind] || 28;
-    const wid = { broad: 14, small: 11, silver: 8, blossom: 10 }[kind] || 14;
+    const len = { broad: 30, small: 20, maple: 26, silver: 34, blossom: 22, oak: 24 }[kind] || 28;
+    const wid = { broad: 14, small: 11, silver: 8, blossom: 10, oak: 13 }[kind] || 14;
     for (let i = 0; i < n; i++) {
       const t = 0.06 + (i / n) * 0.9;
       const [x, y] = stalkAt(t);
