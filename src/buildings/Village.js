@@ -225,6 +225,7 @@ export class Village {
     this.materials.glass.emissiveIntensity = 0.12 + nightFactor * 2.2 * flicker;
     this.materials.lamp.emissiveIntensity = 0.2 + nightFactor * 4 * flicker;
     this.smoke.update(dt, wind, lightLevel);
+    if (this.furnitureMaterials) this.furnitureMaterials.time.value = time;
     // Sails turn with the wind; the wheel turns with the river.
     const w = wind.uniforms.uWindStrength.value;
     for (const a of this.animated) {

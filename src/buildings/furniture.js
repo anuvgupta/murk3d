@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { mulberry32 } from '../util/noise.js';
 import { oakBarrel, waterBarrel, crate } from './props.js';
 import { coinPurse } from './items.js';
+import { createAlchemyMaterials, potion, tome, stoneMortar, brassScales, cutGems, dripCandle, herbSheaf, brewCauldron, workTable } from './alchemy.js';
+import { bevelBox } from './shapes.js';
 
 // The fantasy item and furniture library: everyday things of the Vale, each
 // built into a Kit in its own local frame (ground or tabletop at y = 0,
@@ -52,6 +54,8 @@ export function createFurnitureMaterials(m, im) {
     gemBlue: im.gemBlue,
     gemPurple: mat({ color: 0x8a3ad8, roughness: 0.1, metalness: 0.1, emissive: 0x3a0c70, emissiveIntensity: 0.6 }),
     rope: m.rope,
+    logWood: im.wood,
+    ...createAlchemyMaterials(im),
   };
 }
 
@@ -91,52 +95,25 @@ export function ingotStack(kit, material, rows = 3) {
   return { hx: 0.2, hz: 0.1 };
 }
 
-// Loose cut gems: octahedra and a prism, lying on their sides.
+// Loose cut gems and raw crystal points.
 export function gems(kit, fm, random = Math.random, count = 5) {
-  const mats = [fm.gemRed, fm.gemBlue, fm.gemGreen, fm.gemPurple, fm.gemClear];
-  for (let i = 0; i < count; i++) {
-    const s = 0.025 + random() * 0.02;
-    const g = i % 3 === 2 ? new THREE.CylinderGeometry(s * 0.6, s * 0.9, s * 2.2, 6) : new THREE.OctahedronGeometry(s, 0);
-    kit.add(mats[i % mats.length], g, { x: (random() - 0.5) * 0.3, y: s * 0.9, z: (random() - 0.5) * 0.2, rx: random() * 1.2, ry: random() * TAU });
-  }
-  return { hx: 0.18, hz: 0.12 };
+  return cutGems(kit, fm, random, count);
 }
 
-// A corked bottle: body shape by kind, neck, cork; potions glow.
+// A corked potion bottle (see alchemy.js); shape picks one of four bodies.
 export function bottle(kit, fm, kind = 'potionRed', shape = 0) {
-  const mat = fm[kind] || fm.clearGlass;
-  if (shape === 0) {
-    kit.cylinder(mat, 0.04, 0.045, 0.14, { y: 0.07 }, { segments: 10 });
-    kit.cylinder(mat, 0.014, 0.03, 0.05, { y: 0.165 }, { segments: 8 });
-    kit.cylinder(fm.cork, 0.013, 0.013, 0.03, { y: 0.2 }, { segments: 6 });
-  } else if (shape === 1) {
-    // Round flask.
-    kit.add(mat, new THREE.SphereGeometry(0.05, 10, 8), { y: 0.06 });
-    kit.cylinder(mat, 0.014, 0.018, 0.07, { y: 0.13 }, { segments: 8 });
-    kit.cylinder(fm.cork, 0.014, 0.014, 0.025, { y: 0.175 }, { segments: 6 });
-  } else {
-    // Tall slender vial.
-    kit.cylinder(mat, 0.02, 0.025, 0.16, { y: 0.08 }, { segments: 8 });
-    kit.cylinder(fm.cork, 0.012, 0.012, 0.025, { y: 0.17 }, { segments: 6 });
-  }
-  return { hx: 0.05, hz: 0.05 };
+  return potion(kit, fm, kind, shape);
 }
 
-// A book, closed, lying flat or standing (ry/rz by the caller).
-export function book(kit, fm, cover = 'bookRed', t = {}) {
-  kit.frame(t, () => {
-    kit.box(fm[cover], 0.16, 0.04, 0.22, { y: 0.02 });
-    kit.box(fm.paper, 0.15, 0.03, 0.2, { x: 0.006, y: 0.02, z: 0.0 });
-  });
+// A book, closed, lying flat (ry by the caller).
+const TOMES = { bookRed: 'tomeRed', bookBlue: 'tomeBlue', bookGreen: 'tomeGreen', bookBrown: 'tomeBrown' };
+export function book(kit, fm, cover = 'bookRed', t = {}, opts = {}) {
+  tome(kit, fm, TOMES[cover] || cover, t, opts);
 }
 
 // A candle on a dish, lit.
 export function candle(kit, fm, im, t = {}) {
-  kit.frame(t, () => {
-    kit.cylinder(im.brass, 0.045, 0.05, 0.01, { y: 0.005 }, { segments: 10 });
-    kit.cylinder(fm.wax, 0.014, 0.016, 0.1, { y: 0.06 }, { segments: 8 });
-    kit.add(fm.flame, new THREE.ConeGeometry(0.008, 0.03, 6), { y: 0.125 });
-  });
+  dripCandle(kit, fm, t, mulberry32(Math.round((t.x || 0) * 100 + (t.z || 0) * 37) + 11));
 }
 
 // Food: a loaf, a cheese wheel with a wedge out, a basket of apples, a ham.
@@ -254,10 +231,7 @@ export function chair(kit, m) {
 }
 
 export function table(kit, m, w = 1.8, d = 0.9, h = 0.78) {
-  kit.box(m.planks, w, 0.06, d, { y: h - 0.03 }, { metres: 1.2, grain: true });
-  for (const sx of [-1, 1]) for (const sz of [-1, 1]) kit.box(m.timber, 0.08, h - 0.06, 0.08, { x: sx * (w / 2 - 0.1), y: (h - 0.06) / 2, z: sz * (d / 2 - 0.1) });
-  for (const sz of [-1, 1]) kit.box(m.timber, w - 0.3, 0.05, 0.06, { y: 0.22, z: sz * (d / 2 - 0.1) }, { metres: 1, grain: true });
-  return { hx: w / 2, hz: d / 2, h };
+  return workTable(kit, m, w, d, h, mulberry32(Math.round(w * 100 + d * 10)));
 }
 
 // A bed: frame, straw mattress, folded blanket, pillow.
@@ -435,52 +409,24 @@ export function smelter(kit, m, im, fm) {
 
 // --- Alchemy ----------------------------------------------------------------
 
-// An iron cauldron on a tripod over a small fire, brew glowing green.
+// A cauldron over a small fire, brew glowing green.
 export function cauldron(kit, im, fm) {
-  const g = new THREE.SphereGeometry(0.42, 14, 10, 0, TAU, 0.9, 1.9);
-  kit.add(im.steelDark, g, { y: 0.62 });
-  kit.cylinder(im.steelDark, 0.4, 0.4, 0.05, { y: 0.88 }, { segments: 14, open: true });
-  kit.cylinder(fm.potionGreen, 0.36, 0.36, 0.02, { y: 0.86 }, { segments: 14 });
-  for (let i = 0; i < 3; i++) {
-    const a = (i / 3) * TAU + 0.5;
-    kit.box(im.steelDark, 0.04, 0.9, 0.04, { x: Math.cos(a) * 0.3, y: 0.45, z: Math.sin(a) * 0.3, rx: Math.sin(a) * 0.25, rz: -Math.cos(a) * 0.25 });
-  }
-  // Fire beneath: logs and flame.
-  for (let i = 0; i < 4; i++) kit.cylinder(im.wood, 0.04, 0.04, 0.5, { y: 0.05, ry: (i / 4) * Math.PI, rz: Math.PI / 2 }, { segments: 6 });
-  kit.add(fm.flame, new THREE.ConeGeometry(0.14, 0.3, 7), { y: 0.22 });
-  kit.add(fm.embers, new THREE.ConeGeometry(0.2, 0.12, 7), { y: 0.1 });
-  return { hx: 0.45, hz: 0.45 };
+  return brewCauldron(kit, fm, mulberry32(77));
 }
 
 // Mortar and pestle.
-export function mortar(kit, m, t = {}) {
-  kit.frame(t, () => {
-    kit.cylinder(m.ashlar, 0.08, 0.06, 0.09, { y: 0.045 }, { segments: 10, metres: 0.4, open: true });
-    kit.cylinder(m.ashlar, 0.06, 0.06, 0.02, { y: 0.01 }, { segments: 10 });
-    kit.cylinder(m.ashlar, 0.015, 0.022, 0.16, { x: 0.03, y: 0.1, rz: 0.6 }, { segments: 6 });
-  });
+export function mortar(kit, fm, t = {}) {
+  stoneMortar(kit, fm, t);
 }
 
 // Balance scales.
-export function scales(kit, im, t = {}) {
-  kit.frame(t, () => {
-    kit.cylinder(im.brass, 0.06, 0.07, 0.01, { y: 0.005 }, { segments: 10 });
-    kit.cylinder(im.brass, 0.008, 0.01, 0.26, { y: 0.13 }, { segments: 6 });
-    kit.box(im.brass, 0.3, 0.008, 0.008, { y: 0.26, rz: 0.08 });
-    for (const s of [-1, 1]) {
-      const y = 0.26 + s * 0.012;
-      kit.cylinder(im.brass, 0.045, 0.03, 0.012, { x: s * 0.15, y: y - 0.1 }, { segments: 10 });
-      for (let k = 0; k < 3; k++) kit.box(im.brass, 0.003, 0.1, 0.003, { x: s * 0.15 + Math.cos((k / 3) * TAU) * 0.035, y: y - 0.05, z: Math.sin((k / 3) * TAU) * 0.035 });
-    }
-  });
+export function scales(kit, fm, t = {}) {
+  brassScales(kit, fm, t);
 }
 
 // A bundle of dried herbs hanging from a hook.
-export function herbBundle(kit, fm, t = {}) {
-  kit.frame(t, () => {
-    for (let i = 0; i < 5; i++) kit.box(fm.herb, 0.02, 0.24, 0.02, { x: (i - 2) * 0.012, y: -0.12, rx: (i - 2) * 0.12, rz: (i % 2 ? 1 : -1) * 0.1 });
-    kit.box(fm.rope, 0.05, 0.015, 0.05, { y: -0.02 });
-  });
+export function herbBundle(kit, fm, t = {}, random = Math.random) {
+  herbSheaf(kit, fm, t, random);
 }
 
 // The alchemist's stall: a table crowded with potions and apparatus, a
@@ -488,34 +434,43 @@ export function herbBundle(kit, fm, t = {}) {
 export function alchemyStall(kit, m, im, fm, random = mulberry32(9)) {
   const t = table(kit, m, 2.2, 0.9, 0.8);
   const y = t.h;
-  const kinds = ['potionRed', 'potionGreen', 'potionBlue', 'potionGold', 'potionViolet', 'clearGlass'];
+  const kinds = ['potionRed', 'potionGreen', 'potionBlue', 'potionGold', 'potionViolet', 'potionTeal'];
+  // Back row of potions, a few more in front, one empty bottle with dregs.
   for (let i = 0; i < 9; i++) {
-    const kind = kinds[i % kinds.length];
-    kit.frame({ x: -0.95 + i * 0.17 + (random() - 0.5) * 0.04, y, z: -0.3 + (i % 2) * 0.12, ry: random() * TAU }, () => bottle(kit, fm, kind, i % 3));
+    const kind = i === 6 ? 'clearGlass' : kinds[i % kinds.length];
+    kit.frame({ x: -0.95 + i * 0.17 + (random() - 0.5) * 0.04, y, z: -0.3 + (i % 2) * 0.1, ry: random() * TAU }, () => bottle(kit, fm, kind, i % 4));
   }
-  mortar(kit, m, { x: 0.3, y, z: 0.2 });
-  scales(kit, im, { x: -0.6, y, z: 0.22 });
-  book(kit, fm, 'bookBrown', { x: 0.75, y, z: 0.15, ry: -0.3 });
-  book(kit, fm, 'bookGreen', { x: 0.75, y: y + 0.04, z: 0.15, ry: -0.1 });
-  candle(kit, fm, im, { x: 0.95, y, z: -0.3 });
-  kit.frame({ x: -0.1, y, z: 0.22 }, () => gems(kit, fm, random, 6));
+  for (const [x, z, s] of [[-0.25, 0.05, 3], [0.55, -0.05, 1], [-0.95, 0.2, 0]]) {
+    kit.frame({ x, y, z, ry: random() * TAU }, () => bottle(kit, fm, kinds[Math.floor(random() * kinds.length)], s));
+  }
+  mortar(kit, fm, { x: 0.3, y, z: 0.22, ry: 0.4 });
+  scales(kit, fm, { x: -0.62, y, z: 0.18 });
+  book(kit, fm, 'bookBrown', { x: 0.8, y, z: 0.15, ry: -0.3 }, { clasp: true });
+  book(kit, fm, 'bookGreen', { x: 0.8, y: y + 0.046, z: 0.16, ry: -0.08 }, { w: 0.14, d: 0.2, th: 0.035 });
+  book(kit, fm, 'bookRed', { x: 0.82, y: y + 0.082, z: 0.15, ry: -0.42 }, { w: 0.12, d: 0.17, th: 0.03 });
+  candle(kit, fm, im, { x: 0.98, y, z: -0.3 });
+  kit.frame({ x: -0.1, y, z: 0.24 }, () => gems(kit, fm, random, 7));
   // Shelf unit behind with more bottles and books.
   kit.frame({ z: -0.95 }, () => {
     const w = 2.2;
-    for (const sx of [-1, 1]) kit.box(m.planks, 0.05, 1.9, 0.3, { x: sx * (w / 2 - 0.03), y: 0.95 }, { metres: 1 });
+    for (const sx of [-1, 1]) kit.add(m.planks, bevelBox(0.06, 1.9, 0.3, 0.012, { metres: 1, grain: true }), { x: sx * (w / 2 - 0.03), y: 0.95 });
     for (let s = 0; s < 3; s++) {
       const sy = 1.0 + s * 0.4;
-      kit.box(m.planks, w, 0.04, 0.3, { y: sy }, { metres: 1 });
+      kit.add(m.planks, bevelBox(w - 0.06, 0.04, 0.3, 0.008, { metres: 1, grain: true }), { y: sy });
       for (let i = 0; i < 10; i++) {
         if (random() < 0.25) continue;
-        const kind = kinds[Math.floor(random() * kinds.length)];
-        kit.frame({ x: -w / 2 + 0.15 + i * 0.2, y: sy + 0.02, ry: random() * TAU }, () => bottle(kit, fm, kind, Math.floor(random() * 3)));
+        if (random() < 0.12) {
+          book(kit, fm, ['bookRed', 'bookBlue', 'bookGreen', 'bookBrown'][i % 4], { x: -w / 2 + 0.15 + i * 0.2, y: sy + 0.02, ry: random() * 0.6 }, { w: 0.12, d: 0.17, th: 0.03 });
+          continue;
+        }
+        const kind = random() < 0.12 ? 'clearGlass' : kinds[Math.floor(random() * kinds.length)];
+        kit.frame({ x: -w / 2 + 0.15 + i * 0.2, y: sy + 0.02, ry: random() * TAU }, () => bottle(kit, fm, kind, Math.floor(random() * 4)));
       }
     }
-    kit.box(m.planks, w, 0.04, 0.3, { y: 0.5 }, { metres: 1 });
+    kit.add(m.planks, bevelBox(w - 0.06, 0.04, 0.3, 0.008, { metres: 1, grain: true }), { y: 0.5 });
     kit.frame({ x: -0.7, y: 0.52 }, () => crate(kit, m, 0.35));
-    herbBundle(kit, fm, { x: 0.3, y: 1.9, z: 0.18 });
-    herbBundle(kit, fm, { x: 0.6, y: 1.9, z: 0.18, ry: 0.5 });
+    herbBundle(kit, fm, { x: 0.3, y: 1.9, z: 0.18 }, random);
+    herbBundle(kit, fm, { x: 0.6, y: 1.9, z: 0.18, ry: 0.5 }, random);
   });
   kit.frame({ x: 1.7, z: -0.3 }, () => cauldron(kit, im, fm));
   return { hx: 1.3, hz: 0.7, colliders: [{ cx: 0, cz: 0, hx: 1.15, hz: 0.5 }, { cx: 0, cz: -0.95, hx: 1.15, hz: 0.2 }, { cx: 1.7, cz: -0.3, hx: 0.45, hz: 0.45 }] };
