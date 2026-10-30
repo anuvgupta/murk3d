@@ -116,7 +116,8 @@ function raggedWall(kit, mat, moss, len, h, thick, random, { low = 0.35 } = {}) 
     const sh = (last + target) / 2;
     last = target;
     const x = -len / 2 + sw * (i + 0.5);
-    kit.box(mat, sw + 0.02, sh, thick, { x, y: sh / 2, rz: (random() - 0.5) * 0.02 }, { metres: 2 });
+    // Neighbouring slices overlap by 2 cm; alternate thicknesses keep their faces apart.
+    kit.box(mat, sw + 0.02, sh, thick + (i % 2) * 0.03, { x, y: sh / 2, rz: (random() - 0.5) * 0.02 }, { metres: 2 });
     if (random() < 0.5) kit.box(moss, sw * 0.7, 0.05, thick * 0.6, { x, y: sh + 0.02, z: (random() - 0.5) * thick * 0.3 });
   }
   // Moss at the foot.
@@ -250,7 +251,6 @@ export class Ruins {
       for (const sx of [-1, 1]) {
         for (let i = 0; i < 4; i++) {
           const z = -D / 2 + 1.2 + i * ((D - 2.4) / 3);
-          column(kit, m.ruin, { h: 4.2, r: 0.34, broken: random() < 0.5, random });
           kit.frame({ x: sx * (W / 2 - 1.0), y: 0.66, z }, () => column(kit, m.ruin, { h: 4.2, r: 0.34, broken: random() < 0.5, random }));
         }
       }
@@ -314,14 +314,16 @@ export class Ruins {
     const zc = (zBack + zFront) / 2;
     kit.frame({ x: site.x, y: floor, z: site.z, ry }, () => {
       flagstones(kit, m.ruinDark, m.moss, cw + 0.4, cl + 0.4, random, { y: -0.05, slab: 1.1 });
-      // Side and back walls.
+      // Side walls run the full length; the back and front walls fit between
+      // them, so no two walls share an outer face. The front segments stop
+      // 2 cm short of the doorway, behind the arch's piers.
       for (const s of [-1, 1]) kit.box(m.ruin, wall, wh, cl + wall * 2, { x: s * (cw / 2 + wall / 2), y: wh / 2, z: zc }, { metres: 2 });
-      kit.box(m.ruin, cw + wall * 2, wh, wall, { y: wh / 2, z: zBack - wall / 2 }, { metres: 2 });
+      kit.box(m.ruin, cw, wh, wall, { y: wh / 2, z: zBack - wall / 2 }, { metres: 2 });
       // Front wall with the pointed doorway, and a gable above it.
       const doorW = 1.5;
       for (const s of [-1, 1]) {
-        const segW = (cw + wall * 2 - doorW) / 2;
-        kit.box(m.ruin, segW, wh, wall, { x: s * (doorW / 2 + segW / 2), y: wh / 2, z: zFront + wall / 2 }, { metres: 2 });
+        const segW = (cw - doorW) / 2 - 0.02;
+        kit.box(m.ruin, segW, wh, wall, { x: s * (cw / 2 - segW / 2), y: wh / 2, z: zFront + wall / 2 }, { metres: 2 });
       }
       kit.frame({ z: zFront + wall / 2 }, () => gothicArch(kit, m.ruin, { w: doorW, t: 0.4, d: wall + 0.1, pierH: 2.1, pierW: 0.3 }));
       kit.box(m.ruin, cw + wall * 2, 0.9, wall, { y: wh + 0.45, z: zFront + wall / 2 }, { metres: 2 });
