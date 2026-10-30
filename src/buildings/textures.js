@@ -83,6 +83,27 @@ function toTexture(data, size, srgb) {
 
 // --- Stone -----------------------------------------------------------------
 
+// The face of one dressed block, no joints (for walls built stone by stone):
+// limestone with broad tonal drift, granular speckle, pits and weather
+// stains. Frequencies are integers so it tiles.
+export function dressedStone(seed = 11, pale = true) {
+  const base = pale ? [0.8, 0.77, 0.71] : [0.66, 0.62, 0.56];
+  const o = seed * 0.137;
+  return paint(512, (u, v, out) => {
+    const big = nz(0, u * 3 + o, v * 3);
+    const mid = nz(1, u * 9, v * 9 + o);
+    const fine = nz(2, u * 40 + o, v * 40);
+    const grain = nz(3, u * 128, v * 128 + o);
+    const stain = smooth(0.55, 0.82, nz(1, u * 2 + 0.3 + o, v * 2 + 0.7));
+    const pit = smooth(0.8, 0.92, fine) * smooth(0.4, 0.7, grain);
+    const k = (0.84 + 0.22 * (big - 0.5) + 0.1 * (mid - 0.5) + 0.1 * (grain - 0.5)) * (1 - 0.16 * stain) - 0.16 * pit;
+    out[0] = clamp01(base[0] * k);
+    out[1] = clamp01(base[1] * k * (1 - 0.03 * stain));
+    out[2] = clamp01(base[2] * k * (1 - 0.06 * stain));
+    out[3] = clamp01(0.55 + 0.25 * (mid - 0.5) + 0.2 * (grain - 0.5) - 0.4 * pit);
+  });
+}
+
 // Coursed rubble: rows of rounded-rectangular stones of varying width and
 // course height, laid in a broken bond. Each stone's outline wavers a little
 // and is finely jagged, its face is rounded toward the joint and granular,

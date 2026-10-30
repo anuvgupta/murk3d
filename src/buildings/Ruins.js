@@ -5,6 +5,7 @@ import { createFurnitureMaterials, rowboat, canoe } from './furniture.js';
 import { RUINS, ISLETS, PITS, LAKE, CREVASSE } from '../world/plan.js';
 import { mulberry32 } from '../util/noise.js';
 import { createRockMaterial } from '../world/Rocks.js';
+import { bevelBox, blob } from './shapes.js';
 
 // Ruins: a small vocabulary of broken stonework (pointed arches, columns,
 // ragged walls, fallen mossy blocks, a plank jetty) and the sites built from
@@ -105,26 +106,113 @@ function column(kit, mat, { h = 3.2, r = 0.32, broken = false, random = Math.ran
   return broken ? 0.36 + shaft : h;
 }
 
-// A wall stub with a ragged top: slices along its length of varying height,
-// with moss growing in the joints. Local x along the wall, centred.
-function raggedWall(kit, mat, moss, len, h, thick, random, { low = 0.35 } = {}) {
-  const slices = Math.max(2, Math.round(len / 0.9));
-  const sw = len / slices;
-  let last = h * (low + random() * (1 - low));
-  for (let i = 0; i < slices; i++) {
-    const target = h * (low + random() * (1 - low));
-    const sh = (last + target) / 2;
-    last = target;
-    const x = -len / 2 + sw * (i + 0.5);
-    // Neighbouring slices overlap by 2 cm; alternate thicknesses keep their faces apart.
-    kit.box(mat, sw + 0.02, sh, thick + (i % 2) * 0.03, { x, y: sh / 2, rz: (random() - 0.5) * 0.02 }, { metres: 2 });
-    if (random() < 0.5) kit.box(moss, sw * 0.7, 0.05, thick * 0.6, { x, y: sh + 0.02, z: (random() - 0.5) * thick * 0.3 });
-  }
-  // Moss at the foot.
-  kit.box(moss, len * 0.8, 0.12, thick + 0.3, { y: 0.06 });
+// Which single-block stones to build a wall of, given its masonry material:
+// [main, occasional other tone]. Set by Ruins from the building materials.
+let STONES = new Map();
+const stonesFor = (mat) => STONES.get(mat) || [mat, mat];
+
+// Moss: soft lumpy cushions lying in the hollows of the stone, a few
+// overlapping mounds of varied size, not a flat slab.
+function mossCushion(kit, moss, w, d, random, t = {}) {
+  kit.frame(t, () => {
+    const n = 1 + Math.floor(random() * 3);
+    for (let k = 0; k < n; k++) {
+      const s = k ? 0.45 + random() * 0.35 : 1;
+      kit.add(moss, blob((w / 2) * s, 0.035 + random() * 0.03, (d / 2) * s, { seed: random() * 99, dent: 0.35, detail: 1 }), {
+        x: k ? (random() - 0.5) * w * 0.5 : 0,
+        z: k ? (random() - 0.5) * d * 0.5 : 0,
+        ry: random() * TAU,
+      });
+    }
+  });
 }
 
-// Tumbled blocks around a point: half sunk, tilted, moss on their upper faces.
+// Courses of individual dressed stones along local x, centred, from y = 0
+// up to top(x) (a ragged profile): each stone a bevelled block of its own
+// length, set a little proud or back and a touch askew, with real joints
+// between; stones near the broken top go missing or sit loose. A dark core
+// fills the joints. Returns the stones' tops for moss and rubble.
+function stoneCourses(kit, mat, core, len, thick, top, random, { course = [0.32, 0.42], stone = [0.45, 0.95] } = {}) {
+  const tops = [];
+  let y = 0;
+  let row = 0;
+  const maxH = Math.max(...Array.from({ length: 24 }, (_, i) => top(-len / 2 + (i / 23) * len)));
+  while (y < maxH - 0.1) {
+    const ch = course[0] + random() * (course[1] - course[0]);
+    let x = -len / 2 - (row % 2 ? random() * 0.3 : 0);
+    while (x < len / 2 - 0.05) {
+      const sl = Math.min(stone[0] + random() * (stone[1] - stone[0]), len / 2 - x);
+      const cx = Math.max(-len / 2, x) + Math.min(sl, len / 2 - Math.max(-len / 2, x)) / 2;
+      const w = Math.min(sl, len / 2 - Math.max(-len / 2, x));
+      const limit = top(cx);
+      x += sl;
+      if (w < 0.12 || y + ch > limit + 0.08) continue;
+      // Near the broken top some stones are gone and some sit loose.
+      const nearTop = limit - (y + ch) < ch * 1.2;
+      if (nearTop && random() < 0.22) continue;
+      const loose = nearTop && random() < 0.35;
+      const [main, alt] = stonesFor(mat);
+      // Now and then a short course of two small packing stones instead of one.
+      if (w > 0.5 && random() < 0.12) {
+        for (const k of [0, 1]) {
+          kit.add(main, bevelBox(w - 0.03, ch / 2 - 0.02, thick - 0.04, 0.03, { segments: 1, metres: 1.5 }), { x: cx, y: y + ch * (0.25 + k * 0.5), z: (random() - 0.5) * 0.03 });
+        }
+        tops.push({ x: cx, y: y + ch, w });
+        continue;
+      }
+      kit.add(random() < 0.25 ? alt : main, bevelBox(w - 0.025, ch - 0.022, thick + (random() - 0.5) * 0.05, 0.035 + random() * 0.025, { segments: 1, metres: 1.5 }), {
+        x: cx + (loose ? (random() - 0.5) * 0.08 : 0),
+        y: y + ch / 2,
+        z: (random() - 0.5) * 0.03 + (loose ? (random() - 0.5) * 0.1 : 0),
+        ry: (random() - 0.5) * (loose ? 0.25 : 0.03),
+        rz: (random() - 0.5) * (loose ? 0.12 : 0.02),
+      });
+      tops.push({ x: cx, y: y + ch, w });
+    }
+    y += ch;
+    row++;
+  }
+  // The core, set back from both faces, follows the ragged top lower down.
+  const cols = Math.max(2, Math.round(len / 0.6));
+  for (let i = 0; i < cols; i++) {
+    const cx = -len / 2 + (i + 0.5) * (len / cols);
+    const h = Math.max(0.2, top(cx) - 0.35);
+    kit.box(core, len / cols + 0.01, h, thick - 0.1, { x: cx, y: h / 2 }, { metres: 2 });
+  }
+  return tops;
+}
+
+// A wall stub with a ragged top, built stone by stone, with moss in the
+// broken top and at its foot. Local x along the wall, centred.
+function raggedWall(kit, mat, moss, len, h, thick, random, { low = 0.35, core = mat } = {}) {
+  const phase = random() * 9;
+  const knots = Array.from({ length: 6 }, () => low + random() * (1 - low));
+  const top = (x) => {
+    const f = (x / len + 0.5) * (knots.length - 1);
+    const i = Math.max(0, Math.min(knots.length - 2, Math.floor(f)));
+    const t = f - i;
+    const k = knots[i] + (knots[i + 1] - knots[i]) * (t * t * (3 - 2 * t));
+    return h * k + 0.12 * Math.sin(x * 3.1 + phase);
+  };
+  const tops = stoneCourses(kit, mat, core, len, thick, top, random);
+  // Moss cushions on some of the highest stones, rubble and moss at the foot.
+  for (const t of tops) {
+    if (t.y > top(t.x) - 0.45 && random() < 0.35) mossCushion(kit, moss, t.w * 0.7, thick * 0.6, random, { x: t.x, y: t.y + 0.01, z: (random() - 0.5) * thick * 0.2 });
+  }
+  for (let i = 0; i < Math.round(len * 1.2); i++) {
+    const x = (random() - 0.5) * len;
+    const side = random() < 0.5 ? -1 : 1;
+    roughBlock(kit, stonesFor(mat)[0], 0.2 + random() * 0.3, 0.12 + random() * 0.15, 0.2 + random() * 0.3, { x, y: 0.05, z: side * (thick / 2 + 0.2 + random() * 0.5), ry: random() * TAU, rx: (random() - 0.5) * 0.5 }, random, 0.25);
+  }
+  // Small moss clumps along the foot of the wall.
+  for (let i = 0; i < Math.round(len * 1.5); i++) {
+    const side = random() < 0.5 ? -1 : 1;
+    mossCushion(kit, moss, 0.25 + random() * 0.4, 0.2 + random() * 0.25, random, { x: (random() - 0.5) * len, y: 0.0, z: side * (thick / 2 + 0.08 + random() * 0.15) });
+  }
+}
+
+// Tumbled blocks around a point: weathered, half sunk, tilted, moss
+// cushions on their upper faces.
 function fallenBlocks(kit, mat, moss, count, spread, random, { size = 0.8 } = {}) {
   for (let i = 0; i < count; i++) {
     const a = random() * TAU;
@@ -135,8 +223,8 @@ function fallenBlocks(kit, mat, moss, count, spread, random, { size = 0.8 } = {}
     const rx = (random() - 0.5) * 0.6;
     const rz = (random() - 0.5) * 0.6;
     kit.frame({ x: Math.cos(a) * d, y: hgt * 0.25, z: Math.sin(a) * d, ry: random() * TAU, rx, rz }, () => {
-      kit.box(mat, w, hgt, dd, {}, { metres: 1.6 });
-      if (random() < 0.7) kit.box(moss, w * 0.8, 0.04, dd * 0.7, { y: hgt / 2 + 0.01 });
+      roughBlock(kit, stonesFor(mat)[0], w, hgt, dd, {}, random, 0.14);
+      if (random() < 0.6) mossCushion(kit, moss, w * 0.7, dd * 0.6, random, { y: hgt / 2 - 0.01 });
     });
   }
 }
@@ -213,6 +301,10 @@ function jetty(kit, m, len, width, deckY, waterY, random) {
 export class Ruins {
   constructor({ terrain, materials, items, noise }) {
     const m = materials;
+    STONES = new Map([
+      [m.ruin, [m.ruinStone, m.ruinStoneDark]],
+      [m.ruinDark, [m.ruinStoneDark, m.ruinStone]],
+    ]);
     // Monoliths are raw rock, not masonry.
     this.rockMat = noise ? createRockMaterial(noise) : m.ruin;
     this.terrain = terrain;
@@ -421,10 +513,10 @@ export class Ruins {
         kit.frame({ x, y: gy, z, ry: -a + (random() - 0.5) * 0.3 }, () => {
           if (fallen) {
             roughBlock(kit, this.rockMat, 1.1, 0.9, h, { y: 0.4, z: 1.2, rz: 0.1 }, random, 0.2);
-            kit.box(m.moss, 0.7, 0.05, h * 0.6, { y: 0.86, z: 1.2 });
+            mossCushion(kit, m.moss, 0.7, h * 0.6, random, { y: 0.86, z: 1.2 });
           } else {
             roughBlock(kit, this.rockMat, 1.1, h, 0.7, { y: h / 2 - 0.3, rx: (random() - 0.5) * 0.12, rz: (random() - 0.5) * 0.1 }, random, 0.2);
-            kit.box(m.moss, 0.9, 0.06, 0.5, { y: h - 0.3 });
+            mossCushion(kit, m.moss, 0.9, 0.5, random, { y: h - 0.3 });
           }
         });
         if (!fallen) this.collide(site, ry, x, z, 0.6, 0.4);
@@ -440,7 +532,7 @@ export class Ruins {
       }
       // Altar stone in the middle, moss and tumbled blocks.
       roughBlock(kit, this.rockMat, 2.0, 0.8, 1.1, { y: 0.4, ry: 0.3 }, random, 0.12);
-      kit.box(m.moss, 1.6, 0.05, 0.8, { y: 0.82, ry: 0.3 });
+      mossCushion(kit, m.moss, 1.6, 0.8, random, { y: 0.82, ry: 0.3 });
       fallenBlocks(kit, m.ruinDark, m.moss, 6, 9, random, { size: 0.6 });
     });
     this.collide(site, ry, 0, 0, 1.0, 0.55);
@@ -451,15 +543,49 @@ export class Ruins {
   towerStump(kit, m, site, y, ry, random) {
     const R = 3.4;
     kit.frame({ x: site.x, y, z: site.z, ry }, () => {
-      // Tower wall as a ring of ragged slices, higher at the back.
-      const slices = 22;
-      for (let i = 0; i < slices; i++) {
-        const a = (i / slices) * TAU;
-        const open = Math.abs(a - Math.PI / 2) < 0.5; // doorway gap facing +z
-        if (open) continue;
-        const h = 2.5 + 5.5 * (0.5 + 0.5 * Math.cos(a - Math.PI * 1.5)) * (0.6 + random() * 0.4);
-        kit.box(m.ruinDark, 1.05, h, 0.9, { x: Math.cos(a) * R, y: h / 2 - 0.4, z: Math.sin(a) * R, ry: -a }, { metres: 2.2 });
-        if (random() < 0.5) kit.box(m.moss, 0.8, 0.05, 0.6, { x: Math.cos(a) * R, y: h - 0.4, z: Math.sin(a) * R, ry: -a });
+      // Tower wall: curved courses of stones round the ring, higher at the
+      // back, broken stone by stone, a doorway gap facing +z.
+      const knots = Array.from({ length: 9 }, () => 0.6 + random() * 0.4);
+      const heightAt = (a) => {
+        const f = ((((a / TAU) % 1) + 1) % 1) * knots.length;
+        const i = Math.floor(f) % knots.length;
+        const t = f - Math.floor(f);
+        const k = knots[i] + (knots[(i + 1) % knots.length] - knots[i]) * (t * t * (3 - 2 * t));
+        return 2.5 + 5.5 * (0.5 + 0.5 * Math.cos(a - Math.PI * 1.5)) * k;
+      };
+      const door = (a) => Math.abs(Math.atan2(Math.sin(a - Math.PI / 2), Math.cos(a - Math.PI / 2))) < 0.5;
+      let y0 = -0.4;
+      let row = 0;
+      while (y0 < 7.6) {
+        const ch = 0.34 + random() * 0.1;
+        let a = (row % 2) * 0.12 + random() * 0.05;
+        while (a < TAU - 0.02) {
+          const span = (0.55 + random() * 0.4) / R;
+          const am = a + span / 2;
+          a += span;
+          if (door(am) || y0 + ch > heightAt(am) - 0.4 + 0.08) continue;
+          const nearTop = heightAt(am) - 0.4 - (y0 + ch) < ch * 1.2;
+          if (nearTop && random() < 0.2) continue;
+          const loose = nearTop && random() < 0.3;
+          const len = span * R - 0.03;
+          kit.add(random() < 0.25 ? m.ruinStone : m.ruinStoneDark, bevelBox(len, ch - 0.022, 0.9 + (random() - 0.5) * 0.06, 0.035 + random() * 0.025, { segments: 1, metres: 1.5 }), {
+            x: Math.cos(am) * (R + (random() - 0.5) * 0.03),
+            y: y0 + ch / 2,
+            z: Math.sin(am) * (R + (random() - 0.5) * 0.03),
+            ry: -am + Math.PI / 2 + (random() - 0.5) * (loose ? 0.25 : 0.03),
+            rz: (random() - 0.5) * (loose ? 0.12 : 0.02),
+          });
+          if (nearTop && random() < 0.3) mossCushion(kit, m.moss, len * 0.7, 0.55, random, { x: Math.cos(am) * R, y: y0 + ch + 0.01, z: Math.sin(am) * R, ry: -am });
+        }
+        y0 += ch;
+        row++;
+      }
+      // Core behind the stones: thinner slices, lower than the broken top.
+      for (let i = 0; i < 28; i++) {
+        const a = ((i + 0.5) / 28) * TAU;
+        if (door(a)) continue;
+        const h = Math.max(0.3, heightAt(a) - 0.75);
+        kit.box(m.ruinDark, (TAU * R) / 28 + 0.02, h, 0.78, { x: Math.cos(a) * R, y: h / 2 - 0.4, z: Math.sin(a) * R, ry: -a + Math.PI / 2 }, { metres: 2.2 });
       }
       // Lancet window in the tallest part.
       kit.frame({ x: 0, y: 3.4, z: -R, ry: Math.PI }, () => gothicArch(kit, m.ruin, { w: 0.5, t: 0.2, d: 1.0, pierH: 1.0, pierW: 0.2 }));
