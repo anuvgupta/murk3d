@@ -93,14 +93,34 @@ function addWind(material, uniforms, scale, leaf = false) {
           origin = instanceMatrix[ 3 ].xyz;
         #endif
         {
+          // Three motions, slow to fast:
+          // 1. The whole tree leans downwind and sways, ~2-7 s a cycle. The
+          //    lean follows the overall wind more than each passing gust
+          //    front, so a tree doesn't heave in and out as gusts roll by.
           float w = windAt( origin.xz );
+          float wl = mix( uWindStrength, w, 0.4 );
           float ph = dot( origin.xz, vec2( 0.13, 0.071 ) );
-          float sway = sin( uTime * 0.45 + ph ) * 0.6 + sin( uTime * 0.87 + ph * 1.7 ) * 0.3; // a slow lean, ~2-7 s a cycle
-          vec2 bend = uWindDir * ( w * 0.9 + sway * ( 0.25 + 0.6 * w ) ) * aSway.x * uWindScale;
+          float sway = sin( uTime * 0.45 + ph ) * 0.6 + sin( uTime * 0.87 + ph * 1.7 ) * 0.3;
+          vec2 bend = uWindDir * ( wl * 0.75 + sway * ( 0.22 + 0.5 * wl ) ) * aSway.x * uWindScale;
           wpos.xz += bend;
           wpos.y -= length( bend ) * 0.2 * aSway.x;
-          float fl = sin( uTime * 3.4 + dot( wpos.xyz, vec3( 2.1, 1.3, 1.7 ) ) ) * ( 0.03 + 0.08 * w ) * aSway.y;
-          wpos.xyz += vec3( fl, fl * 0.5, -fl * 0.8 );
+          // 2. Limbs: waves rolling through the crown downwind and upward,
+          //    each part lagging the next, so the canopy ripples rather than
+          //    moving as one block.
+          vec3 lp = wpos.xyz - origin;
+          float roll = dot( lp.xz, uWindDir ) * 0.9 - lp.y * 0.35;
+          float limb = sin( uTime * 1.3 - roll + ph ) * 0.6 + sin( uTime * 2.1 - roll * 1.6 + ph * 2.3 ) * 0.4;
+          vec2 across = vec2( -uWindDir.y, uWindDir.x );
+          wpos.xz += ( uWindDir * 0.6 + across * 0.4 ) * limb * ( 0.04 + 0.1 * wl ) * aSway.x * uWindScale;
+          wpos.y += limb * ( 0.015 + 0.035 * wl ) * aSway.x * uWindScale;
+          // 3. Leaves: each shivers on its own, in its own direction and at
+          //    its own phase (they used to share one direction, so whole
+          //    patches of crown swelled and shrank together).
+          vec3 lq = wpos.xyz * 3.7;
+          vec3 fdir = normalize( vec3( sin( lq.y + lq.z * 1.3 ), 0.6 * sin( lq.z * 0.9 + lq.x ), cos( lq.x * 1.1 + lq.y ) ) + 1e-4 );
+          float fph = dot( lq, vec3( 1.7, 2.3, 1.9 ) );
+          float fl = sin( uTime * ( 5.5 + 2.0 * w ) + fph ) * ( 0.012 + 0.035 * w ) * aSway.y;
+          wpos.xyz += fdir * fl;
         }
         vec4 mvPosition = modelViewMatrix * wpos;
         gl_Position = projectionMatrix * mvPosition;`

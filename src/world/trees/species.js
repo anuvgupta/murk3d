@@ -54,13 +54,17 @@ export const SPECIES = {
   blossom: {
     label: 'Moonblossom cherry',
     levels: 3,
-    trunk: { len: [1.8, 2.6], radius: [0.22, 0.3], lean: 0.15, taper: 0.7, curveV: 25, wander: 20, segs: 6, start: 0.6, splits: [2, 3], splitAngle: 42, leaderLen: 1.15 },
+    // An old flowering cherry: a short, thick, leaning trunk that twists
+    // and splits low; long limbs spreading almost level before lifting at
+    // the ends; burled bark; a crown of round blossom clouds.
+    trunk: { len: [1.6, 2.2], radius: [0.3, 0.4], lean: 0.3, taper: 0.62, curveV: 30, wander: 26, segs: 8, start: 0.55, splits: [2, 3], splitAngle: 56, leaderLen: 0.8, flare: 0.3, sinuous: 22 },
     levels_: [
-      { n: [3, 5], downAngle: 62, downAngleV: 15, lenRatio: 1.25, lenV: 0.2, taper: 0.45, curve: 18, curveV: 35, wander: 30, tropism: 0.06, segs: 7 },
-      { n: [6, 9], downAngle: 52, downAngleV: 20, lenRatio: 0.55, lenV: 0.25, taper: 0.3, curveV: 40, wander: 30, tropism: -0.04, segs: 5, start: 0.15 },
+      { n: [3, 5], downAngle: 74, downAngleV: 10, lenRatio: 1.95, lenV: 0.22, taper: 0.5, curve: 22, curveBack: 6, curveV: 30, wander: 28, tropism: 0.06, segs: 10, thick: 0.72, sinuous: 24, waves: 1.4 },
+      { n: [7, 10], downAngle: 50, downAngleV: 20, lenRatio: 0.55, lenV: 0.25, taper: 0.35, curveV: 40, wander: 30, tropism: 0.02, segs: 6, start: 0.15, thick: 0.6, sinuous: 18 },
     ],
     shape: round,
-    leaves: { per: 7, tipFill: 4, size: [1.05, 1.6], spread: 0.75, sprigs: 7 },
+    gnarl: 0.65,
+    leaves: { per: 8, tipFill: 3, size: [0.8, 1.15], spread: 1.0, sprigs: 16, round: 1, outer: 0.4 },
     bark: { color: [0.27, 0.2, 0.2], fissures: 4, depth: 0.5, rings: true },
     leaf: { kind: 'blossom', colors: ['#f3bfd3', '#eca6c3', '#f9d9e6', '#e391b4'] },
     wind: 0.8,
