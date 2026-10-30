@@ -83,11 +83,11 @@ export class Castle {
   // A round tower with a conical slate roof and a gilt finial.
   tower(kit, m, x, z, baseY, height, radius, { spire = true, windows = true } = {}) {
     kit.frame({ x, y: baseY, z }, () => {
-      kit.cylinder(m.white, radius, radius * 1.08, height, { y: height / 2 }, { segments: 16, metres: 2.4 });
-      kit.cylinder(m.whiteDark, radius * 1.1, radius * 1.25, 9, { y: -4.5 }, { segments: 16, metres: 2.4 });
-      kit.cylinder(m.whiteDark, radius + 0.25, radius + 0.25, 0.3, { y: height - 1.2 }, { segments: 16, metres: 2 });
+      kit.cylinder(m.white, radius, radius * 1.08, height, { y: height / 2 }, { segments: 16, metres: 3.6 });
+      kit.cylinder(m.whiteDark, radius * 1.1, radius * 1.25, 9, { y: -4.5 }, { segments: 16, metres: 3.6 });
+      kit.cylinder(m.whiteDark, radius + 0.25, radius + 0.25, 0.3, { y: height - 1.2 }, { segments: 16, metres: 3 });
       // Corbelled parapet.
-      kit.cylinder(m.white, radius + 0.45, radius + 0.1, 0.9, { y: height + 0.45 }, { segments: 16, metres: 2 });
+      kit.cylinder(m.white, radius + 0.45, radius + 0.1, 0.9, { y: height + 0.45 }, { segments: 16, metres: 3 });
       kit.cylinder(m.white, radius + 0.45, radius + 0.45, 1.2, { y: height + 1.5 }, { segments: 16, metres: 2, open: true });
       const merlons = Math.max(6, Math.round(radius * 3));
       for (let i = 0; i < merlons; i++) {
