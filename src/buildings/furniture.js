@@ -13,10 +13,30 @@ import { bevelBox } from './shapes.js';
 const TAU = Math.PI * 2;
 
 // Extra materials for these pieces, made once from the building set.
+// Flames: each tongue wavers and stretches on its own rhythm.
+function flicker(material, time) {
+  material.onBeforeCompile = (shader) => {
+    shader.uniforms.uTime = time;
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', '#include <common>\nuniform float uTime;')
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+        {
+          float ph = dot( floor( position.xz * 8.0 ), vec2( 3.1, 7.7 ) );
+          float k = uv.y * uv.y; // the tip moves, the root stays put
+          transformed.y += ( sin( uTime * 9.0 + ph ) * 0.4 + sin( uTime * 14.3 + ph * 1.7 ) * 0.25 ) * 0.05 * k;
+          transformed.xz += vec2( sin( uTime * 6.1 + ph ), cos( uTime * 7.3 + ph * 0.6 ) ) * 0.012 * k;
+        }`
+      );
+  };
+  return material;
+}
+
 export function createFurnitureMaterials(m, im) {
   const mat = (o) => new THREE.MeshStandardMaterial(o);
   const glass = (color, emissive) => mat({ color, emissive, emissiveIntensity: 0.55, roughness: 0.12, metalness: 0.05, transparent: true, opacity: 0.86 });
-  return {
+  const fm = {
     copper: mat({ color: 0xb8683a, roughness: 0.38, metalness: 0.95 }),
     ironDark: im.steelDark,
     coal: mat({ color: 0x151210, roughness: 0.95 }),
@@ -57,6 +77,8 @@ export function createFurnitureMaterials(m, im) {
     logWood: im.wood,
     ...createAlchemyMaterials(im),
   };
+  fm.flame = flicker(fm.flame, fm.time);
+  return fm;
 }
 
 // --- Small things ----------------------------------------------------------

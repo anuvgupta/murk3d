@@ -58,7 +58,7 @@ const COMMON = /* glsl */ `
   // of sliding across the sky as one stamp. T is the cloud clock.
   vec2 churn( vec2 uv, float T, float amp ) {
     vec2 g = vec2( fbm( uv * 0.22 + vec2( T * 0.6, 1.7 ), T * 0.2 ), fbm( uv * 0.22 + vec2( 5.3, -T * 0.5 ), T * 0.2 ) );
-    vec2 h = vec2( fbm( uv * 0.7 + vec2( -T * 0.9, 2.2 ), T * 0.3 ), fbm( uv * 0.7 + vec2( 8.1, T * 0.8 ), T * 0.3 ) );
+    vec2 h = vec2( noise( uv * 0.7 + vec2( -T * 0.9, 2.2 ) ), noise( uv * 0.7 + vec2( 8.1, T * 0.8 ) ) );
     return uv + vec2( -g.y, g.x ) * amp + h * amp * 0.35;
   }
 `;

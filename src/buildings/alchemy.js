@@ -19,6 +19,7 @@ const DEEP = [
   [0.09, 0.045, 0.0],
   [0.05, 0.0, 0.1],
   [0.0, 0.06, 0.06],
+  [0.01, 0.06, 0.015], // the cauldron's brew
 ];
 const GLOW = [
   [1.0, 0.16, 0.08],
@@ -27,7 +28,24 @@ const GLOW = [
   [1.0, 0.68, 0.14],
   [0.75, 0.25, 1.0],
   [0.25, 0.95, 0.8],
+  [0.45, 1.0, 0.3],
 ];
+
+// Per-vertex reference frame for a body of liquid: its centre and radius, so
+// the shader can work in bottle-relative coordinates whatever the bottle's
+// size or where it stands. Carried through the kit as the 'aux' attribute.
+function setLiquidFrame(g, cx, cy, cz, r) {
+  const n = g.attributes.position.count;
+  const a = new Float32Array(n * 4);
+  for (let i = 0; i < n; i++) {
+    a[i * 4] = cx;
+    a[i * 4 + 1] = cy;
+    a[i * 4 + 2] = cz;
+    a[i * 4 + 3] = r;
+  }
+  g.setAttribute('aux', new THREE.BufferAttribute(a, 4));
+  return g;
+}
 const vec3s = (list) => list.map((c) => `vec3( ${c.map((v) => v.toFixed(3)).join(', ')} )`).join(', ');
 
 const NOISE_GLSL = /* glsl */ `
@@ -203,14 +221,35 @@ export function createAlchemyMaterials(im) {
   const time = { value: 0 };
   const mat = (o) => new THREE.MeshStandardMaterial(o);
 
-  // Potion liquid: dark body, bright plumes that churn upward and pulse.
-  // uv carries (kind, per-bottle phase); position is the kit-space point.
-  const liquid = mat({ color: 0xffffff, roughness: 0.45, metalness: 0, envMapIntensity: 0.3 });
+  // Potion liquid. Two layers: a slow dark murmur (the body's own colour
+  // moving against a deeper shade of itself), and now and then an eel of
+  // light that swims a curving stroke through the bottle and fades, leaving a
+  // brushed trail behind it. The cauldron's brew is the same liquid, kind 6,
+  // with bubbles that swell and burst and splashes that leap.
+  // uv carries (kind, per-bottle phase); 'aux' the bottle's centre and radius.
+  const liquid = mat({ color: 0xffffff, roughness: 0.4, metalness: 0, envMapIntensity: 0.3 });
   liquid.onBeforeCompile = (shader) => {
     shader.uniforms.uTime = time;
     shader.vertexShader = shader.vertexShader
-      .replace('#include <common>', '#include <common>\nvarying vec3 vPotLocal;\nvarying vec2 vPot;')
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPotLocal = position;\nvPot = uv;');
+      .replace('#include <common>', '#include <common>\nuniform float uTime;\nattribute vec4 aux;\nvarying vec3 vPotLocal;\nvarying vec2 vPot;\nvarying vec4 vAux;')
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+        vPot = uv;
+        vAux = aux;
+        if ( uv.x > 5.5 && uv.y > 0.4 ) {
+          // Cauldron bubbles (phase 0.4-0.8) swell from nothing and burst;
+          // splashes (phase > 0.8) leap up and fall back.
+          float ph = uv.y * 23.0;
+          float cyc = fract( uTime * ( uv.y > 0.8 ? 0.22 : 0.4 ) + ph );
+          float grow = uv.y > 0.8
+            ? smoothstep( 0.0, 0.08, cyc ) * ( 1.0 - smoothstep( 0.42, 0.5, cyc ) )
+            : smoothstep( 0.0, 0.55, cyc ) * ( 1.0 - smoothstep( 0.62, 0.68, cyc ) );
+          float lift = uv.y > 0.8 ? sin( clamp( cyc / 0.5, 0.0, 1.0 ) * 3.14159 ) * 0.14 : cyc * 0.012;
+          transformed = aux.xyz + ( position - aux.xyz ) * ( 0.1 + 1.5 * grow ) + vec3( 0.0, lift, 0.0 );
+        }
+        vPotLocal = transformed;`
+      );
     shader.fragmentShader = shader.fragmentShader
       .replace(
         '#include <common>',
@@ -218,35 +257,61 @@ export function createAlchemyMaterials(im) {
         uniform float uTime;
         varying vec3 vPotLocal;
         varying vec2 vPot;
-        const vec3 POT_DEEP[ 6 ] = vec3[ 6 ]( ${vec3s(DEEP)} );
-        const vec3 POT_GLOW[ 6 ] = vec3[ 6 ]( ${vec3s(GLOW)} );
-        ${NOISE_GLSL}`
+        varying vec4 vAux;
+        const vec3 POT_DEEP[ 7 ] = vec3[ 7 ]( ${vec3s(DEEP)} );
+        const vec3 POT_GLOW[ 7 ] = vec3[ 7 ]( ${vec3s(GLOW)} );
+        ${NOISE_GLSL}
+        // Where the eel is at time t: a wandering closed curve inside the bottle.
+        vec3 eelAt( float t, float ph ) {
+          return vec3( 0.62 * sin( t * 1.0 + ph ) * cos( t * 0.37 ), 0.55 * sin( t * 0.71 + ph * 1.7 ), 0.62 * cos( t * 0.83 + ph * 0.6 ) );
+        }`
       )
       .replace(
         '#include <emissivemap_fragment>',
         `#include <emissivemap_fragment>
         {
-          int pk = int( clamp( vPot.x + 0.5, 0.0, 5.0 ) );
+          int pk = int( clamp( vPot.x + 0.5, 0.0, 6.0 ) );
           vec3 deep = POT_DEEP[ pk ];
           vec3 glow = POT_GLOW[ pk ];
           float ph = vPot.y * 17.0;
-          float t = uTime * 0.35 + ph;
-          // Stretched upright, so the wisps rise rather than blot.
-          vec3 q = vPotLocal * vec3( 30.0, 16.0, 30.0 );
-          // Domain-warped noise drifting up through the liquid; its ridges
-          // (where the noise crosses one half) are thin curling wisps.
+          bool brew = vPot.x > 5.5;
+          // Bottle-relative coordinates, roughly -1..1.
+          vec3 rel = ( vPotLocal - vAux.xyz ) / max( vAux.w, 1e-4 );
+
+          // The murmur: slow domain-warped wisps, the body colour against a
+          // deeper shade of itself. Barely there; it gives the liquid depth.
+          float t = uTime * 0.07 + ph;
+          vec3 q = rel * vec3( 3.2, 2.0, 3.2 );
           vec3 warp = vec3(
             potNoise( q + vec3( 0.0, -t, ph ) ),
             potNoise( q * 1.3 + vec3( 3.1, -t * 0.8, 1.7 ) ),
             potNoise( q * 0.9 + vec3( 7.2, t * 0.5, 4.4 ) ) );
-          float n = potNoise( q * 1.2 + warp * 2.6 + vec3( 0.0, -t * 1.5, 0.0 ) );
-          float wisp = pow( 1.0 - abs( n * 2.0 - 1.0 ), 7.0 );
-          // A slow, broad swell decides where the wisps burn brightest.
-          float swell = smoothstep( 0.35, 0.8, potNoise( q * 0.35 + vec3( ph, -t * 0.4, 0.0 ) ) );
-          float pulse = 0.5 + 0.5 * sin( uTime * 1.6 + ph * 3.0 );
-          float plume = wisp * ( 0.35 + 0.65 * swell );
-          diffuseColor.rgb = deep * 0.5;
-          totalEmissiveRadiance = deep * 0.6 + glow * ( 0.02 + plume * ( 1.0 + 2.6 * pulse ) );
+          float n = potNoise( q * 1.2 + warp * 2.2 + vec3( 0.0, -t * 1.2, 0.0 ) );
+          float wisp = pow( 1.0 - abs( n * 2.0 - 1.0 ), 5.0 );
+          vec3 darker = deep * 0.35;
+          vec3 body = mix( darker, deep, 0.25 + 0.75 * wisp );
+
+          // The eel: a bright head sweeping along the curve with a brushed
+          // trail of older positions fading behind it; it shows for a few
+          // seconds, swims across, and is gone again.
+          float et = uTime * 0.45 + ph * 3.0;
+          float vis = smoothstep( 0.15, 0.45, sin( uTime * 0.21 + ph * 2.3 ) );
+          float eel = 0.0;
+          for ( int k = 0; k < 8; k++ ) {
+            float back = float( k ) * 0.11;
+            vec3 e = eelAt( et - back, ph );
+            float d = length( ( rel - e ) * vec3( 1.0, 1.4, 1.0 ) );
+            float w = exp( -d * d * ( 90.0 + 30.0 * float( k ) ) ) * ( 1.0 - float( k ) / 8.0 );
+            eel += w;
+          }
+          eel = clamp( eel, 0.0, 1.0 ) * vis;
+          if ( brew ) {
+            // The brew churns on its surface and lights from beneath.
+            body = mix( darker, deep, 0.4 + 0.6 * wisp );
+            eel *= 0.8;
+          }
+          diffuseColor.rgb = body * 0.6;
+          totalEmissiveRadiance = body * 0.9 + glow * ( eel * 1.9 + 0.015 );
         }`
       );
   };
@@ -366,8 +431,9 @@ export function potion(kit, fm, kind = 'potionRed', shape = 0) {
     inner.push([0, fillY]);
     const lq = organicLathe(inner, look);
     const uv = lq.attributes.uv;
-    const phase = random();
+    const phase = random() * 0.38; // bottles keep the phase range below the cauldron's bubbles
     for (let i = 0; i < uv.count; i++) uv.setXY(i, k >= 0 ? k : 0, phase);
+    setLiquidFrame(lq, 0, fillY * 0.5, 0, Math.max(fillY * 0.55, radiusAt(P.prof, fillY * 0.5) * 0.95));
     if (k >= 0) kit.add(fm.liquid, lq);
     else kit.add(fm.crust, lq); // dregs
 
@@ -654,34 +720,61 @@ export function brewCauldron(kit, fm, random = Math.random) {
     }
     kit.add(fm.castIron, tube(pts, 0.011, { radial: 6 }));
   }
-  // The brew: a slightly domed surface of liquid, and bubbles.
-  // Outer edge first, so the lathe's faces look up.
+  // The brew: a slightly domed surface of liquid (kind 6), bubbles that swell
+  // and burst, and splashes that leap now and then. Outer edge first, so the
+  // lathe's faces look up.
   const surf = [[0.355, 0], [0.3, 0.004], [0.15, 0.01], [0, 0.012]];
   const g = organicLathe(surf, { segments: 24, seed: 2, dent: 0.02, oval: 0.03 });
   const uv = g.attributes.uv;
-  for (let i = 0; i < uv.count; i++) uv.setXY(i, 1, 0.37);
+  for (let i = 0; i < uv.count; i++) uv.setXY(i, 6, 0.2);
+  setLiquidFrame(g, 0, -0.08, 0, 0.4);
   kit.add(fm.liquid, g, { y: base + 0.58 });
-  for (let i = 0; i < 7; i++) {
+  for (let i = 0; i < 9; i++) {
     const a = random() * TAU;
     const d = Math.sqrt(random()) * 0.28;
-    const r = 0.012 + random() * 0.025;
-    const bg = blob(r, r * 0.6, r * 0.9, { seed: i, dent: 0.15 });
+    const r = 0.014 + random() * 0.026;
+    const bg = blob(r, r * 0.7, r * 0.9, { seed: i, dent: 0.15 });
     const buv = new Float32Array(bg.attributes.position.count * 2);
-    for (let k = 0; k < buv.length; k += 2) [buv[k], buv[k + 1]] = [1, 0.37 + i * 0.05];
+    for (let k = 0; k < buv.length; k += 2) [buv[k], buv[k + 1]] = [6, 0.42 + i * 0.04];
     bg.setAttribute('uv', new THREE.BufferAttribute(buv, 2));
+    setLiquidFrame(bg, 0, 0, 0, r);
     kit.add(fm.liquid, bg, { x: Math.cos(a) * d, y: base + 0.585, z: Math.sin(a) * d });
   }
-  // Fire beneath: split logs and flames.
   for (let i = 0; i < 4; i++) {
-    const log = [[0, 0], [0.04, 0.01], [0.045, 0.2], [0.038, 0.42], [0, 0.44]];
-    kit.add(fm.logWood, organicLathe(log, { segments: 7, seed: i * 3, dent: 0.15, oval: 0.15, flat: true }), { x: Math.cos((i / 4) * Math.PI) * 0.2, y: 0.045, z: Math.sin((i / 4) * Math.PI) * 0.2, ry: (i / 4) * Math.PI, rz: Math.PI / 2 });
+    const a = random() * TAU;
+    const d = Math.sqrt(random()) * 0.22;
+    const r = 0.008 + random() * 0.01;
+    const sg = blob(r, r * 1.6, r, { seed: 20 + i, dent: 0.2 });
+    const suv = new Float32Array(sg.attributes.position.count * 2);
+    for (let k = 0; k < suv.length; k += 2) [suv[k], suv[k + 1]] = [6, 0.82 + i * 0.04];
+    sg.setAttribute('uv', new THREE.BufferAttribute(suv, 2));
+    setLiquidFrame(sg, 0, 0, 0, r);
+    kit.add(fm.liquid, sg, { x: Math.cos(a) * d, y: base + 0.59, z: Math.sin(a) * d });
+  }
+  // A wooden ladle, its bowl in the brew and the handle resting on the rim.
+  {
+    const bowl = [[0, 0], [0.03, 0.004], [0.045, 0.018], [0.048, 0.035], [0.04, 0.04], [0.034, 0.03], [0.022, 0.012], [0, 0.006]];
+    kit.add(fm.logWood, organicLathe(sampleProfile(bowl, 12), { segments: 12, seed: 9, dent: 0.05, oval: 0.08 }), { x: 0.12, y: base + 0.56, z: -0.1, rx: 0.3, rz: -0.5 });
+    kit.add(fm.logWood, tube([[0.15, base + 0.59, -0.12], [0.26, base + 0.63, -0.2], [0.4, base + 0.7, -0.3], [0.52, base + 0.78, -0.38]], 0.011, { radial: 6, tip: 0.013 }));
+  }
+  // Fire beneath: a bed of split logs and flames licking up the lower sides.
+  for (let i = 0; i < 6; i++) {
+    const log = [[0, 0], [0.04, 0.01], [0.045, 0.22], [0.038, 0.46], [0, 0.48]];
+    const a = (i / 6) * Math.PI + (random() - 0.5) * 0.3;
+    kit.add(fm.logWood, organicLathe(log, { segments: 7, seed: i * 3, dent: 0.15, oval: 0.15, flat: true }), { x: Math.cos(a) * 0.22, y: 0.04 + (i % 2) * 0.05, z: Math.sin(a) * 0.22, ry: a, rz: Math.PI / 2 });
   }
   const flame = [[0, 0], [0.07, 0.03], [0.08, 0.08], [0.045, 0.16], [0, 0.24]];
-  for (let i = 0; i < 3; i++) {
-    const a = (i / 3) * TAU;
-    kit.add(fm.flame, organicLathe(sampleProfile(flame, 10), { segments: 9, seed: i, dent: 0.2, oval: 0.2, lean: 0.15 }), { x: Math.cos(a) * 0.05, y: 0.04, z: Math.sin(a) * 0.05, s: 0.7 + i * 0.15 });
+  for (let i = 0; i < 10; i++) {
+    const a = (i / 10) * TAU + random() * 0.3;
+    const r = 0.22 + random() * 0.1;
+    const h = 0.9 + random() * 0.9;
+    kit.add(fm.flame, organicLathe(sampleProfile(flame, 10), { segments: 9, seed: i, dent: 0.2, oval: 0.25, lean: 0.1 }), { x: Math.cos(a) * r, y: 0.03, z: Math.sin(a) * r, rx: Math.sin(a) * 0.35, rz: -Math.cos(a) * 0.35, s: h });
   }
-  kit.add(fm.embers, blob(0.16, 0.04, 0.16, { seed: 3, dent: 0.3 }), { y: 0.03 });
+  for (let i = 0; i < 3; i++) {
+    const a = (i / 3) * TAU + 0.5;
+    kit.add(fm.flame, organicLathe(sampleProfile(flame, 10), { segments: 9, seed: 10 + i, dent: 0.2, oval: 0.2, lean: 0.15 }), { x: Math.cos(a) * 0.06, y: 0.05, z: Math.sin(a) * 0.06, s: 1.1 + i * 0.15 });
+  }
+  kit.add(fm.embers, blob(0.2, 0.04, 0.2, { seed: 3, dent: 0.3 }), { y: 0.03 });
   return { hx: 0.45, hz: 0.45 };
 }
 

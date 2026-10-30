@@ -73,6 +73,17 @@ export class Kit {
   add(material, geometry, { x = 0, y = 0, z = 0, rx = 0, ry = 0, rz = 0, sx = 1, sy = 1, sz = 1 } = {}) {
     const m = this.current.clone().multiply(this.compose(x, y, z, rx, ry, rz, sx, sy, sz));
     geometry.applyMatrix4(m);
+    // 'aux' (xyz: a reference point such as the part's centre, w: a radius)
+    // rides along into the merged mesh, transformed like the positions.
+    if (geometry.attributes.aux) {
+      const aux = geometry.attributes.aux;
+      const k = m.getMaxScaleOnAxis();
+      const v = new THREE.Vector3();
+      for (let i = 0; i < aux.count; i++) {
+        v.set(aux.getX(i), aux.getY(i), aux.getZ(i)).applyMatrix4(m);
+        aux.setXYZW(i, v.x, v.y, v.z, aux.getW(i) * k);
+      }
+    }
     // Mirrored transforms flip winding; keep everything consistent.
     if (m.determinant() < 0) flipWinding(geometry);
     if (!geometry.attributes.uv) {
@@ -80,7 +91,7 @@ export class Kit {
     }
     const g = geometry.index ? geometry : indexed(geometry);
     for (const name of Object.keys(g.attributes)) {
-      if (!['position', 'normal', 'uv'].includes(name)) g.deleteAttribute(name);
+      if (!['position', 'normal', 'uv', 'aux'].includes(name)) g.deleteAttribute(name);
     }
     let list = this.parts.get(material);
     if (!list) this.parts.set(material, (list = []));
@@ -112,6 +123,8 @@ export class Kit {
   build({ castShadow = true, receiveShadow = true } = {}) {
     const meshes = [];
     for (const [material, list] of this.parts) {
+      // Optional attributes must agree across a material's parts to merge.
+      if (!list.every((g) => g.attributes.aux)) for (const g of list) if (g.attributes.aux) g.deleteAttribute('aux');
       const merged = mergeGeometries(list, false);
       for (const g of list) g.dispose();
       merged.computeBoundingSphere();

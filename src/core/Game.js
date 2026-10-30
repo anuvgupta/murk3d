@@ -180,7 +180,10 @@ export class Game {
     this.player.surfaces.push((x, z) => this.mushrooms.surfaceAt(x, z));
     this.player.bouncers.push((x, z) => this.mushrooms.bounceAt(x, z));
     this.player.spawn(SPAWN.x, SPAWN.z, SPAWN.yaw);
-    this.applyViewLink();
+    // A shared view link wins; otherwise pick up where the last visit left off.
+    if (!this.applyViewLink()) this.restoreSave();
+    window.addEventListener('pagehide', () => this.save());
+    document.addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && this.save());
     this.feedback = new Feedback(this);
     // Esc while recording ends the clip and opens the note instead of the menu.
     this.input.on('unlock', () => {
@@ -200,15 +203,53 @@ export class Game {
   // ?at=x,z,yaw,pitch,time drops you at a saved view (used by feedback notes).
   applyViewLink() {
     const at = new URLSearchParams(location.search).get('at');
-    if (!at) return;
+    if (!at) return false;
     const [x, z, yaw = 0, pitch = 0, time] = at.split(',').map(Number);
-    if (!Number.isFinite(x) || !Number.isFinite(z)) return;
+    if (!Number.isFinite(x) || !Number.isFinite(z)) return false;
     this.player.spawn(x, z, yaw);
     this.player.pitch = pitch;
     if (Number.isFinite(time)) {
       this.environment.setTime(time);
       this.environment.paused = true;
     }
+    return true;
+  }
+
+  // Autosave: where you stand, where you look and the time of day, written
+  // every couple of seconds and when the tab is hidden or closed, so a reload
+  // puts you back exactly where you were.
+  save() {
+    if (!this.player) return;
+    const p = this.player;
+    const data = { x: +p.position.x.toFixed(2), y: +p.position.y.toFixed(2), z: +p.position.z.toFixed(2), yaw: +p.yaw.toFixed(3), pitch: +p.pitch.toFixed(3), time: +this.environment.timeOfDay.toFixed(3), paused: this.environment.paused, clouds: this.environment.cloudStyle };
+    try {
+      localStorage.setItem('murk.save', JSON.stringify(data));
+    } catch (e) {
+      /* private mode */
+    }
+  }
+
+  restoreSave() {
+    let data = null;
+    try {
+      data = JSON.parse(localStorage.getItem('murk.save') || 'null');
+    } catch (e) {
+      data = null;
+    }
+    if (!data || !Number.isFinite(data.x) || !Number.isFinite(data.z)) return false;
+    this.player.spawn(data.x, data.z, Number.isFinite(data.yaw) ? data.yaw : 0);
+    // Standing on something (a bridge, a cap, an island): keep the saved height if it is near a surface.
+    if (Number.isFinite(data.y) && data.y > this.player.position.y + 0.3) {
+      const h = this.player.groundAt(data.x, data.z, data.y + 0.2);
+      if (Math.abs(h - data.y) < 0.6) this.player.position.y = h;
+    }
+    this.player.pitch = Number.isFinite(data.pitch) ? data.pitch : 0;
+    this.player.updateCamera(0);
+    if (Number.isFinite(data.time)) {
+      this.environment.setTime(data.time);
+      this.environment.paused = !!data.paused;
+    }
+    return true;
   }
 
   // Step through a gate: a flash, then the player stands before the twin gate.
@@ -349,6 +390,11 @@ export class Game {
 
     this.updateWorld(dt);
     this.hud.update(this.player.yaw, this.environment.timeLabel());
+    this.saveTimer = (this.saveTimer || 0) + dt;
+    if (this.saveTimer > 2) {
+      this.saveTimer = 0;
+      if (this.active) this.save();
+    }
 
     if (this.temporal && this.temporal.enabled) {
       // Blend less the faster the view turns or moves, so nothing smears.
