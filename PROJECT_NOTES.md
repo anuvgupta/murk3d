@@ -909,3 +909,16 @@ screenshot-checked.
   grey-green; candidate: bluer moonlight hemi and lit castle windows.
   Several survey positions landed against trunks/cliffs — pick spots
   from the map/probe first next time.
+- DK verified: spires/mesas at 20–60 m now read as jointed stone (joints
+  persist at distance). Night pass (596fb83): the khaki night came from a
+  warm shadow lift + warm hemi ground bounce under a weak moon → lift is
+  blue at night (0.004,0.008,0.022), hemi ground 0x2a3250 at night, moon
+  0x8fa8ea × 2.0, night saturation 0.98, contrast +0.06. Castle windows
+  are a `windowGlass()` material (materials.js): `aux` carries each
+  pane's centre (Castle `pane()`), hashed to a per-window brightness,
+  a few dark rooms, slow candle flicker; uNight/uTime driven from
+  Village.update (shared materials). Iron lanterns at both sides of each
+  castle gate and the keep door (Castle `lantern()`), point lights only at
+  the outer gate + keep (4 per castle) to keep NUM_POINT_LIGHTS small.
+  Verify with DL1–DL6 (batch105). Candidate next: #52 fairy-light strings
+  on poles through the village (night decor), karst backdrop wall.
