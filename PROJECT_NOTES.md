@@ -869,3 +869,14 @@ screenshot-checked.
   rock close-range (ongoing). Keepers to re-shoot after every big change:
   overlook golden, bridge morning, village golden, castle gate 16:00,
   lake jetty 18:24, citadel 16:00, glade 19:12.
+- Keeper tour after the day's work (CW/CX/CY): overlook golden, village
+  golden (flowers + houses), castle gate 16:00, lake jetty dusk, glade
+  19:12, citadel 16:00, village night 22:00 (moon + stars), tundra in sun
+  11:00 (new keeper). Weak: castle ward corridor (uniform white tile →
+  weathering grime 1.3/1.5, stain amplitude 0.4), karst backdrop wall
+  monotone (per-outcrop hue 0.02 + regional 0.0045, far strata ×0.45),
+  karst spire at 2 m smooth (terrain bump 3.4 at detail 1).
+- Snow: hemisphere sky light added to snowed terrain in the fragment
+  (hemisphereLights[0].skyColor * sn * 0.55) because crater-rim shadow
+  turned the field grey; tundra rim 84. Rim shadows are a general issue
+  in the afternoon for every realm (rims 62–115 m at r 150).
