@@ -36,8 +36,9 @@ export class SkyIslands {
       this.group.add(mesh);
       // Turf cap and a rim of soil.
       kit.frame({ x, y, z }, () => {
-        kit.cylinder(m.turf, isl.r * 0.98, isl.r * 1.02, 0.5, { y: -0.25 }, { segments: 32 });
-        kit.cylinder(m.ruinDark, isl.r * 1.02, isl.r * 0.9, 1.4, { y: -1.2 }, { segments: 32, metres: 2.4 });
+        kit.cylinder(m.turf, isl.r * 0.98, isl.r * 1.02, 0.5, { y: -0.25 }, { segments: 40 });
+        kit.cylinder(m.ruinDark, isl.r * 1.02, isl.r * 0.9, 1.4, { y: -1.2 }, { segments: 40, metres: 2.4 });
+        this.dressIsland(kit, m, isl, rng);
       });
     }
     // Plank bridges between islands less than 70 m apart.
@@ -78,7 +79,7 @@ export class SkyIslands {
 
   // Inverted cone of rock under a disc: wider at the top, ragged all over.
   coneGeometry(r, noise3, rng) {
-    let g = new THREE.CylinderGeometry(r, r * 0.08, r * 1.8, 28, 8, false);
+    let g = new THREE.CylinderGeometry(r, r * 0.08, r * 1.8, 56, 22, false);
     g.translate(0, -r * 0.9 - 0.4, 0);
     g.deleteAttribute('normal');
     g.deleteAttribute('uv');
@@ -86,20 +87,25 @@ export class SkyIslands {
     const pos = g.attributes.position;
     const v = new THREE.Vector3();
     const seed = rng() * 50;
+    const ribs = 5 + Math.floor(rng() * 4);
     for (let i = 0; i < pos.count; i++) {
       v.fromBufferAttribute(pos, i);
       const depth = -(v.y + 0.4) / (r * 1.8); // 0 at the top rim, 1 at the tip
       const n = fbm3(noise3, v.x * 0.18 + seed, v.y * 0.18, v.z * 0.18, 3);
       const n2 = fbm3(noise3, v.x * 0.6 + seed, v.y * 0.6 + 3, v.z * 0.6, 2);
+      // Ridged noise: sharp crests and gullies rather than soft bulges.
+      const ridge = 1 - Math.abs(fbm3(noise3, v.x * 0.32 + seed + 9, v.y * 0.26, v.z * 0.32, 2));
       const radial = Math.hypot(v.x, v.z) || 1;
       // Deep ribs and fissures run down the cone; the rim overhangs a little.
       const ang = Math.atan2(v.z, v.x);
-      const rib = Math.pow(Math.sin(ang * 6.0 + n * 2.5) * 0.5 + 0.5, 1.6) - 0.5;
+      const rib = Math.pow(Math.sin(ang * ribs + n * 2.5) * 0.5 + 0.5, 1.6) - 0.5;
       const amp = r * (0.26 + 0.16 * depth);
-      const dr = (n * 1.3 + n2 * 0.5 + rib * 0.9 * depth) * amp + r * 0.08 * (1 - smoothstep(0, 0.12, depth));
+      // Bedding: horizontal strata, each a step out or in.
+      const bed = Math.floor((v.y + n * 1.5) / 2.2);
+      const step = (Math.sin(bed * 7.1 + seed) * 0.5) * 0.06 * r;
+      const dr = (n * 1.3 + n2 * 0.5 + rib * 1.3 * depth + (ridge - 0.5) * 0.7) * amp + step + r * 0.08 * (1 - smoothstep(0, 0.12, depth));
       v.x += (v.x / radial) * dr;
       v.z += (v.z / radial) * dr;
-      // Bedding steps.
       v.y += Math.sin((v.y + n * 2) * 1.3) * 0.15;
       pos.setXYZ(i, v.x, v.y, v.z);
     }
@@ -107,6 +113,34 @@ export class SkyIslands {
     g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(pos.count * 2), 2));
     g.computeBoundingSphere();
     return g;
+  }
+
+  // Roots and vines hanging off the rim, and a few embedded boulders.
+  dressIsland(kit, m, isl, rng) {
+    const n = 5 + Math.floor(rng() * 5);
+    for (let i = 0; i < n; i++) {
+      const a = rng() * Math.PI * 2;
+      const len = 3 + rng() * (isl.r * 0.5);
+      const rr = isl.r * (0.96 + rng() * 0.06);
+      // Three bending segments so the vine isn't a straight rod.
+      kit.frame({ x: Math.cos(a) * rr, y: -0.6, z: Math.sin(a) * rr, ry: -a }, () => {
+        let y = 0;
+        let x = 0;
+        for (let k = 0; k < 3; k++) {
+          const seg = len / 3;
+          const lean = (rng() - 0.5) * 0.25 + (k === 0 ? 0.12 : -0.06);
+          kit.cylinder(m.rope, 0.035, 0.05, seg, { x, y: y - seg / 2, rz: lean }, { segments: 5 });
+          y -= seg * Math.cos(lean);
+          x -= seg * Math.sin(lean);
+        }
+      });
+    }
+    // Knots of root at the soil rim.
+    const nr = 3 + Math.floor(rng() * 3);
+    for (let i = 0; i < nr; i++) {
+      const a = rng() * Math.PI * 2;
+      kit.cylinder(m.logs, 0.12, 0.2, 1.6 + rng(), { x: Math.cos(a) * isl.r * 0.97, y: -1.2, z: Math.sin(a) * isl.r * 0.97, rz: 0.4 + rng() * 0.4, ry: -a }, { segments: 6, metres: 1.2 });
+    }
   }
 
   // Walkable: island tops and the bridges between them.

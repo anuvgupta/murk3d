@@ -141,6 +141,18 @@ function fallenBlocks(kit, mat, moss, count, spread, random, { size = 0.8 } = {}
   }
 }
 
+// A ragged patch of moss lying on a stone surface, flat and roughly oval.
+function mossPatch(kit, moss, r, random, { x = 0, y = 0, z = 0 } = {}) {
+  const g = new THREE.CircleGeometry(r, 9);
+  const pos = g.attributes.position;
+  for (let i = 1; i < pos.count; i++) {
+    const k = 0.6 + random() * 0.7;
+    pos.setXY(i, pos.getX(i) * k, pos.getY(i) * k * (0.6 + random() * 0.5));
+  }
+  g.computeVertexNormals();
+  kit.add(moss, g, { x, y, z, rx: -Math.PI / 2, ry: random() * Math.PI });
+}
+
 // A flagstone platform (slightly uneven slabs).
 function flagstones(kit, mat, moss, w, d, random, { y = 0, slab = 1.2 } = {}) {
   const nx = Math.max(1, Math.round(w / slab));
@@ -152,7 +164,7 @@ function flagstones(kit, mat, moss, w, d, random, { y = 0, slab = 1.2 } = {}) {
       const z = -d / 2 + (j + 0.5) * (d / nz);
       const dy = (random() - 0.5) * 0.06;
       kit.box(mat, (w / nx) * 0.94, 0.16, (d / nz) * 0.94, { x, y: y + dy + 0.08, z, ry: (random() - 0.5) * 0.03 }, { metres: 1.2 });
-      if (random() < 0.3) kit.box(moss, (w / nx) * 0.5, 0.02, (d / nz) * 0.4, { x: x + (random() - 0.5) * 0.3, y: y + dy + 0.17, z: z + (random() - 0.5) * 0.3 });
+      if (random() < 0.3) mossPatch(kit, moss, (w / nx) * 0.3, random, { x: x + (random() - 0.5) * 0.3, y: y + dy + 0.165, z: z + (random() - 0.5) * 0.3 });
     }
   }
 }

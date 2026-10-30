@@ -104,6 +104,8 @@ export class Grass {
       uRadius: { value: this.radius },
       uSunDir: { value: sun.direction },
       uSunColor: { value: sun.color },
+      // Raised turf discs (the floating islands): x, z, radius, top height.
+      uDiscs: { value: Array.from({ length: 6 }, () => new THREE.Vector4(1e6, 1e6, 0, 0)) },
       ...wind.uniforms,
     };
     this.material = this.createMaterial();
@@ -150,6 +152,17 @@ export class Grass {
     return lo;
   }
 
+  // Tell the grass about raised turf discs it should grow on.
+  setDiscs(discs) {
+    this.discs = discs.slice(0, 6);
+    const u = this.uniforms.uDiscs.value;
+    for (let i = 0; i < u.length; i++) {
+      const d = discs[i];
+      if (d) u[i].set(d.x, d.z, d.r, d.y);
+      else u[i].set(1e6, 1e6, 0, 0);
+    }
+  }
+
   update(camera, playerPos) {
     this.uniforms.uPlayer.value.copy(playerPos);
     const cam = camera.position;
@@ -166,6 +179,18 @@ export class Grass {
       if (moved) {
         const y = this.terrain.heightAt(x0 + TILE / 2, z0 + TILE / 2);
         mesh.position.set(x0, y, z0);
+        // A tile under a floating island also holds the blades on its top,
+        // far above the ground: grow the culling sphere to take them in.
+        let top = y;
+        if (this.discs) {
+          for (const d of this.discs) {
+            const cx = Math.max(x0, Math.min(d.x, x0 + TILE));
+            const cz = Math.max(z0, Math.min(d.z, z0 + TILE));
+            if (Math.hypot(d.x - cx, d.z - cz) < d.r && d.y > top) top = d.y;
+          }
+        }
+        mesh.boundingSphere.center.y = (top - y) / 2;
+        mesh.boundingSphere.radius = TILE * 0.72 + 10 + (top - y) / 2;
         mesh.updateMatrix();
         mesh.matrixWorld.copy(mesh.matrix);
       }
@@ -198,6 +223,7 @@ export class Grass {
           uniform float uFullRadius;
           uniform float uRadius;
           uniform vec3 uSunDir;
+          uniform vec4 uDiscs[ 6 ];
           attribute vec4 aBlade;
           varying float vTrans;
           varying float vSheen;
@@ -218,6 +244,11 @@ export class Grass {
           float br = hash1( root );                  // per-blade random
           float br2 = fract( br * 31.17 + tr );
           float ground = terrainHeight( root );
+          // On a floating island the turf cap is the ground.
+          float onDisc = 0.0;
+          for ( int i = 0; i < 6; i++ ) {
+            if ( distance( root, uDiscs[ i ].xy ) < uDiscs[ i ].z - 0.4 ) { ground = uDiscs[ i ].w + 0.01; onDisc = 1.0; }
+          }
           vec4 gmask = texture( uMask, maskUv( root ) );
           vec4 gn = groundNoise( root );
 
@@ -228,7 +259,7 @@ export class Grass {
           float hR = terrainHeight( root + vec2( 0.6, 0.0 ) );
           float hD = terrainHeight( root - vec2( 0.0, 0.6 ) );
           float hU = terrainHeight( root + vec2( 0.0, 0.6 ) );
-          vec3 groundN = normalize( vec3( hL - hR, 1.2, hD - hU ) );
+          vec3 groundN = onDisc > 0.5 ? vec3( 0.0, 1.0, 0.0 ) : normalize( vec3( hL - hR, 1.2, hD - hU ) );
           float dist = distance( vec3( root.x, ground, root.y ), cameraPosition );
           float kk = uFullRadius / max( dist, uFullRadius );
           float keep = max( 0.02, kk * kk * kk );
@@ -237,10 +268,10 @@ export class Grass {
           float widen = clamp( inversesqrt( keep ), 1.0, 5.0 );
 
           // Tall lush patches, shorter dry patches, short at the verges.
-          float density = smoothstep( 0.12, 0.85, gmask.r );
+          float density = onDisc > 0.5 ? 0.9 : smoothstep( 0.12, 0.85, gmask.r );
           // Nothing grows on cliff faces: thin out as the ground steepens.
           // Blades hold on until the ground is steep enough to be bare rock.
-          density *= smoothstep( 0.5, 0.68, min( terrainSlope( root ), groundN.y ) );
+          density *= onDisc > 0.5 ? 1.0 : smoothstep( 0.5, 0.68, min( terrainSlope( root ), groundN.y ) );
           { float snowAmt; vec4 realm = realmAt( root, snowAmt ); density *= realm.a; }
           float lush = smoothstep( 0.3, 0.8, gn.y );
           float dryPatch = smoothstep( 0.62, 0.9, 1.0 - gn.x );

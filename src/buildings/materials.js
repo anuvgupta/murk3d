@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import * as tex from './textures.js';
+import { weatherMasonry } from './masonry.js';
 
 // Shared materials for every building and prop. Textures are generated once;
 // variants (plaster tints, warmer stone) reuse them with a colour multiplier.
-export function createBuildingMaterials(noiseTexture) {
+export function createBuildingMaterials(noiseTexture, heightMap) {
   tex.setTextureNoise(noiseTexture);
 
   const rubble = tex.rubbleStone(1);
@@ -81,12 +82,22 @@ export function createBuildingMaterials(noiseTexture) {
     // Weathered limestone, as pale as Oblivion's Ayleid stone.
     ruin: std(paleAshlar, 2.8, 0.92, { color: 0xc9c4b8, envMapIntensity: 1.4 }),
     ruinDark: std(paleAshlar, 3.2, 0.95, { color: 0xaea89c, envMapIntensity: 1.3 }),
-    moss: new THREE.MeshStandardMaterial({ color: 0x55703a, roughness: 1 }),
+    moss: new THREE.MeshStandardMaterial({ color: 0x3f5a2a, roughness: 1 }),
     turf: new THREE.MeshStandardMaterial({ color: 0x5e7d38, roughness: 1 }),
     // Portal gates: black glassy stone and the ember seams in it.
     obsidian: std(rubble, 3.0, 0.4, { color: 0x3a3230, metalness: 0.2 }),
     ember: new THREE.MeshStandardMaterial({ color: 0x2a0800, emissive: 0xff5a14, emissiveIntensity: 1.6, roughness: 0.6 }),
   };
   m.lamp.userData.noShadow = true;
+  // Weather the walling stone in world space (stains, streaks, damp, moss).
+  const W = (mat, o) => weatherMasonry(mat, { noise: noiseTexture, heightMap, ...o });
+  W(m.white, { moss: 0.35, grime: 0.8, lichen: 0.05 });
+  W(m.whiteDark, { moss: 0.5, grime: 1.0, lichen: 0.08 });
+  W(m.whiteHouse, { moss: 0.3, grime: 0.8, lichen: 0.04 });
+  W(m.ashlar, { moss: 0.6, grime: 1.0, lichen: 0.12 });
+  W(m.stone, { moss: 0.7, grime: 1.0, lichen: 0.14 });
+  W(m.stoneWarm, { moss: 0.6, grime: 1.0, lichen: 0.12 });
+  W(m.ruin, { moss: 1.0, grime: 1.0, lichen: 0.22 });
+  W(m.ruinDark, { moss: 1.0, grime: 1.1, lichen: 0.25 });
   return m;
 }

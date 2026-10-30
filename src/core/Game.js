@@ -121,7 +121,7 @@ export class Game {
     scene.add(this.water.group);
     mark('water');
 
-    this.buildingMaterials = createBuildingMaterials(this.noiseTexture);
+    this.buildingMaterials = createBuildingMaterials(this.noiseTexture, this.terrain.heightTexture);
     this.buildingMaterials.turf = createTurfMaterial({ noise: this.noiseTexture, mask: this.groundMask.texture });
     this.plates = new Plates({ terrain: this.terrain, noise: this.noiseTexture, turf: this.buildingMaterials.turf });
     scene.add(this.plates.group);
@@ -134,6 +134,7 @@ export class Game {
     mark('castle');
     this.islands = new SkyIslands({ noise: this.noiseTexture, materials: this.buildingMaterials });
     scene.add(this.islands.group);
+    this.grass.setDiscs(this.islands.tops);
     this.portals = new Portals({ terrain: this.terrain, materials: this.buildingMaterials, noise: this.noiseTexture, yAt: (x, z) => this.islands.surfaceAt(x, z) });
     scene.add(this.portals.group);
     this.crystals = new Crystals({ terrain: this.terrain });

@@ -34,10 +34,13 @@ export const ROCK_GLSL = /* glsl */ `
     float zone = smoothstep( 0.5, 0.7, tri( p, w, 0.018, 3 ) );
     float cracks = ( 1.0 - smoothstep( 0.0, 0.015 + 0.03 * ( 1.0 - detail ), abs( crackN - 0.5 ) ) ) * detail * zone;
     float grain = mix( 0.5, tri( p, w, 0.45, 3 ), detail );
+    // Close up: fine fracture grain, and ledges where one bed steps out over the next.
+    float fine = mix( 0.5, tri( p, w, 1.5, 2 ) * 0.6 + tri( p, w, 4.2, 0 ) * 0.4, detail * detail );
     float lumps = tri( p, w, 0.16, 1 );
+    float ledge = smoothstep( 0.3, 0.5, fract( p.y * 0.42 + warp * 2.4 + lumps * 0.8 ) ) * detail;
     // Macro relief: buttresses and gullies tens of metres across.
     float macro = tri( vec3( p.x, p.y * 0.35, p.z ), w, 0.022, 0 );
-    return clamp( strata * 0.1 + lumps * 0.34 + grain * 0.28 + macro * 0.42 - cracks * 0.28 + 0.02, 0.0, 1.0 );
+    return clamp( strata * 0.1 + lumps * 0.3 + grain * 0.22 + fine * 0.14 + ledge * 0.08 + macro * 0.4 - cracks * 0.28 + 0.02, 0.0, 1.0 );
   }
 
   vec3 rockAlbedo( vec3 p, vec3 n, vec3 w, float h ) {

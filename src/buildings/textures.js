@@ -191,18 +191,35 @@ export function ashlarStone(seed = 3, pale = false) {
   const random = mulberry32(seed);
   const rows = 6;
   const rowData = [];
+  // Courses of unequal height, as in real dressed walling.
+  const heights = [];
+  let total = 0;
+  for (let r = 0; r < rows; r++) {
+    const h = 0.75 + random() * 0.55;
+    heights.push(h);
+    total += h;
+  }
+  const rowTop = [];
+  let acc = 0;
+  for (let r = 0; r < rows; r++) {
+    rowTop.push(acc / total);
+    acc += heights[r];
+  }
+  rowTop.push(1);
   for (let r = 0; r < rows; r++) {
     const breaks = [];
     let x = random() * 0.2;
     while (x < 1) {
       breaks.push(x);
-      x += 0.2 + random() * 0.18;
+      x += 0.14 + random() * 0.26;
     }
-    rowData.push({ breaks, tints: breaks.map(() => 0.8 + random() * 0.35) });
+    rowData.push({ breaks, tints: breaks.map(() => 0.8 + random() * 0.35), chips: breaks.map(() => random()) });
   }
   return paint(512, (u, v, out) => {
-    const r = Math.floor(v * rows);
-    const fy = v * rows - r;
+    let r = rows - 1;
+    for (let i = 0; i < rows; i++) if (v >= rowTop[i] && v < rowTop[i + 1]) r = i;
+    const rh = rowTop[r + 1] - rowTop[r];
+    const fy = (v - rowTop[r]) / rh;
     const row = rowData[r];
     let k = row.breaks.length - 1;
     for (let i = 0; i < row.breaks.length; i++) if (u >= row.breaks[i]) k = i;
@@ -211,30 +228,38 @@ export function ashlarStone(seed = 3, pale = false) {
     const end = k + 1 < row.breaks.length ? row.breaks[k + 1] : row.breaks[0] + 1;
     const uu = u < start ? u + 1 : u;
     const ex = Math.min(uu - start, end - uu) * 6;
-    const ey = Math.min(fy, 1 - fy);
-    const edge = Math.min(ex, ey);
-    const joint = edge < 0.026;
+    const ey = Math.min(fy, 1 - fy) * rh * rows;
     const fine = nz(3, u * 8, v * 8);
+    // Joints wander a little: hand-cut blocks never meet in a ruled line.
+    const wob = (nz(1, u * 24, v * 24) - 0.5) * 0.02;
+    const edge = Math.min(ex, ey) + wob;
+    const joint = edge < 0.024;
+    // A chipped corner on some blocks: the arris broken back toward the joint.
+    const chipK = row.chips[k];
+    const cornerU = chipK < 0.5 ? uu - start : end - uu;
+    const cornerV = chipK < 0.25 || (chipK >= 0.5 && chipK < 0.75) ? fy : 1 - fy;
+    const chip = chipK < 0.3 || chipK > 0.7 ? smooth(0.14, 0.04, cornerU * 6 + cornerV * 1.4 + fine * 0.05) : 0;
     // Weathering: rain streaks run down from the joint above each block,
     // dirt gathers in blotches, and every block has its own tint.
     const streak = (1 - smooth(0.0, 0.3, fy)) * (0.5 + 0.5 * nz(1, u * 40, v * 3));
     const blot = smooth(0.6, 0.82, nz(2, u * 5 + 3, v * 5)) * (0.6 + 0.4 * fine);
-    const wear = (1 - 0.2 * streak) * (1 - 0.14 * blot);
-    const t = row.tints[k] * (0.85 + 0.25 * nz(2, u * 8, v * 4)) * (0.6 + 0.4 * smooth(0.03, 0.12, edge));
+    const wear = (1 - 0.2 * streak) * (1 - 0.14 * blot) * (1 - 0.18 * chip);
+    const t = row.tints[k] * (0.85 + 0.25 * nz(2, u * 8, v * 4)) * (0.72 + 0.28 * smooth(0.02, 0.1, edge));
     if (joint) {
       // Mortar: a little darker than the stone, never a drawn black line.
-      const j = pale ? 0.62 : 1.0;
-      out[0] = 0.45 * j * (0.8 + 0.3 * fine) + (pale ? 0.26 : 0);
-      out[1] = 0.42 * j * (0.8 + 0.3 * fine) + (pale ? 0.26 : 0);
-      out[2] = 0.38 * j * (0.8 + 0.3 * fine) + (pale ? 0.25 : 0);
-      out[3] = 0.1;
+      const j = pale ? 0.56 : 1.0;
+      out[0] = 0.45 * j * (0.8 + 0.3 * fine) + (pale ? 0.25 : 0);
+      out[1] = 0.42 * j * (0.8 + 0.3 * fine) + (pale ? 0.25 : 0);
+      out[2] = 0.38 * j * (0.8 + 0.3 * fine) + (pale ? 0.24 : 0);
+      out[3] = 0.12;
     } else {
       const base = pale ? [0.84, 0.82, 0.78] : [0.62, 0.58, 0.52];
-      const tt = (pale ? 0.76 + 0.26 * t : t) * wear;
+      const tt = (pale ? 0.6 + 0.44 * t : t) * wear;
       out[0] = clamp01(base[0] * tt);
       out[1] = clamp01(base[1] * tt);
       out[2] = clamp01(base[2] * tt * (pale ? 0.985 : 1));
-      out[3] = 0.4 + 0.5 * smooth(0.03, 0.15, edge) + 0.1 * fine - 0.08 * blot;
+      // Soft arris, a little tooling texture across the face, chips sunk.
+      out[3] = 0.5 + 0.4 * smooth(0.02, 0.1, edge) + 0.1 * fine - 0.08 * blot - 0.25 * chip;
     }
   });
 }

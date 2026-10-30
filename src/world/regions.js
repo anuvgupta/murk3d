@@ -97,7 +97,7 @@ export const REGIONS = [
     tagline: 'Giants of the green and the temples they swallowed',
     ...at(4), r: 150,
     floor: 4,
-    palette: { ground: [0.82, 0.95, 0.74], grass: [0.78, 1.0, 0.7], fog: [0.72, 0.84, 0.7], fogDensity: 1.8, saturation: 1.18 },
+    palette: { ground: [0.5, 0.46, 0.3], grass: [0.78, 1.0, 0.7], fog: [0.72, 0.84, 0.7], fogDensity: 1.8, saturation: 1.18, grassDensity: 0.38, grassTint: [0.62, 0.74, 0.42] },
     flora: [{ species: 'giant', density: 6.0, spacing: 11 }, { species: 'oak', density: 2.5, spacing: 8 }, { species: 'willow', density: 1.0, spacing: 8 }],
     ruins: ['stones', 'arcade'],
     height(u, v, d, n) {

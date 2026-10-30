@@ -62,19 +62,19 @@ export class Castle {
     const len = Math.hypot(bx - ax, bz - az);
     const ry = Math.atan2(bx - ax, bz - az);
     kit.frame({ x: (ax + bx) / 2, y: baseY + lift, z: (az + bz) / 2, ry }, () => {
-      kit.box(m.white, thick, height, len + 0.2, { y: height / 2 }, { metres: 2.4 });
+      kit.box(m.white, thick, height, len + 0.2, { y: height / 2 }, { metres: 3.6 });
       // Foundation grows out of the rock below the ward floor.
-      kit.box(m.whiteDark, thick + 0.6, 9, len + 0.3, { y: -4.5 }, { metres: 2.4 });
+      kit.box(m.whiteDark, thick + 0.6, 9, len + 0.3, { y: -4.5 }, { metres: 3.6 });
       // Plinth batter and a string course.
-      kit.box(m.whiteDark, thick + 0.5, 1.2, len + 0.3, { y: 0.6 }, { metres: 2.4 });
-      kit.box(m.whiteDark, thick + 0.2, 0.25, len + 0.25, { y: height - 1.6 }, { metres: 2 });
+      kit.box(m.whiteDark, thick + 0.5, 1.2, len + 0.3, { y: 0.6 }, { metres: 3.6 });
+      kit.box(m.whiteDark, thick + 0.2, 0.25, len + 0.25, { y: height - 1.6 }, { metres: 3 });
       // Parapet with merlons.
-      kit.box(m.white, 0.4, 1.3, len + 0.2, { x: thick / 2 - 0.2, y: height + 0.65 }, { metres: 2 });
-      kit.box(m.white, 0.4, 1.3, len + 0.2, { x: -thick / 2 + 0.2, y: height + 0.65 }, { metres: 2 });
+      kit.box(m.white, 0.4, 1.3, len + 0.2, { x: thick / 2 - 0.2, y: height + 0.65 }, { metres: 3 });
+      kit.box(m.white, 0.4, 1.3, len + 0.2, { x: -thick / 2 + 0.2, y: height + 0.65 }, { metres: 3 });
       const n = Math.max(1, Math.floor(len / 2.2));
       for (let i = 0; i < n; i++) {
         const z = -len / 2 + (i + 0.5) * (len / n);
-        kit.box(m.white, 0.42, 0.7, 1.0, { x: thick / 2 - 0.2, y: height + 1.65, z }, { metres: 2 });
+        kit.box(m.white, 0.42, 0.7, 1.0, { x: thick / 2 - 0.2, y: height + 1.65, z }, { metres: 3 });
       }
     });
     this.colliders.push({ cx: (ax + bx) / 2, cz: (az + bz) / 2, hx: thick / 2, hz: len / 2, rot: ry, local: true });
@@ -92,7 +92,7 @@ export class Castle {
       const merlons = Math.max(6, Math.round(radius * 3));
       for (let i = 0; i < merlons; i++) {
         const a = (i / merlons) * Math.PI * 2;
-        kit.box(m.white, 0.7, 0.6, 0.4, { x: Math.cos(a) * (radius + 0.25), y: height + 2.4, z: Math.sin(a) * (radius + 0.25), ry: -a }, { metres: 2 });
+        kit.box(m.white, 0.7, 0.6, 0.4, { x: Math.cos(a) * (radius + 0.25), y: height + 2.4, z: Math.sin(a) * (radius + 0.25), ry: -a }, { metres: 3 });
       }
       if (windows) {
         for (let k = 1; k < Math.floor(height / 5); k++) {
@@ -100,8 +100,8 @@ export class Castle {
             const a = (i / 4) * Math.PI * 2 + 0.4;
             kit.frame({ x: Math.cos(a) * radius, y: k * 5, z: Math.sin(a) * radius, ry: -a + Math.PI / 2 }, () => {
               kit.box(m.glassBlue, 0.5, 1.4, 0.1, { z: 0.02 });
-              kit.box(m.whiteDark, 0.9, 0.2, 0.3, { y: 0.85, z: 0.1 }, { metres: 2 });
-              kit.box(m.whiteDark, 0.9, 0.15, 0.3, { y: -0.8, z: 0.1 }, { metres: 2 });
+              kit.box(m.whiteDark, 0.9, 0.2, 0.3, { y: 0.85, z: 0.1 }, { metres: 3 });
+              kit.box(m.whiteDark, 0.9, 0.15, 0.3, { y: -0.8, z: 0.1 }, { metres: 3 });
             });
           }
         }
@@ -130,7 +130,7 @@ export class Castle {
     }
     kit.frame({ x, y: baseY, z, ry }, () => {
       // Arch head over the opening.
-      kit.box(m.white, half * 2 - 4.4, height - 4.5, 3.2, { y: 4.5 + (height - 4.5) / 2 }, { metres: 2.4 });
+      kit.box(m.white, half * 2 - 4.4, height - 4.5, 3.2, { y: 4.5 + (height - 4.5) / 2 }, { metres: 3.6 });
       const arch = new THREE.Shape();
       arch.absarc(0, 0, 2.6, Math.PI, 0, true);
       arch.lineTo(2.2, 0);
@@ -143,8 +143,8 @@ export class Castle {
       for (let i = -3; i <= 3; i++) kit.box(m.iron, 0.08, 3.2, 0.08, { x: i * 0.55, y: 4.0, z: 0.6 });
       for (let i = 0; i < 4; i++) kit.box(m.iron, 3.6, 0.08, 0.07, { y: 2.6 + i * 0.9, z: 0.6 });
       // Machicolations and parapet over the gate.
-      kit.box(m.white, half * 2 - 4.0, 1.3, 3.6, { y: height + 0.65 }, { metres: 2 });
-      for (let i = -2; i <= 2; i++) kit.box(m.white, 0.9, 0.6, 0.4, { x: i * 1.3, y: height + 1.6, z: 1.6 }, { metres: 2 });
+      kit.box(m.white, half * 2 - 4.0, 1.3, 3.6, { y: height + 0.65 }, { metres: 3 });
+      for (let i = -2; i <= 2; i++) kit.box(m.white, 0.9, 0.6, 0.4, { x: i * 1.3, y: height + 1.6, z: 1.6 }, { metres: 3 });
       // Banners either side of the arch.
       for (const s of [-1, 1]) {
         kit.box(m.iron, 0.05, 2.6, 0.05, { x: s * 3.0, y: 7.2, z: 1.7 });
@@ -167,11 +167,11 @@ export class Castle {
     kit.frame({ x, y: baseY, z, ry }, () => {
       for (let i = 0; i < steps; i++) {
         const t = (i + 1) / steps;
-        kit.box(m.whiteDark, width, rise * t, run / steps + 0.05, { y: (rise * t) / 2, z: (i + 0.5) * (run / steps) }, { metres: 2 });
+        kit.box(m.whiteDark, width, rise * t, run / steps + 0.05, { y: (rise * t) / 2, z: (i + 0.5) * (run / steps) }, { metres: 3 });
       }
       // Low parapets either side.
       for (const s of [-1, 1]) {
-        kit.box(m.white, 0.4, 1.0, run, { x: s * (width / 2 + 0.2), y: rise / 2 + 0.5, z: run / 2, rx: -Math.atan2(rise, run) }, { metres: 2 });
+        kit.box(m.white, 0.4, 1.0, run, { x: s * (width / 2 + 0.2), y: rise / 2 + 0.5, z: run / 2, rx: -Math.atan2(rise, run) }, { metres: 3 });
       }
     });
     this.decks.push({ kind: 'ramp', x, z, angle, baseY, rise, run, width, local: true });
@@ -249,13 +249,13 @@ export class Castle {
         const d = 3.2 + rng() * 1.2;
         const h = 3.2 + rng() * 1.5;
         kit.frame({ x, y: T.h, z, ry: -a + Math.PI / 2 }, () => {
-          kit.box(m.white, w, h, d, { y: h / 2 }, { metres: 2.4 });
+          kit.box(m.white, w, h, d, { y: h / 2 }, { metres: 3.6 });
           // Door and a window or two facing the way.
           kit.box(m.planks, 1.0, 2.0, 0.1, { y: 1.0, z: -d / 2 - 0.04 }, { metres: 1 });
           kit.box(m.glassBlue, 0.7, 0.9, 0.08, { x: w * 0.28, y: 1.9, z: -d / 2 - 0.04 });
           // Gable roof in slate.
-          for (const s of [-1, 1]) kit.box(m.slateBlue, w + 0.6, 0.16, d * 0.62, { y: h + d * 0.26, z: s * d * 0.25, rx: -s * deg(42) }, { metres: 2 });
-          kit.box(m.whiteDark, 0.6, h + 1.2, 0.6, { x: w / 2 - 0.5, y: (h + 1.2) / 2, z: d / 2 - 0.5 }, { metres: 2 });
+          for (const s of [-1, 1]) kit.box(m.slateBlue, w + 0.6, 0.16, d * 0.62, { y: h + d * 0.26, z: s * d * 0.25, rx: -s * deg(42) }, { metres: 3 });
+          kit.box(m.whiteDark, 0.6, h + 1.2, 0.6, { x: w / 2 - 0.5, y: (h + 1.2) / 2, z: d / 2 - 0.5 }, { metres: 3 });
         });
         this.colliders.push({ cx: x, cz: z, hx: w / 2, hz: d / 2, rot: -a + Math.PI / 2, local: true });
       }
@@ -268,15 +268,15 @@ export class Castle {
     const y = T.h;
     // Great hall: a tall rectangular block with a steep roof and a rose window.
     kit.frame({ y }, () => {
-      kit.box(m.white, 14, 12, 9, { y: 6 }, { metres: 2.4 });
-      kit.box(m.whiteDark, 14.6, 1.0, 9.6, { y: 0.5 }, { metres: 2.4 });
-      kit.box(m.whiteDark, 14.3, 0.3, 9.3, { y: 7.6 }, { metres: 2 });
+      kit.box(m.white, 14, 12, 9, { y: 6 }, { metres: 3.6 });
+      kit.box(m.whiteDark, 14.6, 1.0, 9.6, { y: 0.5 }, { metres: 3.6 });
+      kit.box(m.whiteDark, 14.3, 0.3, 9.3, { y: 7.6 }, { metres: 3 });
       // Buttresses.
-      for (const sx of [-5.5, -2.75, 0, 2.75, 5.5]) for (const sz of [-1, 1]) kit.box(m.whiteDark, 0.8, 9, 0.9, { x: sx, y: 4.5, z: sz * 4.9 }, { metres: 2 });
+      for (const sx of [-5.5, -2.75, 0, 2.75, 5.5]) for (const sz of [-1, 1]) kit.box(m.whiteDark, 0.8, 9, 0.9, { x: sx, y: 4.5, z: sz * 4.9 }, { metres: 3 });
       // Tall lancet windows along the sides.
       for (const sx of [-4.1, -1.4, 1.4, 4.1]) for (const sz of [-1, 1]) {
         kit.box(m.glassBlue, 0.9, 4.0, 0.1, { x: sx, y: 6.5, z: sz * 4.52 });
-        kit.box(m.whiteDark, 1.3, 0.3, 0.3, { x: sx, y: 8.7, z: sz * 4.6 }, { metres: 2 });
+        kit.box(m.whiteDark, 1.3, 0.3, 0.3, { x: sx, y: 8.7, z: sz * 4.6 }, { metres: 3 });
       }
       // Rose window on the gable facing the gate.
       const gateFace = this.cfg.gateDir;
@@ -286,7 +286,7 @@ export class Castle {
         for (let i = 0; i < 8; i++) kit.box(m.whiteDark, 0.14, 3.5, 0.6, { y: 9.6, rz: (i / 8) * Math.PI });
       });
       // Roof.
-      for (const s of [-1, 1]) kit.box(m.slateBlue, 15, 0.2, 6.2, { y: 12 + 2.6, z: s * 2.3, rx: -s * deg(50) }, { metres: 2 });
+      for (const s of [-1, 1]) kit.box(m.slateBlue, 15, 0.2, 6.2, { y: 12 + 2.6, z: s * 2.3, rx: -s * deg(50) }, { metres: 3 });
       kit.box(m.gilt, 15.2, 0.3, 0.3, { y: 16.9, rx: Math.PI / 4 });
     });
     // The great tower rises from the hall's inner end.
@@ -313,16 +313,16 @@ export class Castle {
     kit.frame({ x: (from.x + to.x) / 2, y: (yFrom + yTo) / 2, z: (from.z + to.z) / 2, ry, rx: -Math.atan2(yTo - yFrom, len) }, () => {
       kit.box(m.cobbleWhite, width, 0.5, len + 1.0, { y: -0.25 }, { metres: 1.6 });
       for (const s of [-1, 1]) {
-        kit.box(m.white, 0.4, 1.1, len + 1.0, { x: s * (width / 2 - 0.2), y: 0.55 }, { metres: 2 });
-        kit.box(m.whiteDark, 0.5, 0.15, len + 1.0, { x: s * (width / 2 - 0.2), y: 1.15 }, { metres: 2 });
+        kit.box(m.white, 0.4, 1.1, len + 1.0, { x: s * (width / 2 - 0.2), y: 0.55 }, { metres: 3 });
+        kit.box(m.whiteDark, 0.5, 0.15, len + 1.0, { x: s * (width / 2 - 0.2), y: 1.15 }, { metres: 3 });
       }
       // Arches beneath: piers every ~12 m down to the gorge floor, with arch rings between.
       const piers = Math.max(2, Math.round(len / 12));
       for (let i = 0; i <= piers; i++) {
         const z = -len / 2 + (i / piers) * len;
         const drop = 26 + Math.sin(i * 1.7) * 4;
-        kit.box(m.white, width * 0.8, drop, 2.4, { y: -drop / 2 - 0.4, z }, { metres: 2.4 });
-        kit.box(m.whiteDark, width * 0.95, 1.5, 3.2, { y: -1.2, z }, { metres: 2 });
+        kit.box(m.white, width * 0.8, drop, 2.4, { y: -drop / 2 - 0.4, z }, { metres: 3.6 });
+        kit.box(m.whiteDark, width * 0.95, 1.5, 3.2, { y: -1.2, z }, { metres: 3 });
       }
       for (let i = 0; i < piers; i++) {
         const z = -len / 2 + ((i + 0.5) / piers) * len;
@@ -343,7 +343,7 @@ export class Castle {
         // Ring crown sits just under the deck (arc top is at shape y = span/2 - 5).
         kit.add(m.whiteDark, g, { y: -0.6 - (span / 2 - 5), z, ry: -Math.PI / 2 });
         // Thin spandrel wall between arch crown and deck.
-        kit.box(m.white, width * 0.78, 0.9, span, { y: -0.85, z }, { metres: 2.4 });
+        kit.box(m.white, width * 0.78, 0.9, span, { y: -0.85, z }, { metres: 3.6 });
       }
     });
     for (const s of [-1, 1]) {
