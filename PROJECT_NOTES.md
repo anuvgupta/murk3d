@@ -712,3 +712,55 @@ screenshot-checked.
   `mix(0.5+0.75h, 0.28+1.15h, detail)` via a `rockDetailF` global; gully
   banding halved. Verify BO (jungle, cliff close, isle looking down for
   the cloud sea, tundra tufts, canyon, ward at dusk).
+- Pass 28–29 (BP/BQ/BR): snowfield shading (drifts, ripples, windswept
+  patches); terrain rock takes the realm tint (canyon finally red) and
+  snows over on the tundra; slab outcrops rounder; grass patch cover
+  thresholded by the noise quantile (gn.z*0.75+gn.y*0.25, t=0.52+(0.5-a)
+  *0.48) — the jungle floor finally breaks into tufts over dark earth;
+  rock feet darkened (object-space y); granular hash speckle on close
+  rock; ferns (Weber–Penn 'fern' species: stub trunk, 7–11 drooping
+  fronds, willow-kind leaflets) under the jungle, cliff ruins and giant
+  grove; crystals are hex quartz points with fresnel rim + tip glow;
+  wildflowers in the grass shader (first as single wide heads — the
+  user's #40 says confetti — now as clumps per tuft, small heads, one
+  colour family per clump).
+- Owner playtest (issues #7–#49, label feedback): a second agent (Opus)
+  works the issues one at a time; I took the ones that touch my systems
+  and closed them with commit SHAs: #41/#42/#45/#46/#47 pixelation
+  shimmer, #34 default clouds, #35 Ghibli clouds, #48/#49 weather speed,
+  #40 flowers (claimed). Close an issue when shipped so the other agent
+  skips it.
+- Pixelation (user ask): PIXEL_LEVELS Off/Mild/Strong (px 0/3/6 CSS px per
+  game pixel), menu radio row + P key, ?pixels=N, localStorage
+  murk.pixels. Renders at ratio 2/px, PixelatePass box-filters each 2×2
+  block (kills thin-diagonal moiré, leaf cut-out speckle, far-grass
+  mush), canvas image-rendering: pixelated. TemporalPass blends 42/55 %
+  of the previous frame, weight × (1-smoothstep(0.35,2.5, cam angular
+  speed)) × (1-smoothstep(2.5,9, cam speed)). Wind.stepHz 18/12 publishes
+  the wind uniforms in steps; grass uPixelWiden 1.8/2.6. Both passes idle
+  at level 0. Feedback screenshots are captured at the pixel resolution
+  (small) — fine, it is what they see.
+- Clouds (user: "comical blob of circles", then "all styles lifeless",
+  then "too fast"): clouds.js now has churn(uv,T,amp) — rotational domain
+  warp from two fbm pairs — used by all three styles; cloud clock T =
+  skyTime*cloudSpeed*600 (was 2500 for one push: timelapse, #48/#49);
+  skyTime += dt*(0.5+0.6*wind) (was 0.6+2.5*wind). Ghibli = opaque
+  cauliflower towers (body fbm + 3 billow octaves, soft slope lighting,
+  belly darkening, silver rim, scudding puffs). Realistic gained a cirrus
+  veil. Painterly (default now, per #34) banks + curling cirrus strokes.
+  Headless note: the heavier sky shader makes swiftshader page loads
+  ~40 s; view2.cjs goto timeout raised to 240 s after a whole batch died
+  on the 30 s default.
+- Weather speed (#49): mist banks scrolled at 2.2×wind travel (3–12 m/s)
+  → 0.35×; tree sway 0.9/1.73 Hz → 0.45/0.87 Hz, flutter 5.3 → 3.4 Hz.
+  Grass gust fronts unchanged (praised in #16).
+- Map (user ask): MapScreen pans toward the pointer (virtual pointer under
+  pointer lock, dead zone 14 % of half the short side, up to 900 px/s at
+  the edge), WASD/arrows pan 720 px/s, wheel zoom eased (targetZoom,
+  exp(-deltaY*0.0022), anchored on the pointer), Q/E and -/= zoom keys,
+  centre clamped so the world edge stops at the screen edge, radial
+  parchment fade beyond r≈745 m hides the smeared far grid. map.update(dt,
+  input) runs from Game.frame while open. Tested headlessly (maptest.cjs).
+- Concurrency: another session pushes to main continuously — fetch +
+  rebase before every push; one conflict so far (Castle wallRun lift vs
+  block scale), resolved keeping both.
