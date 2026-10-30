@@ -977,3 +977,9 @@ screenshot-checked.
   focus (fog height was following the camera → white floors in DT2/3/5).
   Still to look at: DT8 cliff-ruins mesa top reads as yellow speckle
   (far grass on the slope?), canyon arch rock speckle at 10 m (DT9).
+- DV verified twilight (19:45 silhouettes under violet, 05:15 castle in
+  silhouette, 19:30 sunset): keepers, on feedback/verify. DW: karst is
+  pale limestone now, alpine granite, rivercity moat reads well. The "white
+  floor" in DT/DW free-cam shots was NOT fog: the cameras sat inside the
+  realm rim walls (back faces culled → sky below horizon). view2 cam mode
+  now clamps cam.y ≥ terrainHeight + 3. Corrected survey DZ1–DZ8 queued.
