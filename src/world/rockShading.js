@@ -96,6 +96,7 @@ export const ROCK_GLSL = /* glsl */ `
     return mix( a, b, f.z );
   }
 
+  float macroHeight( vec3 p, vec3 w );
   vec3 rockAlbedo( vec3 p, vec3 n, vec3 w, float h ) {
     float broad = tri( p, w, 0.015, 0 );
     float band = sin( p.y * 0.9 + broad * 7.0 ) * 0.5 + 0.5;
@@ -106,9 +107,20 @@ export const ROCK_GLSL = /* glsl */ `
     float hue = texture( uNoise, p.xz * 0.02 + 0.13 ).r * 0.6 + texture( uNoise, p.xz * 0.0045 + 0.37 ).g * 0.4; // per outcrop, with a regional drift
     c *= mix( vec3( 0.86, 0.9, 0.96 ), vec3( 1.1, 1.0, 0.9 ), hue );
     // Bedding: light and dark beds alternate up the face.
-    c *= 0.92 + 0.16 * band;
+    c *= 0.9 + 0.2 * band;
     // Cavities: hollows and cracks sit in shadow; ridges catch the light.
     c *= mix( 0.5 + 0.75 * h, 0.28 + 1.15 * h, rockDetailF );
+    // Far structure, so a cliff 50 m off is not grey felt: tall buttresses
+    // and the gullies between them (flutes 10–20 m across) and the macro
+    // relief shade themselves, in light and in flat dusk alike.
+    {
+      float far = 1.0 - 0.55 * rockDetailF;
+      float steep = 1.0 - w.y;
+      float flute = tri( vec3( p.x, p.y * 0.12, p.z ), w, 0.07, 1 );
+      c *= 1.0 - steep * far * 0.3 * ( 1.0 - smoothstep( 0.3, 0.7, flute ) * 2.0 ) * 0.5 - steep * far * 0.15 + steep * far * 0.3 * smoothstep( 0.3, 0.7, flute );
+      float mac = macroHeight( p, w );
+      c *= mix( 1.0, 0.72 + 0.56 * mac, far * 0.8 );
+    }
     // Close up the stone is granular, not smooth plaster.
     c *= 1.0 + ( rockSpeckle( p ) - 0.5 ) * 0.3 * rockDetailF * rockDetailF;
     // Mid-scale variation and gullies streaking down the slope, visible from afar.
