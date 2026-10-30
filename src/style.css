@@ -271,6 +271,29 @@ body {
   text-shadow: 0 1px 3px #000;
 }
 
+/* Shown while sprint is locked on (Shift tapped). */
+#sprint-lock {
+  position: absolute;
+  bottom: 74px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Cinzel', serif;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: #f4e4bc;
+  padding: 4px 12px;
+  border: 1px solid rgba(244, 228, 188, 0.4);
+  background: rgba(20, 14, 8, 0.35);
+  text-shadow: 0 1px 3px #000;
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+#sprint-lock.on {
+  opacity: 0.85;
+}
+
 #help {
   position: absolute;
   bottom: 18px;

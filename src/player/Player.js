@@ -15,6 +15,8 @@ const JUMP_SPEED = 7.4;
 const GRAVITY_RISE = 17;
 const GRAVITY_CUT = 32;
 const GRAVITY_FALL = 21;
+const SPRINT_TAP = 0.25; // a Shift press shorter than this is a tap (locks sprint)
+const SPRINT_IDLE = 0.25; // a sprint lock ends after this long without moving
 const COYOTE = 0.12; // a jump still counts this long after running off an edge
 const JUMP_BUFFER = 0.12; // and a press this long before landing is kept
 const BOUNCE_SPEED = 10.5; // thrown up off a mushroom cap
@@ -45,6 +47,13 @@ export class Player {
     this.airTime = 0; // since last on the ground
     this.jumpQueued = 0; // seconds left on a buffered jump press
     this.jumping = false; // rising from a jump (not a bounce)
+    // Sprint: hold Shift to sprint while it's held; tap it to lock sprint
+    // on until it's tapped again or you stop moving.
+    this.sprintLock = false;
+    this.clock = 0;
+    this.shiftDownAt = 0;
+    this.lockAtPress = false;
+    this.idle = 0;
     this.bobPhase = 0;
     this.bobAmount = 0;
     this.fovKick = 0;
@@ -84,7 +93,23 @@ export class Player {
     const wish = this._wish.set(fx, 0, fz);
     if (wish.lengthSq() > 0) wish.normalize().applyAxisAngle(THREE.Object3D.DEFAULT_UP, this.yaw);
 
-    const sprinting = (input.down('ShiftLeft') || input.down('ShiftRight')) && fz < 0;
+    this.clock += dt;
+    const shift = input.down('ShiftLeft') || input.down('ShiftRight');
+    if (input.wasPressed('ShiftLeft') || input.wasPressed('ShiftRight')) {
+      this.shiftDownAt = this.clock;
+      this.lockAtPress = this.sprintLock;
+    }
+    if ((input.wasReleased('ShiftLeft') || input.wasReleased('ShiftRight')) && !shift) {
+      // A tap flips the lock; letting go of a hold just ends the sprint.
+      this.sprintLock = this.clock - this.shiftDownAt < SPRINT_TAP ? !this.lockAtPress : false;
+    }
+    if (fx === 0 && fz === 0) {
+      this.idle += dt;
+      if (this.idle > SPRINT_IDLE) this.sprintLock = false;
+    } else {
+      this.idle = 0;
+    }
+    const sprinting = (shift || this.sprintLock) && fz < 0;
     const targetSpeed = (sprinting ? SPRINT_SPEED : WALK_SPEED) * (this.swimming ? 0.45 : 1);
     const accel = this.onGround ? ACCEL_GROUND : ACCEL_AIR;
     const k = 1 - Math.exp(-accel * dt);

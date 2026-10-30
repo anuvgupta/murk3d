@@ -25,6 +25,13 @@ export class HUD {
     this.lastTime = '';
   }
 
+  setSprintLock(on) {
+    if (on === this.sprintShown) return;
+    this.sprintShown = on;
+    if (!this.sprintEl) this.sprintEl = document.getElementById('sprint-lock');
+    if (this.sprintEl) this.sprintEl.classList.toggle('on', on);
+  }
+
   toast(text) {
     let el = document.getElementById('toast');
     if (!el) {

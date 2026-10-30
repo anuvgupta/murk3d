@@ -497,6 +497,7 @@ export class Game {
 
     this.updateWorld(dt);
     this.hud.update(this.player.yaw, this.environment.timeLabel());
+    this.hud.setSprintLock(this.player.sprintLock);
     this.saveTimer = (this.saveTimer || 0) + dt;
     if (this.saveTimer > 2) {
       this.saveTimer = 0;
