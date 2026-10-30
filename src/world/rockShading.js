@@ -25,6 +25,35 @@ export const ROCK_GLSL = /* glsl */ `
          + ( ch == 0 ? c.r : ch == 1 ? c.g : ch == 2 ? c.b : c.a ) * w.z;
   }
 
+  // Jointing: rock breaks into blocks a metre or three across. A cellular
+  // pattern on each triplanar plane gives the block seams (F2 - F1 small) and
+  // a per-block id for tilt and tone. Returns (seam 0..1, block random 0..1).
+  vec2 cellOn( vec2 q ) {
+    vec2 i = floor( q );
+    vec2 f = fract( q );
+    float d1 = 8.0;
+    float d2 = 8.0;
+    float id = 0.0;
+    for ( int y = -1; y <= 1; y++ ) {
+      for ( int x = -1; x <= 1; x++ ) {
+        vec2 g = vec2( float( x ), float( y ) );
+        vec2 hsh = fract( sin( vec2( dot( i + g, vec2( 127.1, 311.7 ) ), dot( i + g, vec2( 269.5, 183.3 ) ) ) ) * 43758.5453 );
+        vec2 r = g + hsh - f;
+        float d = dot( r, r );
+        if ( d < d1 ) { d2 = d1; d1 = d; id = hsh.x; }
+        else if ( d < d2 ) { d2 = d; }
+      }
+    }
+    return vec2( 1.0 - smoothstep( 0.0, 0.18, sqrt( d2 ) - sqrt( d1 ) ), id );
+  }
+  vec2 rockJoints( vec3 p, vec3 w ) {
+    // Blocks are longer along the bedding than across it.
+    vec2 a = cellOn( p.zy * vec2( 0.45, 0.8 ) );
+    vec2 b = cellOn( p.xz * 0.5 );
+    vec2 c = cellOn( p.xy * vec2( 0.45, 0.8 ) );
+    return a * w.x + b * w.y + c * w.z;
+  }
+
   // Rock surface relief, 0..1. detail (0..1) fades fine features with
   // distance so far cliffs don't shimmer.
   float rockHeight( vec3 p, vec3 w, float detail ) {
@@ -42,7 +71,15 @@ export const ROCK_GLSL = /* glsl */ `
     float ledge = smoothstep( 0.3, 0.5, fract( p.y * 0.42 + warp * 2.4 + lumps * 0.8 ) ) * detail;
     // Macro relief: buttresses and gullies tens of metres across.
     float macro = tri( vec3( p.x, p.y * 0.35, p.z ), w, 0.022, 0 );
-    return clamp( strata * 0.1 + lumps * 0.3 + grain * 0.22 + fine * 0.14 + ledge * 0.08 + macro * 0.4 - cracks * 0.28 + 0.02, 0.0, 1.0 );
+    // Block seams, sunk; each block sits at its own height.
+    float seam = 0.0;
+    float blockH = 0.5;
+    if ( detail > 0.02 ) {
+      vec2 j = rockJoints( p + warp * 1.5, w );
+      seam = j.x * detail;
+      blockH = mix( 0.5, j.y, detail );
+    }
+    return clamp( strata * 0.1 + lumps * 0.26 + grain * 0.2 + fine * 0.12 + ledge * 0.08 + macro * 0.36 + ( blockH - 0.5 ) * 0.18 - cracks * 0.24 - seam * 0.2 + 0.05, 0.0, 1.0 );
   }
 
   // Granular speckle for the last metre or two: a smoothed hash at ~3 cm.
