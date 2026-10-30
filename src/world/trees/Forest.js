@@ -26,6 +26,7 @@ const ZONES = [
   { species: 'duskwood', x: -150, z: -150, r: 30, density: 6, spacing: 7 },
   { species: 'dead', x: 0, z: 0, r: 260, density: 0.05, spacing: 25 },
   { species: 'dead', x: -215, z: 128, r: 95, density: 0.5, spacing: 15 },
+  { species: 'fern', x: -215, z: 128, r: 80, density: 5, spacing: 2.5 },
   { species: 'juniper', x: HILL.x, z: HILL.z, r: HILL.radius - 4, density: 6, spacing: 6 },
   { species: 'juniper', ring: [215, 290], density: 0.4, spacing: 10, maxHeight: 120 },
 ];
@@ -251,7 +252,7 @@ export class Forest {
     this.placed.push(t);
     const model = this.models[species][variant];
     const r = model.trunkRadius * t.s * 1.1;
-    this.colliders.push({ cx: x, cz: z, hx: r, hz: r, rot: 0 });
+    if (r > 0.08) this.colliders.push({ cx: x, cz: z, hx: r, hz: r, rot: 0 });
   }
 
   tryPlace(species, x, z, spacing, force = false) {
@@ -278,7 +279,7 @@ export class Forest {
     this.grid.get(key).push(t);
     const model = this.models[species][variant];
     const r = model.trunkRadius * t.s * (SPECIES[species].trunk.flare ? 1.6 : 1.1);
-    this.colliders.push({ cx: x, cz: z, hx: r, hz: r, rot: 0 });
+    if (r > 0.08) this.colliders.push({ cx: x, cz: z, hx: r, hz: r, rot: 0 });
     return true;
   }
 

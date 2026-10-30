@@ -98,7 +98,7 @@ export const REGIONS = [
     ...at(4), r: 150,
     floor: 4,
     palette: { ground: [0.5, 0.46, 0.3], grass: [0.78, 1.0, 0.7], fog: [0.72, 0.84, 0.7], fogDensity: 1.8, saturation: 1.18, grassDensity: 0.38, grassTint: [0.62, 0.74, 0.42] },
-    flora: [{ species: 'giant', density: 6.0, spacing: 11 }, { species: 'oak', density: 2.5, spacing: 8 }, { species: 'willow', density: 1.0, spacing: 8 }],
+    flora: [{ species: 'giant', density: 6.0, spacing: 11 }, { species: 'oak', density: 2.5, spacing: 8 }, { species: 'willow', density: 1.0, spacing: 8 }, { species: 'fern', density: 14, spacing: 2.2 }],
     ruins: ['stones', 'arcade'],
     height(u, v, d, n) {
       return 7 * n(u * 0.025, v * 0.025) + 1.5 * n(u * 0.11, v * 0.11);
@@ -163,7 +163,7 @@ export const REGIONS = [
     arches: [{ dx: 30, dz: -70, r: 13, tube: 3, ry: 0.4 }],
     ruins: ['chapel', 'tower', 'stones'],
     rocks: 26,
-    flora: [{ species: 'oak', density: 3.0, spacing: 8 }, { species: 'willow', density: 1.0, spacing: 8 }, { species: 'giant', density: 0.6, spacing: 14 }],
+    flora: [{ species: 'oak', density: 3.0, spacing: 8 }, { species: 'willow', density: 1.0, spacing: 8 }, { species: 'giant', density: 0.6, spacing: 14 }, { species: 'fern', density: 6, spacing: 2.5 }],
     height(u, v, d, n) {
       return 4 * n(u * 0.03, v * 0.03) + n(u * 0.1, v * 0.1);
     },

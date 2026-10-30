@@ -175,6 +175,20 @@ export const SPECIES = {
     leaf: { kind: 'scale', colors: ['#2f4a2e', '#3a5634', '#28402a', '#46613a'] },
     wind: 0.35,
   },
+  fern: {
+    label: 'Bracken fern',
+    levels: 2,
+    // A stub of a stem at the ground; the fronds arch out and droop from it.
+    trunk: { len: [0.08, 0.14], radius: [0.03, 0.04], lean: 0.25, taper: 0.8, curveV: 10, wander: 10, segs: 4, start: 0.74 },
+    levels_: [
+      { n: [7, 11], downAngle: 72, downAngleV: 14, lenRatio: 1.7, lenV: 0.25, taper: 0.25, curve: 38, curveV: 15, wander: 15, tropism: -0.3, segs: 6 },
+    ],
+    shape: round,
+    leaves: { per: 9, tipFill: 2, size: [0.26, 0.38], spread: 0.09, flat: true, sprigs: 5 },
+    bark: { color: [0.3, 0.33, 0.17], fissures: 2, depth: 0.3 },
+    leaf: { kind: 'willow', colors: ['#2f5a24', '#3d6e2c', '#28471f', '#4a7a30'] },
+    wind: 0.6,
+  },
 };
 
 // ---------------------------------------------------------------------------
