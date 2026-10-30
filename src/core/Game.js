@@ -148,6 +148,7 @@ export class Game {
     scene.add(this.crystals.group);
     this.mushrooms = new Mushrooms({ terrain: this.terrain });
     scene.add(this.mushrooms.group);
+    mark('mushrooms');
     this.falls = new Falls({ terrain: this.terrain, noise: this.noiseTexture });
     scene.add(this.falls.group);
     this.arches = new Arches({ terrain: this.terrain, noise: this.noiseTexture });
@@ -192,10 +193,13 @@ export class Game {
     this.map = new MapScreen(this);
 
     this.setupPostProcessing();
+    mark('post');
 
     // Prime shaders and the first frame behind the menu.
     this.updateWorld(0);
+    mark('world0');
     this.renderer.compile(scene, this.camera);
+    mark('compile');
     this.render();
     mark('ready');
   }

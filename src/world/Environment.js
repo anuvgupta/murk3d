@@ -196,7 +196,11 @@ export class Environment {
     if (disc) disc.value = false;
     u.mieCoefficient.value = 0.0008;
     u.mieDirectionalG.value = 0.3;
+    const skyU = this.sky.material.uniforms;
+    const cov = skyU.cloudCoverage ? skyU.cloudCoverage.value : 0;
+    if (skyU.cloudCoverage) skyU.cloudCoverage.value = 0; // the probe wants the light, not the clouds
     const target = this.pmrem.fromScene(this.envScene, 0.04, 0.1, 5000);
+    if (skyU.cloudCoverage) skyU.cloudCoverage.value = cov;
     if (disc) disc.value = true;
     u.mieCoefficient.value = mie;
     u.mieDirectionalG.value = mieG;
