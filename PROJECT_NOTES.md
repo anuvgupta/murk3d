@@ -880,3 +880,15 @@ screenshot-checked.
   (hemisphereLights[0].skyColor * sn * 0.55) because crater-rim shadow
   turned the field grey; tundra rim 84. Rim shadows are a general issue
   in the afternoon for every realm (rims 62–115 m at r 150).
+- Checklist review against the original ask (all first-pass complete and
+  verified by render): water, grass, textures, meshes, castles, buildings,
+  foods, weapons, map, feedback tool, clouds, lighting, grading, potions,
+  fantasy items, coins, chests, ten realms via gates, ruins + crypt +
+  jetty, plates; plus today's asks: pixelation, autosave, roads +
+  mushrooms, clouds speed, map navigation, night sky, motes, glare.
+  Remaining purely visual-quality work: close-range terrain rock/bank
+  relief (bank bump 1.6 added), karst rim backdrop (monotone wall; needs
+  vegetation ledges or a lower rim), far tree cards (other agent's #32/33),
+  interior crypt detail, house walls at 1 m.
+- Canyon after strata rework: layered sandstone, good. Karst spire close
+  up: smooth bank earth → bankAmt relief; re-check DE1.
