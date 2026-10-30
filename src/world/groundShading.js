@@ -195,7 +195,8 @@ export const GROUND_GLSL = /* glsl */ `
     float round = smoothstep( 0.075, 0.26, edge );
     vec3 c = mix( ${lin(0x7a7268)}, ${lin(0xa59b8a)}, h ) * ( 0.82 + 0.3 * n.w ) * ( 0.7 + 0.3 * round );
     c = mix( c, c * ${lin(0xd4b58a)} * 1.2, smoothstep( 0.6, 0.9, fract( h * 7.3 ) ) * 0.4 );
-    vec3 mortar = mix( ${lin(0x3a342c)}, ${lin(0x4f6a2a)}, smoothstep( 0.55, 0.8, n.y ) * 0.7 );
+    // Dark packed earth in the joints; moss only where it stays damp, and never lime.
+    vec3 mortar = mix( ${lin(0x3a342c)}, ${lin(0x3b4f24)}, smoothstep( 0.6, 0.85, n.y ) * smoothstep( 0.45, 0.7, n.w ) * 0.6 );
     // Loose setts sit lower and dirtier than the laid paving.
     float laid = smoothstep( 0.82, 0.96, cover );
     c *= mix( 0.78, 1.0, laid );
