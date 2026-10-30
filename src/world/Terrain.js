@@ -675,8 +675,7 @@ export class Terrain {
     return worldToGrid(x);
   }
 
-  normalAt(x, z, target = new THREE.Vector3()) {
-    const e = 0.75;
+  normalAt(x, z, target = new THREE.Vector3(), e = 0.75) {
     const hl = this.heightAt(x - e, z);
     const hr = this.heightAt(x + e, z);
     const hd = this.heightAt(x, z - e);

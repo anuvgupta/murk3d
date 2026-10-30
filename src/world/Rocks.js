@@ -374,18 +374,27 @@ export class RockField {
     m.compose(new THREE.Vector3(i.x, i.y, i.z), new THREE.Quaternion().setFromEuler(new THREE.Euler(i.rx, i.ry, i.rz, 'YXZ')), new THREE.Vector3(i.sx, i.sy, i.sz));
     const c = Math.cos(i.ry);
     const s = Math.sin(i.ry);
-    // The ground under the rock as a tilted plane: three height lookups per
-    // rock instead of one per sample.
+    // The ground under the rock from a coarse local height grid (cliff slabs
+    // straddle a rim, so a single height or plane won't do).
     const t = this.terrain;
-    const ground = t.heightAt(i.x, i.z);
-    const gx = (t.heightAt(i.x + 1, i.z) - t.heightAt(i.x - 1, i.z)) / 2;
-    const gz = (t.heightAt(i.x, i.z + 1) - t.heightAt(i.x, i.z - 1)) / 2;
+    const R = Math.max(i.sx, i.sy, i.sz) * 1.6 + 1;
+    const step = Math.max(0.5, R / 24);
+    const n = Math.ceil((2 * R) / step) + 1;
+    const grid = new Float32Array(n * n);
+    for (let gz = 0; gz < n; gz++) for (let gx = 0; gx < n; gx++) grid[gz * n + gx] = t.heightAt(i.x - R + gx * step, i.z - R + gz * step);
+    const groundAt = (x, z) => {
+      const fx = Math.min(n - 1.001, Math.max(0, (x - i.x + R) / step));
+      const fz = Math.min(n - 1.001, Math.max(0, (z - i.z + R) / step));
+      const x0 = fx | 0, z0 = fz | 0, ax = fx - x0, az = fz - z0;
+      const a = grid[z0 * n + x0], b = grid[z0 * n + x0 + 1], c = grid[(z0 + 1) * n + x0], d = grid[(z0 + 1) * n + x0 + 1];
+      return (a * (1 - ax) + b * ax) * (1 - az) + (c * (1 - ax) + d * ax) * az;
+    };
     let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
     for (let k = 0; k < pts.length; k += 3) {
       v.set(pts[k], pts[k + 1], pts[k + 2]).applyMatrix4(m);
       const dx = v.x - i.x;
       const dz = v.z - i.z;
-      const h = v.y - (ground + gx * dx + gz * dz);
+      const h = v.y - groundAt(v.x, v.z);
       if (h < lo || h > hi) continue;
       const lx = c * dx - s * dz;
       const lz = s * dx + c * dz;

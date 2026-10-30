@@ -23,6 +23,9 @@ const BOUNCE_SPEED = 10.5; // thrown up off a mushroom cap
 const SWIM_DEPTH = 1.25; // feet this far below the surface when afloat
 const MOUSE_SENSITIVITY = 0.0022;
 const MAX_WALK_SLOPE = 0.62; // normal.y below this is too steep to climb
+const MAX_CLIMB = Math.sqrt(1 - MAX_WALK_SLOPE ** 2) / MAX_WALK_SLOPE; // the same as rise per metre
+const PROBE = 0.3; // how far ahead the slope rule looks
+const STEP_UP = 0.5; // a ledge this high can be stepped onto
 const WORLD_MARGIN = 20;
 
 // First-person walker: mouse look, WASD, sprint, jump, terrain following and
@@ -147,20 +150,37 @@ export class Player {
     this.position.z += this.velocity.z * dt;
 
     // The slope rule is about the terrain; on a bridge deck or porch the ground
-    // beneath (a riverbed, say) must not block the way.
-    const n = this.terrain.normalAt(this.position.x, this.position.z, this._normal);
-    if (n.y < MAX_WALK_SLOPE && !this.onSurface) {
-      const uphill = this.velocity.x * n.x + this.velocity.z * n.z < 0;
-      if (uphill) {
+    // beneath (a riverbed, say) must not block the way. It looks at the rise
+    // just ahead in the direction of travel: a smoothed normal would call the
+    // flat ground at a cliff's lip a cliff and refuse every step back from
+    // the edge. A short step up onto level ground is fine (back over a lip
+    // you slipped off), and in the air you can land on a ledge below your
+    // feet, as long as it is level enough to stand on (not more cliff face
+    // to hop up).
+    const mx = this.position.x - prevX;
+    const mz = this.position.z - prevZ;
+    const moved = Math.hypot(mx, mz);
+    if (moved > 1e-5 && !this.onSurface) {
+      const ax = prevX + (mx / moved) * PROBE;
+      const az = prevZ + (mz / moved) * PROBE;
+      const ahead = this.terrain.heightAt(ax, az);
+      const rise = ahead - this.terrain.heightAt(prevX, prevZ);
+      const reach = Math.max(this.position.y, this.terrain.heightAt(prevX, prevZ) + STEP_UP);
+      // Level enough: the ground carries on no steeper than walkable beyond it.
+      const ledge = () => ahead <= reach && this.terrain.heightAt(ax + (mx / moved) * PROBE, az + (mz / moved) * PROBE) - ahead <= PROBE * MAX_CLIMB;
+      if (rise > PROBE * MAX_CLIMB && !ledge()) {
         // Slide along the slope instead of climbing it.
         this.position.x = prevX;
         this.position.z = prevZ;
+        const n = this.terrain.normalAt(prevX, prevZ, this._normal, 0.3);
         const len = Math.hypot(n.x, n.z) || 1;
         const nx = n.x / len;
         const nz = n.z / len;
         const into = this.velocity.x * nx + this.velocity.z * nz;
-        this.velocity.x -= nx * into;
-        this.velocity.z -= nz * into;
+        if (into < 0) {
+          this.velocity.x -= nx * into;
+          this.velocity.z -= nz * into;
+        }
       }
     }
 
