@@ -151,6 +151,15 @@ export class Game {
       { x: GLADE.x, z: GLADE.z, r: GLADE.r - 6.5 },
       ...REGIONS.map((R, i) => ({ x: GLADE.x + Math.cos((i / REGIONS.length) * Math.PI * 2) * GLADE.r, z: GLADE.z + Math.sin((i / REGIONS.length) * Math.PI * 2) * GLADE.r, r: 3.8 })),
       ...REGIONS.map((R) => ({ x: R.x + (R.gate || { dx: 50 }).dx, z: R.z + (R.gate || { dz: 50 }).dz, r: 3.5 })),
+      // No grass in a waterfall's course.
+      ...REGIONS.flatMap((R) =>
+        (R.falls || []).flatMap((f) =>
+          Array.from({ length: 14 }, (_, i) => {
+            const t = (i + 0.5) / 14;
+            return { x: R.x + f.from.dx + (f.to.dx - f.from.dx) * t, z: R.z + f.from.dz + (f.to.dz - f.from.dz) * t, r: f.w * 0.5 * (0.7 + 0.5 * t) + 0.4 };
+          })
+        )
+      ),
     ];
     this.groundMask = new GroundMask(this.terrain, { cutouts });
     await mark('mask');

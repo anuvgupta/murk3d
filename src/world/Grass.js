@@ -234,7 +234,8 @@ export class Grass {
           ${TERRAIN_HEIGHT_GLSL}
           ${WIND_GLSL}
 
-          float hash1( vec2 p ) { return fract( sin( dot( p, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 ); }`
+          float hash1( vec2 p ) { return fract( sin( dot( p, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 ); }
+          float realmSnow( vec2 p ) { float sn; realmAt( p, sn ); return clamp( sn, 0.0, 1.0 ); }`
         )
         .replace(
           '#include <beginnormal_vertex>',
@@ -346,7 +347,7 @@ export class Grass {
           // pulled down into a short rounded cap.
           float flowerPatch = smoothstep( 0.52, 0.72, texture( uNoise, root * 0.045 + 0.61 ).r );
           float flowerTuft = step( fract( tr * 13.7 + 0.31 ), 0.03 * flowerPatch ) * step( 0.45, density );
-          float isFlower = flowerTuft * step( br2, 0.72 );
+          float isFlower = flowerTuft * step( br2, 0.72 ) * ( 1.0 - realmSnow( root ) ); // nothing flowers in the snow
           wprof = mix( wprof, 0.3 + 1.7 * smoothstep( 0.4, 0.5, hy ), isFlower );
           bladeH *= 1.0 + ( 0.12 + 0.3 * br ) * isFlower;
           float hyP = mix( hy, min( hy, 0.667 + ( hy - 0.667 ) * 0.3 ), isFlower );

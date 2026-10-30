@@ -35,13 +35,14 @@ export class Falls {
           float rope = smoothstep( 0.35, 0.65, texture( uNoise, vec2( vUv.x * 3.0 + 0.2, vUv.y * 0.12 - t * 0.08 ) ).b );
           vec3 water = vec3( 0.5, 0.68, 0.76 );
           vec3 foam = vec3( 0.96, 0.98, 1.0 );
-          vec3 col = mix( water, foam, streak * ( 0.45 + 0.55 * vSteep ) );
+          vec3 col = mix( water, foam, streak * ( 0.2 + 0.8 * vSteep ) );
           // Ragged edges that waver, not a ruled strip; the bottom whitens into the plume.
           float wobble = ( texture( uNoise, vec2( vUv.y * 1.5 - t * 0.3, 0.3 ) ).r - 0.5 ) * 0.16;
           float edge = smoothstep( 0.0, 0.22, vUv.x + wobble ) * smoothstep( 1.0, 0.78, vUv.x - wobble );
           float plume = smoothstep( 0.72, 1.0, vUv.y );
           col = mix( col, foam, plume * 0.6 );
-          float alpha = ( 0.3 + 0.7 * streak ) * ( 0.55 + 0.45 * rope ) * edge * ( 0.7 + 0.3 * vSteep );
+          // On gentle ground the water is a shallow glassy race, not a white sheet.
+          float alpha = ( 0.3 + 0.7 * streak ) * ( 0.55 + 0.45 * rope ) * edge * mix( 0.3, 1.0, vSteep );
           alpha *= 1.0 - plume * 0.45;
           // Spray: the plume breaks into drifting flecks.
           float spray = smoothstep( 0.6, 0.9, texture( uNoise, vec2( vUv.x * 6.0 + t * 0.2, vUv.y * 3.0 - t * 0.6 ) ).g ) * plume;
@@ -76,7 +77,7 @@ export class Falls {
       const z = z0 + dz * t;
       const y = terrain.heightAt(x, z) + 0.35;
       const drop = Math.max(0, prevY - y);
-      const st = Math.min(1, drop / (len / rows) * 0.6);
+      const st = Math.min(1, Math.max(0, drop / (len / rows) - 0.15) * 0.9);
       prevY = y;
       // Widen toward the foot as the water spreads.
       const half = (w / 2) * (0.7 + 0.5 * t);
