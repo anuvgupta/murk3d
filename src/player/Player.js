@@ -6,9 +6,17 @@ const RADIUS = 0.35;
 const WALK_SPEED = 4.2;
 const SPRINT_SPEED = 8.0;
 const ACCEL_GROUND = 12;
-const ACCEL_AIR = 2.5;
+const ACCEL_AIR = 3.5;
 const GRAVITY = 24;
-const JUMP_SPEED = 7.2;
+// Jumps: lighter gravity while rising with Space held (a held jump peaks
+// ~1.6 m up, ~0.85 s in the air), heavier once Space is let go (a tap is a
+// short hop), and a little quicker falling than rising so landings feel solid.
+const JUMP_SPEED = 7.4;
+const GRAVITY_RISE = 17;
+const GRAVITY_CUT = 32;
+const GRAVITY_FALL = 21;
+const COYOTE = 0.12; // a jump still counts this long after running off an edge
+const JUMP_BUFFER = 0.12; // and a press this long before landing is kept
 const BOUNCE_SPEED = 10.5; // thrown up off a mushroom cap
 const SWIM_DEPTH = 1.25; // feet this far below the surface when afloat
 const MOUSE_SENSITIVITY = 0.0022;
@@ -34,6 +42,9 @@ export class Player {
     this.yaw = 0;
     this.pitch = 0;
     this.onGround = false;
+    this.airTime = 0; // since last on the ground
+    this.jumpQueued = 0; // seconds left on a buffered jump press
+    this.jumping = false; // rising from a jump (not a bounce)
     this.bobPhase = 0;
     this.bobAmount = 0;
     this.fovKick = 0;
@@ -80,11 +91,29 @@ export class Player {
     this.velocity.x += (wish.x * targetSpeed - this.velocity.x) * k;
     this.velocity.z += (wish.z * targetSpeed - this.velocity.z) * k;
 
-    if (this.onGround && input.wasPressed('Space')) {
+    if (input.wasPressed('Space')) this.jumpQueued = JUMP_BUFFER;
+    else this.jumpQueued = Math.max(0, this.jumpQueued - dt);
+    this.airTime = this.onGround ? 0 : this.airTime + dt;
+    if (this.jumpQueued > 0 && (this.onGround || (this.airTime < COYOTE && this.velocity.y <= 0)) && !this.swimming) {
       this.velocity.y = JUMP_SPEED;
+      // Commit to the way you're heading: take off at full speed along the
+      // keys you're holding (a sprinting jump carries a little extra).
+      if (wish.lengthSq() > 0) {
+        const along = this.velocity.x * wish.x + this.velocity.z * wish.z;
+        const takeoff = Math.max(along, targetSpeed * (sprinting ? 1.08 : 1));
+        this.velocity.x = wish.x * takeoff;
+        this.velocity.z = wish.z * takeoff;
+      }
       this.onGround = false;
+      this.jumping = true;
+      this.jumpQueued = 0;
+      this.airTime = COYOTE;
     }
-    this.velocity.y -= GRAVITY * dt;
+    const held = input.down('Space');
+    let g = GRAVITY;
+    if (this.jumping && this.velocity.y > 0) g = held ? GRAVITY_RISE : GRAVITY_CUT;
+    else if (this.jumping) g = GRAVITY_FALL;
+    this.velocity.y -= g * dt;
 
     // Integrate horizontally, refusing to walk up cliffs.
     const prevX = this.position.x;
@@ -132,9 +161,11 @@ export class Player {
         // A mushroom cap: back up you go, a little higher the harder you hit.
         this.velocity.y = Math.max(BOUNCE_SPEED, -this.velocity.y * 0.85);
         this.onGround = false;
+        this.jumping = false;
       } else {
         this.velocity.y = 0;
         this.onGround = true;
+        this.jumping = false;
       }
     } else if (this.onGround && this.velocity.y <= 0 && this.position.y - ground < 0.45) {
       this.position.y = ground;
