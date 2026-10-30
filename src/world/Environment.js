@@ -324,12 +324,12 @@ export class Environment {
     // The haze darkens faster than the light does, so at twilight the far hills
     // are not a pale pink wall brighter than the sky above them; toward the
     // set sun it carries a little of the afterglow's rose.
-    const dayFog = smoothstep(-0.1, 0.06, elev);
+    const dayFog = smoothstep(-0.04, 0.08, elev);
     a.fogColor.copy(PALETTE.fogNight).lerp(this._tmpColor.copy(PALETTE.fogDay).lerp(PALETTE.fogGolden, golden * 0.85), dayFog);
     a.fogSunColor.copy(PALETTE.fogNight).lerp(this._tmpColor2.setRGB(0.3, 0.14, 0.2), duskI / 1.1);
     a.fogSunColor.lerp(this._tmpColor.setRGB(0.86, 0.84, 0.78).lerp(this._tmpColor2.setRGB(0.82, 0.58, 0.4), low), dayFog);
     // Clear air at midday; haze thickens as the sun drops.
-    a.fogDensity = 0.00075 + 0.0011 * low * day + 0.0003 * (1 - day);
+    a.fogDensity = 0.00075 + 0.0011 * low * dayFog + 0.0003 * (1 - day);
     a.fogHeight = this.focusHeight - 6;
     a.fogFalloff = 0.015;
     // Mist lies in the valley at dawn and dusk and thins through the day.
