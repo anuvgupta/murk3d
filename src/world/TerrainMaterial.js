@@ -149,7 +149,10 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
       .replace(
         '#include <normal_fragment_maps>',
         `#include <normal_fragment_maps>
-        normal = bumpNormal( -vViewPosition, normal, rockHOut, 3.4 * rockAmtOut * ( 0.3 + 0.7 * rockDetail ) );
+        // Relief on rock, and a gentler relief on the bare earth of steep banks
+        // (which otherwise read as smooth plaster up close).
+        float bankAmt = smoothstep( 0.28, 0.5, 1.0 - wnClass.y ) * ( 1.0 - rockAmtOut );
+        normal = bumpNormal( -vViewPosition, normal, rockHOut, ( 3.4 * rockAmtOut + 1.6 * bankAmt ) * ( 0.3 + 0.7 * rockDetail ) );
         if ( rockAmtOut > 0.01 ) {
           vec3 wn2 = macroNormal( vWPos, normalize( vWNormal ), 9.0 * rockAmtOut );
           vec3 vn2 = normalize( ( viewMatrix * vec4( wn2, 0.0 ) ).xyz );
