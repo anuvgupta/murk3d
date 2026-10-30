@@ -330,6 +330,7 @@ export class Game {
         this.perf.el.classList.toggle('hidden', !this.perf.show);
       }
       if (!this.map.open) this.player.update(dt);
+      else this.map.update(dt, input);
       const dest = this.portals.update(dt, this.player.position);
       if (dest) this.travelTo(dest);
     }
