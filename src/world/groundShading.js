@@ -299,7 +299,16 @@ export const GROUND_GLSL = /* glsl */ `
     vec4 rr = realmRock( p.xz, rimW );
     // Banks: worn earth on moderate slopes, bare rock where it steepens or climbs.
     float bank = smoothstep( 0.3 - 0.05 * rimW, 0.46 - 0.05 * rimW, slope + ( n.z - 0.5 ) * 0.1 );
-    c = mix( c, dirtColor( n ) * 0.9, bank * 0.6 );
+    // A grassy bank keeps more of its green; a bare one goes to earth.
+    c = mix( c, dirtColor( n ) * 0.9, bank * mix( 0.6, 0.38, smoothstep( 0.3, 0.8, m.r ) ) );
+    if ( bank > 0.01 ) {
+      // Steep hillsides are not one smooth mound: ledges of bare rock follow
+      // the contours a few metres apart, with turf and earth between them.
+      float terr = texture( uNoise, vec2( dot( p.xz, vec2( 0.7, 0.7 ) ) * 0.02, p.y * 0.22 ) ).g * 0.7
+                 + texture( uNoise, vec2( dot( p.xz, vec2( -0.7, 0.7 ) ) * 0.06, p.y * 0.5 ) ).a * 0.3;
+      float ledge = smoothstep( 0.52, 0.64, terr ) * bank;
+      c = mix( c, tintRock( rockColor( p, nrm ), rr ) * 0.92, ledge * 0.85 );
+    }
     if ( bank > 0.01 && groundDetail > 0.01 ) {
       // Up close a bare bank is not smooth sand: rain-washed soil streaks
       // run downhill, and pale grit and small stones lodge on the face.
