@@ -127,7 +127,7 @@ export const GROUND_GLSL = /* glsl */ `
   // Dirt roads: the mask's soft band made crooked and jagged at the metre and
   // hand scale, with a short fade to the turf.
   float roadAmount( vec2 p, float g ) {
-    float wob = ( texture( uNoise, p * 0.09 + 0.23 ).r - 0.5 ) * 0.34 + ( texture( uNoise, p * 0.7 + 0.61 ).a - 0.5 ) * 0.16;
+    float wob = ( texture( uNoise, p * 0.09 + 0.23 ).r - 0.5 ) * 0.4 + ( texture( uNoise, p * 0.22 + 0.47 ).g - 0.5 ) * 0.32 + ( texture( uNoise, p * 0.7 + 0.61 ).a - 0.5 ) * 0.18;
     return smoothstep( 0.4, 0.6, g + wob );
   }
 

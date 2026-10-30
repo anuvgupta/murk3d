@@ -197,11 +197,11 @@ export class Mushrooms {
         if (!q) continue;
         const side = rng() < 0.5 ? -1 : 1;
         const r = rng();
-        if (r < 0.09) {
+        if (r < 0.2) {
           const off = road.width / 2 + 0.25 + rng() * 1.0;
           const kinds = ['white', 'white', 'violet', 'brown'];
           this.clump(kinds[Math.floor(rng() * kinds.length)], c.x - q.tz * off * side, c.y + q.tx * off * side, rng);
-        } else if (r < 0.108) {
+        } else if (r < 0.245) {
           const off = road.width / 2 + 0.9 + rng() * 1.3;
           const x = c.x - q.tz * off * side;
           const z = c.y + q.tx * off * side;
@@ -258,6 +258,6 @@ export class Mushrooms {
 
   // Glow: faint by day, bright by night.
   update(nightFactor) {
-    if (this.shader) this.shader.uniforms.uGlow.value = 0.12 + 1.3 * nightFactor;
+    if (this.shader) this.shader.uniforms.uGlow.value = 0.15 + 1.8 * nightFactor;
   }
 }
