@@ -58,7 +58,8 @@ export const ROCK_GLSL = /* glsl */ `
   // distance so far cliffs don't shimmer.
   float rockHeight( vec3 p, vec3 w, float detail ) {
     float warp = tri( p, w, 0.03, 1 );
-    float strata = sin( p.y * 2.2 + warp * 9.0 ) * 0.5 + 0.5;
+    // Beds a few metres thick, warped so no two lines run parallel for long.
+    float strata = sin( p.y * 1.1 + warp * 14.0 + tri( p, w, 0.05, 2 ) * 3.0 ) * 0.5 + 0.5;
     // Cracks: iso-lines of a noise field, but only inside broken zones so
     // they don't read as a contour map drawn over the whole face.
     float crackN = tri( p, w, 0.07, 2 );
@@ -80,7 +81,7 @@ export const ROCK_GLSL = /* glsl */ `
       blockH = mix( 0.5, j.y, detail );
     }
     // Strata read strongest on steep faces (canyon walls, cliffs), barely on level ground.
-    float strataW = 0.1 + 0.16 * ( 1.0 - w.y );
+    float strataW = 0.07 + 0.09 * ( 1.0 - w.y );
     return clamp( strata * strataW + lumps * 0.26 + grain * 0.2 + fine * 0.12 + ledge * 0.08 + macro * ( 0.36 - 0.1 * ( 1.0 - w.y ) ) + ( blockH - 0.5 ) * 0.18 - cracks * 0.24 - seam * 0.2 + 0.05, 0.0, 1.0 );
   }
 
@@ -103,7 +104,7 @@ export const ROCK_GLSL = /* glsl */ `
     vec3 c = mix( ${lin(0x75695d)}, ${lin(0xb9ab96)}, smoothstep( 0.2, 0.8, broad ) );
     c = mix( c, c * ${lin(0xd2b08f)} * 1.25, band * 0.5 );
     // Bedding: light and dark beds alternate up the face.
-    c *= 0.86 + 0.28 * band;
+    c *= 0.92 + 0.16 * band;
     // Cavities: hollows and cracks sit in shadow; ridges catch the light.
     c *= mix( 0.5 + 0.75 * h, 0.28 + 1.15 * h, rockDetailF );
     // Close up the stone is granular, not smooth plaster.
@@ -113,7 +114,7 @@ export const ROCK_GLSL = /* glsl */ `
     float gully = tri( vec3( p.x, p.y * 0.22, p.z ), w, 0.045, 3 );
     c *= ( 0.76 + 0.46 * meso ) * ( 0.9 + 0.2 * smoothstep( 0.35, 0.7, gully ) );
     // Bedding colour: alternating warm and cool beds on steep faces.
-    c *= 1.0 + ( 1.0 - w.y ) * 0.22 * ( sin( p.y * 2.2 + broad * 7.0 + 1.3 ) );
+    c *= 1.0 + ( 1.0 - w.y ) * 0.1 * ( sin( p.y * 1.1 + broad * 11.0 + 1.3 ) );
     // Lichen in patches.
     float lichen = smoothstep( 0.64, 0.8, tri( p, w, 0.08, 0 ) ) * 0.45;
     c = mix( c, ${lin(0x8b8a52)}, lichen );
