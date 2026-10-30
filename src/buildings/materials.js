@@ -72,6 +72,41 @@ function windowGlass() {
   return mat;
 }
 
+// Fairy-light bulbs: pale glass beads by day; by night each glows in its own
+// colour (mostly candle gold, a few rose, teal and lilac) with a slow twinkle.
+function fairyGlass() {
+  const mat = new THREE.MeshStandardMaterial({ color: 0xf6ead0, emissive: 0xffc070, emissiveIntensity: 0.35, roughness: 0.25, metalness: 0 });
+  mat.userData.noShadow = true;
+  const uniforms = { uNight: { value: 0 }, uTime: { value: 0 } };
+  mat.userData.uniforms = uniforms;
+  mat.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.vertexShader = shader.vertexShader
+      .replace('#include <common>', `#include <common>
+        attribute vec4 aux;
+        varying vec4 vAux;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+        vAux = aux;`);
+    shader.fragmentShader = shader.fragmentShader
+      .replace('#include <common>', `#include <common>
+        varying vec4 vAux;
+        uniform float uNight;
+        uniform float uTime;`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+        {
+          float h1 = fract( sin( dot( floor( vAux.xyz * 8.0 ), vec3( 12.9898, 78.233, 37.719 ) ) ) * 43758.5453 );
+          float h2 = fract( h1 * 97.13 + 0.37 );
+          float h3 = fract( h1 * 41.7 + 0.61 );
+          vec3 gold = mix( vec3( 1.0, 0.68, 0.28 ), vec3( 1.0, 0.86, 0.58 ), h2 );
+          vec3 pastel = h3 < 0.33 ? vec3( 1.0, 0.5, 0.62 ) : ( h3 < 0.66 ? vec3( 0.5, 0.95, 0.9 ) : vec3( 0.78, 0.6, 1.0 ) );
+          vec3 c = h1 < 0.78 ? gold : pastel;
+          float tw = 0.78 + 0.22 * sin( uTime * ( 1.5 + 2.5 * h2 ) + h1 * 6.2832 );
+          totalEmissiveRadiance = c * mix( 0.35, 4.6 * tw, uNight );
+        }`);
+  };
+  return mat;
+}
+
 export function createBuildingMaterials(noiseTexture, heightMap) {
   tex.setTextureNoise(noiseTexture);
 
@@ -149,6 +184,7 @@ export function createBuildingMaterials(noiseTexture, heightMap) {
     slateBlue: std(slate, 2, 0.7, { color: 0x6f7f96 }),
     gilt: new THREE.MeshStandardMaterial({ color: 0xe8c45a, roughness: 0.25, metalness: 1.0 }),
     glassBlue: windowGlass(),
+    fairy: fairyGlass(),
     banner: new THREE.MeshStandardMaterial({ color: 0x1e3a7a, roughness: 0.95, side: THREE.DoubleSide }),
     // Ruins: weathered grey ashlar and rubble, moss and turf.
     // Weathered limestone, as pale as Oblivion's Ayleid stone.

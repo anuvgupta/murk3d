@@ -7,6 +7,7 @@ import { Smoke } from './Smoke.js';
 import { createItemMaterials, displayTable, weaponRack, CHESTS } from './items.js';
 import { createFurnitureMaterials, smithy, alchemyStall, armoury, tavernTable } from './furniture.js';
 import { windmillSails, waterWheel } from './landmarks.js';
+import { fairyLights } from './fairyLights.js';
 import { HOUSES, PLAZA, WELL, LAKES } from '../world/plan.js';
 import { REGIONS } from '../world/regions.js';
 import { mulberry32 } from '../util/noise.js';
@@ -85,6 +86,8 @@ export class Village {
       }
     }
 
+    // Fairy lights through the street and around the plaza and well.
+    fairyLights(kit, m, terrain, this.colliders);
     // The well in the middle of the plaza.
     const wy = terrain.plazaHeight;
     kit.frame({ x: WELL.x, y: wy, z: WELL.z, ry: 0.3 }, () => well(kit, m));
@@ -236,10 +239,12 @@ export class Village {
     const flicker = 0.85 + 0.1 * Math.sin(time * 13.1) + 0.05 * Math.sin(time * 27.3);
     this.materials.glass.emissiveIntensity = 0.12 + nightFactor * 2.2 * flicker;
     this.materials.lamp.emissiveIntensity = 0.2 + nightFactor * 4 * flicker;
-    const gu = this.materials.glassBlue.userData.uniforms;
-    if (gu) {
-      gu.uNight.value = nightFactor;
-      gu.uTime.value = time;
+    for (const mat of [this.materials.glassBlue, this.materials.fairy]) {
+      const gu = mat.userData.uniforms;
+      if (gu) {
+        gu.uNight.value = nightFactor;
+        gu.uTime.value = time;
+      }
     }
     this.smoke.update(dt, wind, lightLevel);
     if (this.furnitureMaterials) this.furnitureMaterials.time.value = time;
