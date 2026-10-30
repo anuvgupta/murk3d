@@ -36,7 +36,7 @@ import { SPAWN } from '../world/plan.js';
 import { Input } from '../player/Input.js';
 import { Player } from '../player/Player.js';
 import { HUD } from '../ui/HUD.js';
-import { settings, QUALITY, PRESET_ORDER, rememberQuality, PIXEL_LEVELS, loadPixelLevel, rememberPixelLevel } from './settings.js';
+import { settings, QUALITY, PRESET_ORDER, rememberQuality, PIXEL_LEVELS, loadPixelLevel, rememberPixelLevel, ADAPT_LADDER, loadAdapt, rememberAdapt } from './settings.js';
 import { Feedback } from '../ui/Feedback.js';
 import { MapScreen } from '../ui/MapScreen.js';
 
@@ -84,7 +84,8 @@ export class Game {
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
     // Rendering resolution: the preset's ratio, or a coarse grid when pixelated.
-    this.baseRatio = Math.min(window.devicePixelRatio, settings.pixelRatio);
+    this.fullRatio = Math.min(window.devicePixelRatio, settings.pixelRatio);
+    this.baseRatio = this.fullRatio;
     this.pixelLevel = loadPixelLevel();
     renderer.setPixelRatio(this.effectiveRatio());
     renderer.domElement.style.imageRendering = PIXEL_LEVELS[this.pixelLevel].px ? 'pixelated' : 'auto';
@@ -99,7 +100,7 @@ export class Game {
     renderer.info.autoReset = false;
     this.perf = { el: document.getElementById('perf'), frames: 0, time: 0, fps: 0, ms: 0, show: false };
     // Adaptive quality: after a few slow seconds, step the cost down (and remember).
-    this.adapt = { slow: 0, step: 0, settleUntil: 4 };
+    this.adapt = { level: 0, slow: 0, fast: 0, settleUntil: 4, trial: null, backoff: 60, nextTry: 0 };
 
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 20000);
@@ -245,6 +246,9 @@ export class Game {
 
     this.applyPixelTuning();
     this.preview = false;
+    // Start where the last visit's frame rate settled.
+    const saved = loadAdapt();
+    if (saved && saved.preset === QUALITY && saved.level > 0) this.applyAdaptLevel(Math.min(saved.level, ADAPT_LADDER.length - 1), true);
 
     // Prime shaders and the first frame behind the menu.
     this.updateWorld(0);
@@ -515,37 +519,88 @@ export class Game {
     input.endFrame();
   }
 
-  // Step rendering cost down while the frame rate stays under ~28 fps:
-  // resolution first, then grass reach, then bloom; past that, reload on a
-  // lower preset next time. Only counts while playing (the menu doesn't move).
+  // Adaptive quality: a ladder of live settings, stepped down while the
+  // frame rate stays low and back up when there is headroom. The level is
+  // remembered (with the preset it applies to), so the next visit starts
+  // where this one settled instead of stuttering through the first seconds.
+  //   down  ~3 s under 28 fps
+  //   up    ~12 s at 55+ fps; kept only if it holds 45+ for the next 6 s,
+  //         otherwise it reverts and waits longer before trying again
+  // Past the bottom rung the next visit starts on a lighter preset; at the
+  // top rung on a lighter preset with room to spare, on a heavier one.
+  applyAdaptLevel(level, quiet = false) {
+    const L = ADAPT_LADDER[level];
+    const was = ADAPT_LADDER[this.adapt.level];
+    this.adapt.level = level;
+    this.baseRatio = Math.max(0.6, this.fullRatio * L.res);
+    this.applyResolution();
+    if (this.grass) this.grass.radiusScale = L.grass;
+    if (this.composer) for (const pass of this.composer.passes) if (pass.strength !== undefined) pass.enabled = settings.bloom && L.bloom;
+    rememberAdapt(QUALITY, level);
+    if (!quiet && this.hud && was !== L) {
+      // Say what changed: 'Smoother: resolution 72%', 'Sharper: bloom on'.
+      const pct = (v) => `${Math.round(v * 100)}%`;
+      const changes = [];
+      if (L.res !== was.res) changes.push(L.res === 1 ? 'full resolution' : `resolution ${pct(L.res)}`);
+      if (L.grass !== was.grass) changes.push(L.grass === 1 ? 'full grass distance' : `grass distance ${pct(L.grass)}`);
+      if (L.bloom !== was.bloom) changes.push(L.bloom ? 'bloom on' : 'bloom off');
+      this.hud.toast(`${level < ADAPT_LADDER.indexOf(was) ? 'Sharper' : 'Smoother'}: ${changes.join(', ')}`);
+    }
+  }
+
   adaptQuality(fps) {
     if (!this.active) return;
     const a = this.adapt;
-    if (this.elapsed < a.settleUntil) return;
-    if (fps >= 28) {
-      a.slow = Math.max(0, a.slow - 1);
+    if (this.elapsed < a.settleUntil) {
+      // Just stepped up: hold it only if it stays smooth.
+      if (a.trial !== null && fps < 45) {
+        this.applyAdaptLevel(a.trial);
+        a.trial = null;
+        a.settleUntil = this.elapsed + 4;
+        a.nextTry = this.elapsed + a.backoff;
+        a.backoff = Math.min(a.backoff * 2, 480);
+      }
       return;
     }
-    if (++a.slow < 6) return; // ~3 s of slow frames
-    a.slow = 0;
-    a.step++;
-    a.settleUntil = this.elapsed + 4;
-    if (a.step === 1) {
-      this.baseRatio = Math.max(0.85, this.baseRatio * 0.8);
-      this.applyResolution();
-      this.hud.toast('Lowering resolution for a smoother frame rate');
-    } else if (a.step === 2) {
-      this.grass.radiusScale = 0.7;
-      this.hud.toast('Shortening grass distance');
-    } else if (a.step === 3) {
-      for (const pass of this.composer.passes) if (pass.strength !== undefined) pass.enabled = false;
-      this.hud.toast('Bloom off');
-    } else if (a.step === 4) {
-      const i = PRESET_ORDER.indexOf(QUALITY);
-      if (i >= 0 && i < PRESET_ORDER.length - 1) {
-        rememberQuality(PRESET_ORDER[i + 1]);
-        this.hud.toast(`Next visit will start on the ${PRESET_ORDER[i + 1]} preset`);
+    a.trial = null;
+    if (fps < 28) {
+      a.fast = 0;
+      if (++a.slow < 6) return; // ~3 s of slow frames
+      a.slow = 0;
+      a.settleUntil = this.elapsed + 4;
+      if (a.level < ADAPT_LADDER.length - 1) {
+        this.applyAdaptLevel(a.level + 1);
+      } else {
+        const i = PRESET_ORDER.indexOf(QUALITY);
+        if (i >= 0 && i < PRESET_ORDER.length - 1 && !a.presetNoted) {
+          a.presetNoted = true;
+          rememberQuality(PRESET_ORDER[i + 1]);
+          rememberAdapt(PRESET_ORDER[i + 1], 0);
+          this.hud.toast(`Next visit will start on the ${PRESET_ORDER[i + 1]} preset`);
+        }
       }
+      return;
+    }
+    a.slow = Math.max(0, a.slow - 1);
+    if (fps < 55 || this.elapsed < a.nextTry) {
+      a.fast = 0;
+      return;
+    }
+    if (a.level > 0) {
+      if (++a.fast < 24) return; // ~12 s of headroom
+      a.fast = 0;
+      a.trial = a.level;
+      a.settleUntil = this.elapsed + 6;
+      this.applyAdaptLevel(a.level - 1);
+      return;
+    }
+    // Top rung of a lighter preset and still plenty of room.
+    const i = PRESET_ORDER.indexOf(QUALITY);
+    if (i > 0 && !a.presetNoted && ++a.fast >= 60) {
+      a.presetNoted = true;
+      rememberQuality(PRESET_ORDER[i - 1]);
+      rememberAdapt(PRESET_ORDER[i - 1], 1);
+      this.hud.toast(`Running smoothly: next visit will start on the ${PRESET_ORDER[i - 1]} preset`);
     }
   }
 
@@ -571,6 +626,7 @@ export class Game {
     const pos = this.player.position;
     p.el.textContent = [
       `${p.fps.toFixed(0)} fps   ${(1000 / p.fps).toFixed(1)} ms/frame   render cpu ${cpu.toFixed(1)} ms`,
+      `quality ${QUALITY} · level ${this.adapt.level}/${ADAPT_LADDER.length - 1} (${ADAPT_LADDER[this.adapt.level].name})`,
       `draw calls ${r.calls}   triangles ${(r.triangles / 1e6).toFixed(2)} M`,
       `grass blades ${(grass / 1000).toFixed(0)} k   trees ${trees}`,
       `textures ${m.textures}   geometries ${m.geometries}`,

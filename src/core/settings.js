@@ -25,6 +25,33 @@ export function rememberQuality(name) {
 }
 export const settings = PRESETS[QUALITY];
 
+// The adaptive quality ladder, cheapest last: render resolution (a share of
+// the preset's), grass reach and bloom, all changeable while playing.
+export const ADAPT_LADDER = [
+  { name: 'full', res: 1, grass: 1, bloom: true },
+  { name: 'res 85%', res: 0.85, grass: 1, bloom: true },
+  { name: 'res 85%, grass 80%', res: 0.85, grass: 0.8, bloom: true },
+  { name: 'res 72%, grass 80%', res: 0.72, grass: 0.8, bloom: true },
+  { name: 'res 72%, grass 65%, no bloom', res: 0.72, grass: 0.65, bloom: false },
+  { name: 'res 60%, grass 65%, no bloom', res: 0.6, grass: 0.65, bloom: false },
+];
+// Where the ladder settled, per preset, for the next visit.
+export function loadAdapt() {
+  try {
+    const d = JSON.parse(localStorage.getItem('murk.adapt') || 'null');
+    return d && typeof d.preset === 'string' && Number.isInteger(d.level) ? d : null;
+  } catch (e) {
+    return null;
+  }
+}
+export function rememberAdapt(preset, level) {
+  try {
+    localStorage.setItem('murk.adapt', JSON.stringify({ preset, level }));
+  } catch (e) {
+    /* private mode */
+  }
+}
+
 // Pixelation: the frame is rendered at twice the pixel grid, box-filtered
 // down to it (PixelatePass) and scaled up with nearest-neighbour sampling,
 // so the pixels are real, filtered rather than sampled, and the whole post
