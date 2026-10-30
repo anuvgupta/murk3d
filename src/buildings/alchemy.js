@@ -761,20 +761,21 @@ export function brewCauldron(kit, fm, random = Math.random) {
   for (let i = 0; i < 6; i++) {
     const log = [[0, 0], [0.04, 0.01], [0.045, 0.22], [0.038, 0.46], [0, 0.48]];
     const a = (i / 6) * Math.PI + (random() - 0.5) * 0.3;
-    kit.add(fm.logWood, organicLathe(log, { segments: 7, seed: i * 3, dent: 0.15, oval: 0.15, flat: true }), { x: Math.cos(a) * 0.22, y: 0.04 + (i % 2) * 0.05, z: Math.sin(a) * 0.22, ry: a, rz: Math.PI / 2 });
+    kit.add(fm.logWood, organicLathe(log, { segments: 7, seed: i * 3, dent: 0.15, oval: 0.15, flat: true }), { x: Math.cos(a) * 0.3, y: 0.04 + (i % 2) * 0.05, z: Math.sin(a) * 0.3, ry: a, rz: Math.PI / 2 });
   }
   const flame = [[0, 0], [0.07, 0.03], [0.08, 0.08], [0.045, 0.16], [0, 0.24]];
-  for (let i = 0; i < 10; i++) {
-    const a = (i / 10) * TAU + random() * 0.3;
-    const r = 0.22 + random() * 0.1;
-    const h = 0.9 + random() * 0.9;
-    kit.add(fm.flame, organicLathe(sampleProfile(flame, 10), { segments: 9, seed: i, dent: 0.2, oval: 0.25, lean: 0.1 }), { x: Math.cos(a) * r, y: 0.03, z: Math.sin(a) * r, rx: Math.sin(a) * 0.35, rz: -Math.cos(a) * 0.35, s: h });
+  for (let i = 0; i < 12; i++) {
+    const a = (i / 12) * TAU + random() * 0.3;
+    const r = 0.36 + random() * 0.1;
+    const h = 1.3 + random() * 1.2;
+    // Leaning in against the belly of the pot, tips reaching its waist.
+    kit.add(fm.flame, organicLathe(sampleProfile(flame, 10), { segments: 9, seed: i, dent: 0.2, oval: 0.25, lean: 0.1 }), { x: Math.cos(a) * r, y: 0.02, z: Math.sin(a) * r, rx: Math.sin(a) * 0.55, rz: -Math.cos(a) * 0.55, s: h });
   }
   for (let i = 0; i < 3; i++) {
     const a = (i / 3) * TAU + 0.5;
     kit.add(fm.flame, organicLathe(sampleProfile(flame, 10), { segments: 9, seed: 10 + i, dent: 0.2, oval: 0.2, lean: 0.15 }), { x: Math.cos(a) * 0.06, y: 0.05, z: Math.sin(a) * 0.06, s: 1.1 + i * 0.15 });
   }
-  kit.add(fm.embers, blob(0.2, 0.04, 0.2, { seed: 3, dent: 0.3 }), { y: 0.03 });
+  kit.add(fm.embers, blob(0.34, 0.04, 0.34, { seed: 3, dent: 0.3 }), { y: 0.025 });
   return { hx: 0.45, hz: 0.45 };
 }
 

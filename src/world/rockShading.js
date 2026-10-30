@@ -62,7 +62,7 @@ export const ROCK_GLSL = /* glsl */ `
     float broad = tri( p, w, 0.015, 0 );
     float band = sin( p.y * 0.9 + broad * 7.0 ) * 0.5 + 0.5;
     vec3 c = mix( ${lin(0x75695d)}, ${lin(0xb9ab96)}, smoothstep( 0.2, 0.8, broad ) );
-    c = mix( c, c * ${lin(0xd2b08f)} * 1.25, band * 0.35 );
+    c = mix( c, c * ${lin(0xd2b08f)} * 1.25, band * 0.5 );
     // Cavities: hollows and cracks sit in shadow; ridges catch the light.
     c *= mix( 0.5 + 0.75 * h, 0.28 + 1.15 * h, rockDetailF );
     // Close up the stone is granular, not smooth plaster.
@@ -70,7 +70,7 @@ export const ROCK_GLSL = /* glsl */ `
     // Mid-scale variation and gullies streaking down the slope, visible from afar.
     float meso = tri( p, w, 0.05, 2 );
     float gully = tri( vec3( p.x, p.y * 0.22, p.z ), w, 0.045, 3 );
-    c *= ( 0.86 + 0.28 * meso ) * ( 0.92 + 0.16 * smoothstep( 0.35, 0.7, gully ) );
+    c *= ( 0.76 + 0.46 * meso ) * ( 0.9 + 0.2 * smoothstep( 0.35, 0.7, gully ) );
     // Lichen in patches.
     float lichen = smoothstep( 0.64, 0.8, tri( p, w, 0.08, 0 ) ) * 0.45;
     c = mix( c, ${lin(0x8b8a52)}, lichen );

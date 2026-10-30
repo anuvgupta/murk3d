@@ -420,14 +420,17 @@ export class Terrain {
 
     const rq = RIVER.path.nearest(x, z, 64, this._rq || (this._rq = {}));
     const riverHalf = rq ? RIVER.widthAt(rq.s) / 2 : 0;
-    const inRiverBand = rq && rq.d < riverHalf + 3;
+    // The road's cut fades out as it nears the river, so the approach to a
+    // bridge slopes into the bank instead of stepping off it.
+    const bandFade = rq ? smoothstep(riverHalf + 1, riverHalf + 7, rq.d) : 1;
+    const inRiverBand = bandFade < 0.5;
 
     const road = nearestRoad(x, z, 6);
     const onRoad = road && !inRiverBand && road.edge < 4;
-    if (road && !inRiverBand) {
+    if (road && bandFade > 0) {
       const rh = road.road.path.sampleAt(road.road.heights, road.q.s);
       const f = smoothstep(0, 5, road.edge);
-      h = lerp(rh - 0.12, h, f);
+      h = lerp(rh - 0.12, h, Math.max(f, 1 - bandFade));
     }
 
     if (rq) {
