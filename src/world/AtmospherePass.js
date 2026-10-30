@@ -202,12 +202,12 @@ const compositeShader = {
       // ---- The sun: disc, corona and light shafts.
       if ( uSunVisible > 0.0 ) {
         vec2 delta = ( uSunScreen - vUv );
-        vec2 step = delta / 40.0;
+        vec2 stp = delta / 40.0;
         vec2 p = vUv;
         float illum = 1.0;
         float shaft = 0.0;
         for ( int i = 0; i < 40; i++ ) {
-          p += step;
+          p += stp;
           shaft += texture2D( tOcclusion, p ).r * illum;
           illum *= 0.96;
         }
