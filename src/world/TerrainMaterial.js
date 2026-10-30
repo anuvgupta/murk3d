@@ -67,7 +67,14 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         rockDetailF = detail;
         rockHOut = rockHeight( vWPos, tw, detail );
         rockAmtOut = smoothstep( 0.42, 0.58, 1.0 - wnClass.y + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.1 );
-        ground = mix( ground, rockAlbedo( vWPos, wnClass, tw, rockHOut ), rockAmtOut );
+        {
+          // Realm-coloured rock (red canyon, pale karst), snowed over on the tundra.
+          float sn;
+          vec4 rl = realmAt( vWPos.xz, sn );
+          vec3 rockC = rockAlbedo( vWPos, wnClass, tw, rockHOut ) * mix( vec3( 1.0 ), rl.rgb, 0.75 );
+          rockC = mix( rockC, vec3( 0.88, 0.91, 0.97 ), clamp( sn, 0.0, 1.0 ) * smoothstep( 0.3, 0.7, wnClass.y + rockHOut * 0.3 ) );
+          ground = mix( ground, rockC, rockAmtOut );
+        }
         diffuseColor.rgb *= ground;`
       )
       .replace(

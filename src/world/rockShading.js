@@ -48,7 +48,7 @@ export const ROCK_GLSL = /* glsl */ `
   vec3 rockAlbedo( vec3 p, vec3 n, vec3 w, float h ) {
     float broad = tri( p, w, 0.015, 0 );
     float band = sin( p.y * 0.9 + broad * 7.0 ) * 0.5 + 0.5;
-    vec3 c = mix( ${lin(0x6f6a64)}, ${lin(0xb3aa9c)}, smoothstep( 0.2, 0.8, broad ) );
+    vec3 c = mix( ${lin(0x75695d)}, ${lin(0xb9ab96)}, smoothstep( 0.2, 0.8, broad ) );
     c = mix( c, c * ${lin(0xd2b08f)} * 1.25, band * 0.35 );
     // Cavities: hollows and cracks sit in shadow; ridges catch the light.
     c *= mix( 0.5 + 0.75 * h, 0.28 + 1.15 * h, rockDetailF );

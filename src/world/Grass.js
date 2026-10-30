@@ -278,7 +278,7 @@ export class Grass {
             // follow the lush noise, bare ground showing between them.
             float snowAmt;
             vec4 realm = realmAt( root, snowAmt );
-            float cover = smoothstep( 0.88 - realm.a, 1.08 - realm.a, gn.y * 0.8 + br * 0.2 );
+            float cover = smoothstep( 0.88 - realm.a, 1.08 - realm.a, gn.z * 0.55 + gn.y * 0.25 + br * 0.2 );
             density *= mix( cover, 1.0, smoothstep( 0.9, 1.0, realm.a ) );
           }
           float dryPatch = smoothstep( 0.62, 0.9, 1.0 - gn.x );

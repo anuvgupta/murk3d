@@ -43,11 +43,11 @@ export function rockGeometry(seed, kind = 'boulder', detail = 5) {
     v.multiplyScalar(1 + big * 0.3 + small * 0.07);
     for (const p of planes) {
       const t = v.dot(p.n) - p.d;
-      if (t > 0) v.addScaledVector(p.n, -t * 0.9);
+      if (t > 0) v.addScaledVector(p.n, -t * (slab ? 0.72 : 0.9));
     }
     // Rumple the cut faces so no facet edge is dead straight.
     const rumple = fbm3(noise, v.x * 1.6 + 3, v.y * 1.6, v.z * 1.6 + 5, 2);
-    v.multiplyScalar(1 + rumple * 0.14);
+    v.multiplyScalar(1 + rumple * (slab ? 0.22 : 0.14));
     v.multiply(stretch);
     // Wobble the long edges sideways: a tall slab's silhouette must not be
     // a pair of ruled lines.
@@ -113,7 +113,7 @@ export function createRockMaterial(noise) {
           // Realm tint, and snow settling on the upper faces.
           float snow;
           vec4 realm = realmAt( vWPos.xz, snow );
-          diffuseColor.rgb *= mix( vec3( 1.0 ), realm.rgb, 0.5 );
+          diffuseColor.rgb *= mix( vec3( 1.0 ), realm.rgb, 0.75 );
           diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.9, 0.92, 0.97 ), clamp( snow, 0.0, 1.0 ) * smoothstep( 0.25, 0.75, wn.y + rockH * 0.3 ) );
         }`
       )
