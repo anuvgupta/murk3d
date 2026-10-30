@@ -155,6 +155,7 @@ export class Game {
     this.groundMask = new GroundMask(this.terrain, { cutouts });
     await mark('mask');
     this.wind = new Wind();
+    this.wind.buildMap(this.terrain);
     this.setupPostProcessing();
     // Sun (or moon) direction and colour × intensity, for shader effects.
     this.sunInfo = { direction: this.environment.lightDir, color: new THREE.Color() };
@@ -217,6 +218,7 @@ export class Game {
 
     this.forest = new Forest({ terrain: this.terrain, mask: this.groundMask, noise: this.noiseTexture, wind: this.wind, rocks: this.rocks, sun: this.sunInfo });
     scene.add(this.forest.group);
+    this.wind.addShelter(this.forest.placed);
     await mark('trees');
 
     this.motes = new Motes({ wind: this.wind, sun: this.sunInfo });

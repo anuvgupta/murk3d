@@ -116,7 +116,7 @@ export class Motes {
   update(dt, playerPos, terrain, night, light) {
     this.time += dt;
     const w = this.wind;
-    const strength = w.uniforms.uWindStrength.value;
+    const strength = w.strengthAt ? w.strengthAt(playerPos.x, playerPos.z) : w.uniforms.uWindStrength.value;
     const dx = w.direction.x * strength * 1.6 * dt;
     const dz = w.direction.y * strength * 1.6 * dt;
     const arr = this.posAttr.array;

@@ -68,7 +68,8 @@ export class Smoke {
   }
 
   update(dt, wind, lightLevel) {
-    const strength = wind.uniforms.uWindStrength.value;
+    // Chimneys stand in the sheltered village: they feel the local wind.
+    const strength = wind.strengthAt ? wind.strengthAt(0, 0) : wind.uniforms.uWindStrength.value;
     const dir = wind.direction;
     this.emitters.forEach((e, k) => {
       this.timers[k] -= dt;

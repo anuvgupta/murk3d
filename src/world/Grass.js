@@ -300,7 +300,12 @@ export class Grass {
 
           // Wind: lean downwind under gust fronts, plus waves rolling across the field.
           float w = windAt( root );
-          float wave = sin( dot( root, uWindDir ) * 0.22 - uWindTravel * 0.9 + tr * 2.0 ) * 0.5 + 0.5;
+          // Waves roll across the field quickly where it's exposed, slowly
+          // in shelter (two waves blended, so neither ever shears).
+          float we = windExposure( root );
+          float waveF = sin( dot( root, uWindDir ) * 0.22 - uWindTravel * 0.9 + tr * 2.0 );
+          float waveS = sin( dot( root, uWindDir ) * 0.16 - uWindTravelSlow * 0.7 + tr * 2.0 );
+          float wave = mix( waveS, waveF, we ) * 0.5 + 0.5;
           float flutter = sin( uTime * ( 2.2 + br * 1.5 ) + br * 6.28 + dot( root, uWindDir ) * 0.6 ) * 0.5;
           vec2 bend = facing * leanAmt;
           bend += uWindDir * ( w * ( 0.25 + 0.55 * wave ) + flutter * ( 0.03 + 0.1 * w ) );

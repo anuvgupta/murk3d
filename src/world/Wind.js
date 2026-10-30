@@ -1,5 +1,14 @@
 import * as THREE from 'three';
-import { createNoise2D } from '../util/noise.js';
+import { createNoise2D, smoothstep } from '../util/noise.js';
+import { WORLD_SIZE, WORLD_HALF, LAKES, PLAZA } from './plan.js';
+import { REGIONS, regionWeight } from './regions.js';
+
+// Windiness: how exposed each part of the map is, 0.15 (deep shelter) to 1
+// (a bare ridge). Exposed ground feels the wind as it is, quick gusts and
+// fast-rolling waves; sheltered ground feels a slow, smoothed version of
+// it, so windy moments still come but build gradually and never get frantic.
+const MAP = 256; // texels across the world, ~6 m each
+const REALM_WIND = { alpine: 0.25, tundra: 0.3, sky: 0.3, canyon: 0.2, cliffruins: 0.2, citadel: 0.1, jungle: -0.2, moonlit: -0.1, rivercity: -0.1 };
 
 // Weather-ish wind: it drifts between calm spells, steady breezes and short
 // gusts, and its direction wanders slowly. Shaders get the overall strength
@@ -24,6 +33,14 @@ export class Wind {
     this.phase = 'breeze';
     this.phaseTime = 10;
     this.travel = 0;
+    // The sheltered wind: strength smoothed over ~8 s, fronts rolling slowly.
+    this.slow = 0.3;
+    this.travelSlow = 0;
+    this.mapData = new Float32Array(MAP * MAP).fill(0.5);
+    this.mapTexture = new THREE.DataTexture(new Uint8Array(MAP * MAP).fill(128), MAP, MAP, THREE.RedFormat, THREE.UnsignedByteType);
+    this.mapTexture.magFilter = this.mapTexture.minFilter = THREE.LinearFilter;
+    this.mapTexture.flipY = false;
+    this.mapTexture.needsUpdate = true;
     // When > 0, the shaders only see the wind advance this many times a
     // second (the pixelated modes), so a gust reads as a few big moves
     // instead of a constant shimmer of single pixels.
@@ -35,6 +52,9 @@ export class Wind {
       uWindDir: { value: this.direction.clone() },
       uWindStrength: { value: this.strength },
       uWindTravel: { value: 0 },
+      uWindSlow: { value: this.slow },
+      uWindTravelSlow: { value: 0 },
+      uWindMap: { value: this.mapTexture },
     };
   }
 
@@ -69,6 +89,8 @@ export class Wind {
 
     // Gust fronts move faster in stronger wind.
     this.travel += dt * (3 + 9 * s);
+    this.slow += (s - this.slow) * (1 - Math.exp(-dt / 8));
+    this.travelSlow += dt * (1.2 + 3 * this.slow);
 
     if (this.stepHz > 0) {
       this._stepAcc += dt;
@@ -79,7 +101,124 @@ export class Wind {
     this.uniforms.uWindDir.value.copy(this.direction);
     this.uniforms.uWindStrength.value = s;
     this.uniforms.uWindTravel.value = this.travel;
+    this.uniforms.uWindSlow.value = this.slow;
+    this.uniforms.uWindTravelSlow.value = this.travelSlow;
   }
+
+  // Bake the windiness map from the land: ridges and hilltops (ground
+  // standing above its surroundings), height and open water are windy;
+  // hollows and the village are sheltered; each realm has its own temper;
+  // a slow noise makes some stretches of open country windier than others.
+  buildMap(terrain) {
+    const cell = WORLD_SIZE / MAP;
+    const h = new Float32Array(MAP * MAP);
+    for (let j = 0; j < MAP; j++) for (let i = 0; i < MAP; i++) h[j * MAP + i] = terrain.heightAt((i + 0.5) * cell - WORLD_HALF, (j + 0.5) * cell - WORLD_HALF);
+    const avg = boxBlur(h, 6);
+    const noise = createNoise2D(77);
+    for (let j = 0; j < MAP; j++) {
+      for (let i = 0; i < MAP; i++) {
+        const x = (i + 0.5) * cell - WORLD_HALF;
+        const z = (j + 0.5) * cell - WORLD_HALF;
+        const k = j * MAP + i;
+        const rise = h[k] - avg[k];
+        let e = 0.46 + Math.max(-0.2, Math.min(0.32, rise / 16)) + 0.24 * smoothstep(25, 130, h[k]);
+        // Windswept uplands and quiet country, a few hundred metres across.
+        e += 0.24 * noise(x * 0.0035 + 3.1, z * 0.0035 - 1.7);
+        for (const L of LAKES) {
+          const d = Math.hypot(x - L.x, z - L.z) - L.radiusAt(Math.atan2(z - L.z, x - L.x));
+          e += 0.15 * (1 - smoothstep(0, 40, d));
+        }
+        e -= 0.22 * (1 - smoothstep(20, 90, Math.hypot(x - PLAZA.x, z - PLAZA.z)));
+        for (const R of REGIONS) {
+          const b = REALM_WIND[R.id];
+          if (b) e += b * regionWeight(R, x, z);
+        }
+        this.mapData[k] = e;
+      }
+    }
+    // Broad zones, not a patchwork: soften over ~20 m.
+    this.mapData.set(boxBlur(this.mapData, 3));
+    this.uploadMap();
+  }
+
+  // Woods shelter what's in and behind them: lower the windiness where
+  // trees stand close together.
+  addShelter(trees) {
+    const cell = WORLD_SIZE / MAP;
+    const count = new Float32Array(MAP * MAP);
+    for (const t of trees) {
+      const i = Math.floor((t.x + WORLD_HALF) / cell);
+      const j = Math.floor((t.z + WORLD_HALF) / cell);
+      if (i >= 0 && j >= 0 && i < MAP && j < MAP) count[j * MAP + i] += 1;
+    }
+    const dense = boxBlur(count, 2);
+    for (let k = 0; k < MAP * MAP; k++) this.mapData[k] -= 0.4 * smoothstep(0.08, 0.6, dense[k]);
+    this.uploadMap();
+  }
+
+  uploadMap() {
+    const data = this.mapTexture.image.data;
+    for (let k = 0; k < MAP * MAP; k++) {
+      this.mapData[k] = Math.max(0.15, Math.min(1, this.mapData[k]));
+      data[k] = Math.round(this.mapData[k] * 255);
+    }
+    this.mapTexture.needsUpdate = true;
+  }
+
+  // Windiness at a world position (bilinear, like the shaders see it).
+  exposureAt(x, z) {
+    const fx = (x + WORLD_HALF) / (WORLD_SIZE / MAP) - 0.5;
+    const fz = (z + WORLD_HALF) / (WORLD_SIZE / MAP) - 0.5;
+    const i = Math.max(0, Math.min(MAP - 2, Math.floor(fx)));
+    const j = Math.max(0, Math.min(MAP - 2, Math.floor(fz)));
+    const tx = Math.min(1, Math.max(0, fx - i));
+    const tz = Math.min(1, Math.max(0, fz - j));
+    const d = this.mapData;
+    const a = d[j * MAP + i] + (d[j * MAP + i + 1] - d[j * MAP + i]) * tx;
+    const b = d[(j + 1) * MAP + i] + (d[(j + 1) * MAP + i + 1] - d[(j + 1) * MAP + i]) * tx;
+    return a + (b - a) * tz;
+  }
+
+  // The wind strength felt at a world position: sheltered places follow the
+  // slow wind and feel less of it.
+  strengthAt(x, z) {
+    const e = this.exposureAt(x, z);
+    const s = this.uniforms.uWindStrength.value;
+    return (this.slow + (s - this.slow) * e) * (0.35 + 0.65 * e);
+  }
+}
+
+// Separable box blur of a MAP x MAP grid, radius r cells.
+function boxBlur(src, r) {
+  const tmp = new Float32Array(src.length);
+  const out = new Float32Array(src.length);
+  for (let j = 0; j < MAP; j++) {
+    for (let i = 0; i < MAP; i++) {
+      let sum = 0;
+      let n = 0;
+      for (let d = -r; d <= r; d++) {
+        const ii = i + d;
+        if (ii < 0 || ii >= MAP) continue;
+        sum += src[j * MAP + ii];
+        n++;
+      }
+      tmp[j * MAP + i] = sum / n;
+    }
+  }
+  for (let j = 0; j < MAP; j++) {
+    for (let i = 0; i < MAP; i++) {
+      let sum = 0;
+      let n = 0;
+      for (let d = -r; d <= r; d++) {
+        const jj = j + d;
+        if (jj < 0 || jj >= MAP) continue;
+        sum += tmp[jj * MAP + i];
+        n++;
+      }
+      out[j * MAP + i] = sum / n;
+    }
+  }
+  return out;
 }
 
 // GLSL helper: local wind strength at a world position. Needs uNoise and the
@@ -90,12 +229,26 @@ export const WIND_GLSL = /* glsl */ `
   uniform float uWindStrength;
   uniform float uWindTravel;
 
-  // 0..~1.6: overall strength modulated by gust fronts rolling downwind.
+  uniform float uWindSlow;
+  uniform float uWindTravelSlow;
+  uniform sampler2D uWindMap;
+
+  // How exposed this spot is: 0.15 deep shelter .. 1 a bare ridge.
+  float windExposure( vec2 p ) {
+    return texture( uWindMap, ( p + ${WORLD_HALF.toFixed(1)} ) / ${WORLD_SIZE.toFixed(1)} ).r;
+  }
+
+  // 0..~1.6: the wind felt here. Exposed ground gets the live wind with
+  // quick gust fronts and ripples rolling downwind; sheltered ground the
+  // slow wind (smoothed over ~8 s) with slow-rolling fronts, and less of it.
   float windAt( vec2 p ) {
-    vec2 q = p - uWindDir * uWindTravel;
-    float front = texture( uNoise, q * 0.006 ).g;
-    float ripple = texture( uNoise, q * 0.03 ).b;
-    float local = smoothstep( 0.3, 0.8, front ) * 0.9 + ripple * 0.35;
-    return uWindStrength * ( 0.35 + local * 1.2 );
+    float e = windExposure( p );
+    vec2 qf = p - uWindDir * uWindTravel;
+    vec2 qs = p - uWindDir * uWindTravelSlow;
+    float fast = smoothstep( 0.3, 0.8, texture( uNoise, qf * 0.006 ).g ) * 0.9 + texture( uNoise, qf * 0.03 ).b * 0.35;
+    float slow = smoothstep( 0.3, 0.8, texture( uNoise, qs * 0.006 ).g ) * 0.9 + 0.17;
+    float local = mix( slow, fast, e );
+    float strength = mix( uWindSlow, uWindStrength, e );
+    return strength * ( 0.35 + local * 1.2 ) * ( 0.35 + 0.65 * e );
   }
 `;
