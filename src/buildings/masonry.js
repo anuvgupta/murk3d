@@ -87,7 +87,9 @@ export function weatherMasonry(material, { noise, heightMap, moss = 1, grime = 1
                               max( terrainHeight( p.xz + vec2( 0.0, 3.5 ) ), terrainHeight( p.xz - vec2( 0.0, 3.5 ) ) ) );
           float buried = smoothstep( -0.2, 1.6, around - p.y ) * vert;
           damp = max( damp, buried * 0.85 * uGrimeAmt );
-          mossF = max( mossF, buried * smoothstep( 0.3, 0.62, mossN + 0.1 * dampN ) * uMossAmt * 0.9 );
+          // In patches, block by block and in the joints, never a painted wall.
+          float mossPatch = smoothstep( 0.5, 0.78, mossN * 0.7 + texture( uNoise, vec2( s, p.y ) * 1.9 + 0.3 ).g * 0.3 + 0.08 * dampN );
+          mossF = max( mossF, buried * mossPatch * uMossAmt * 0.9 );
           // Moss also gathers on the tops of ledges and in the shade of north faces.
           float ledge = smoothstep( 0.6, 0.95, wn.y ) * smoothstep( 0.55, 0.75, texture( uNoise, p.xz * 0.6 ).b ) * uMossAmt * 0.6;
           mossF = max( mossF, ledge );
@@ -97,7 +99,7 @@ export function weatherMasonry(material, { noise, heightMap, moss = 1, grime = 1
 
           vec3 c = diffuseColor.rgb * tone;
           c = mix( c, c * vec3( 0.66, 0.68, 0.62 ), damp * 0.7 );
-          c = mix( c, vec3( 0.24, 0.3, 0.12 ) * ( 0.7 + 0.6 * mossN ), mossF );
+          c = mix( c, vec3( 0.24, 0.3, 0.12 ) * ( 0.7 + 0.6 * mossN ) * ( 0.8 + 0.4 * texture( uNoise, vec2( s, p.y ) * 3.1 ).a ), mossF );
           c = mix( c, vec3( 0.62, 0.6, 0.4 ), lich );
           diffuseColor.rgb = c;
         }`
