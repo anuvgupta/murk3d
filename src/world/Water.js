@@ -215,7 +215,9 @@ export class Water {
           varying float vDepth;
           varying vec2 vWaterUv;
           varying vec3 vTint;
-          float waterFoam;`
+          float waterFoam;
+          vec3 waterWorldN;
+          vec3 waterSpecN;`
         )
         .replace(
           '#include <color_fragment>',
@@ -258,12 +260,18 @@ export class Water {
             // Ripples drift at half the current, so glints move calmly; the
             // foam still shows the true flow.
             float t = uTime * 0.5;
-            vec3 n1 = texture( uWaterNormals, q * vec2( 0.09, 0.06 ) - vec2( 0.0, t * spd * 0.06 ) ).xyz * 2.0 - 1.0;
-            vec3 n2 = texture( uWaterNormals, q * vec2( 0.21, 0.17 ) + vec2( 0.37, -t * spd * 0.19 ) ).xyz * 2.0 - 1.0;
+            // With distance the wavelets are sampled from coarser mips and
+            // the fine layers fade, so far water keeps only ripples at least
+            // a few pixels wide: each glint is then a patch that drifts with
+            // the swell, not a sub-pixel speck that blinks.
+            float far = smoothstep( 8.0, 45.0, length( vViewPosition ) );
+            float lodBias = far * 2.5;
+            vec3 n1 = texture( uWaterNormals, q * vec2( 0.09, 0.06 ) - vec2( 0.0, t * spd * 0.06 ), lodBias ).xyz * 2.0 - 1.0;
+            vec3 n2 = texture( uWaterNormals, q * vec2( 0.21, 0.17 ) + vec2( 0.37, -t * spd * 0.19 ), lodBias ).xyz * 2.0 - 1.0;
             // Fast wind chop, strongest under gust fronts.
             float gust = windAt( vWPos.xz );
-            vec3 n3 = texture( uWaterNormals, vWPos.xz * 0.4 - uWindDir * t * 0.35 ).xyz * 2.0 - 1.0;
-            vec2 slope = n1.xy * 0.55 + n2.xy * 0.35 + n3.xy * ( 0.05 + 0.2 * gust );
+            vec3 n3 = texture( uWaterNormals, vWPos.xz * 0.4 - uWindDir * t * 0.35, lodBias ).xyz * 2.0 - 1.0;
+            vec2 slope = n1.xy * 0.55 + n2.xy * 0.35 * ( 1.0 - 0.6 * far ) + n3.xy * ( 0.05 + 0.2 * gust ) * ( 1.0 - 0.85 * far );
             // Lakes lie flatter than running water.
             slope *= isRiver ? 1.0 : 0.5 + 0.3 * uWindStrength;
             slope *= mix( 1.0, 0.25, waterFoam );
@@ -271,15 +279,45 @@ export class Water {
               + vec3( across.x, 0.0, across.y ) * slope.x
               + vec3( along.x, 0.0, along.y ) * slope.y );
             normal = normalize( ( viewMatrix * vec4( worldN, 0.0 ) ).xyz );
+
+            // Sun and moon glints come from a coarse copy of the same ripples
+            // (mips 3-4, wavelets of 0.2-0.5 m). In the full texture every
+            // octave carries equal slope, so the finest centimetre wavelets
+            // would own the highlight and blink past a pixel in a fraction of
+            // a second; from the coarse copy each glint is a patch a few
+            // pixels wide that drifts with the swell for most of a second.
+            vec3 c1 = textureLod( uWaterNormals, q * vec2( 0.09, 0.06 ) - vec2( 0.0, t * spd * 0.06 ), 2.5 ).xyz * 2.0 - 1.0;
+            vec3 c2 = textureLod( uWaterNormals, q * vec2( 0.21, 0.17 ) + vec2( 0.37, -t * spd * 0.19 ), 2.5 ).xyz * 2.0 - 1.0;
+            vec3 c3 = textureLod( uWaterNormals, vWPos.xz * 0.4 - uWindDir * t * 0.35, 3.5 ).xyz * 2.0 - 1.0;
+            vec2 cslope = ( c1.xy * 0.55 + c2.xy * 0.35 + c3.xy * ( 0.05 + 0.2 * gust ) ) * 2.2;
+            cslope *= isRiver ? 1.0 : 0.5 + 0.3 * uWindStrength;
+            cslope *= mix( 1.0, 0.25, waterFoam );
+            vec3 specWorldN = normalize( vec3( 0.0, 1.0, 0.0 )
+              + vec3( across.x, 0.0, across.y ) * cslope.x
+              + vec3( along.x, 0.0, along.y ) * cslope.y );
+            waterWorldN = specWorldN;
+            waterSpecN = normalize( ( viewMatrix * vec4( specWorldN, 0.0 ) ).xyz );
           }`
         )
         .replace(
           '#include <lights_fragment_begin>',
-          `// The sun and moon see a rougher surface than the sky does, so their
-          // highlight spreads into a soft path of glints, not a spray of stars.
+          `// Direct light (sun, moon) is lit from the coarse glint normal; the
+          // sky reflection that follows keeps the fine ripples.
           float waterSkyRoughness = material.roughness;
-          material.roughness = max( material.roughness, 0.2 );
+          // Specular anti-aliasing: where even the coarse normal changes fast
+          // across the screen, the lobe widens to cover that spread, so far
+          // water gives a steady sheen rather than a flicker of single pixels.
+          vec3 nDxy = max( abs( dFdx( waterWorldN ) ), abs( dFdy( waterWorldN ) ) );
+          float nSpread = max( max( nDxy.x, nDxy.y ), nDxy.z );
+          material.roughness = clamp( max( material.roughness, 0.07 ) + nSpread * 2.0, 0.07, 0.5 );
+          vec3 waterDetailN = normal;
+          normal = waterSpecN;
           #include <lights_fragment_begin>
+          // Only the best-aligned facets stay bright enough to glow.
+          reflectedLight.directSpecular *= 0.55;
+          normal = waterDetailN;
+          geometryNormal = normal;
+          dotNVms = saturate( dot( geometryNormal, geometryViewDir ) );
           material.roughness = waterSkyRoughness;
           material.dfg = texture2D( dfgLUT, vec2( material.roughness, dotNVms ) ).rg;`
         )
