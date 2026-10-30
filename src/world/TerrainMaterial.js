@@ -56,7 +56,9 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         vec3 wnClass = normalize( mix( wn, faceN, 0.9 ) );
         // The same baked slope the blade shader culls by, so the carpet colour
         // stops exactly where the blades do.
-        float carpet = smoothstep( 0.56, 0.7, terrainSlope( vWPos.xz ) );
+        // On a steep sunlit bank the blades spread thin, so the lit carpet
+        // colour would glow through: show earth under them there instead.
+        float carpet = smoothstep( 0.56, 0.7, terrainSlope( vWPos.xz ) ) * smoothstep( 0.45, 0.78, wnClass.y );
         vec3 ground = groundColor( vWPos, wnClass, carpet, wet );
         // Cliffs and steep ground get the detailed rock shading.
         vec3 tw = triWeights( wn );
