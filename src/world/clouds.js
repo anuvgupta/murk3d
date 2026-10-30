@@ -122,7 +122,7 @@ const STYLES = {
       // A high veil of cirrus, combed by the wind and curling at the ends.
       {
         vec2 uvHi = direction.xz / ( max( direction.y, 0.02 ) * 0.16 ) * cloudScale * 1000.0;
-        uvHi += drift * T * 2.4;
+        uvHi += drift * T * 1.5;
         vec2 st = churn( uvHi, T * 1.4, 0.8 );
         float streak = fbm( vec2( st.x * 0.6, st.y * 1.9 ) * 1.1, T * 0.5 ) * 0.5 + 0.5;
         float breakup = noise( st * 0.35 + 4.0 ) * 0.5 + 0.5;
@@ -180,7 +180,7 @@ const STYLES = {
       texColor = mix( texColor, aerial, alpha );
       // Small fast puffs scudding under the towers.
       {
-        vec2 uvLo = direction.xz / ( max( direction.y, 0.02 ) * 0.9 ) * cloudScale * 800.0 + vec2( 0.9, 0.35 ) * T * 1.9 + 23.0;
+        vec2 uvLo = direction.xz / ( max( direction.y, 0.02 ) * 0.9 ) * cloudScale * 800.0 + vec2( 0.9, 0.35 ) * T * 1.3 + 23.0;
         vec2 ql = churn( uvLo, T * 1.6, 0.9 );
         float puff = billow( ql * 1.8 + T * 0.5 ) * 0.6 + ( fbm( ql * 0.6, T * 0.4 ) * 0.5 + 0.5 ) * 0.5;
         float pd = smoothstep( 0.78, 0.86, puff ) * ( 1.0 - dens );
@@ -223,7 +223,7 @@ const STYLES = {
       texColor = mix( texColor, mix( texColor, bankColor, Fex ), aBank );
       // High cirrus: long strokes combed along the wind, their tails curling.
       vec2 uvHi = direction.xz / ( max( direction.y, 0.02 ) * 0.18 ) * cloudScale * 1000.0;
-      uvHi += drift * T * 2.6;
+      uvHi += drift * T * 1.6;
       vec2 st = churn( uvHi, T * 1.5, 1.0 );
       float streak = fbm( vec2( st.x * 0.55, st.y * 2.0 ) * 1.2, T * 0.7 ) * 0.5 + 0.5;
       float breakup = noise( st * 0.4 + 4.0 ) * 0.5 + 0.5;

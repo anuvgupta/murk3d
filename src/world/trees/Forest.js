@@ -95,11 +95,11 @@ function addWind(material, uniforms, scale, leaf = false) {
         {
           float w = windAt( origin.xz );
           float ph = dot( origin.xz, vec2( 0.13, 0.071 ) );
-          float sway = sin( uTime * 0.9 + ph ) * 0.6 + sin( uTime * 1.73 + ph * 1.7 ) * 0.3;
+          float sway = sin( uTime * 0.45 + ph ) * 0.6 + sin( uTime * 0.87 + ph * 1.7 ) * 0.3; // a slow lean, ~2-7 s a cycle
           vec2 bend = uWindDir * ( w * 0.9 + sway * ( 0.25 + 0.6 * w ) ) * aSway.x * uWindScale;
           wpos.xz += bend;
           wpos.y -= length( bend ) * 0.2 * aSway.x;
-          float fl = sin( uTime * 5.3 + dot( wpos.xyz, vec3( 2.1, 1.3, 1.7 ) ) ) * ( 0.03 + 0.08 * w ) * aSway.y;
+          float fl = sin( uTime * 3.4 + dot( wpos.xyz, vec3( 2.1, 1.3, 1.7 ) ) ) * ( 0.03 + 0.08 * w ) * aSway.y;
           wpos.xyz += vec3( fl, fl * 0.5, -fl * 0.8 );
         }
         vec4 mvPosition = modelViewMatrix * wpos;

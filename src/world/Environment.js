@@ -209,8 +209,8 @@ export class Environment {
 
   update(dt, focus, wind = null) {
     if (!this.paused) this.setTime(this.timeOfDay + dt * this.timeScale);
-    // Clouds move with the wind, faster in gusts.
-    this.skyTime = (this.skyTime || 0) + dt * (0.6 + (wind ? wind.uniforms.uWindStrength.value * 2.5 : 1.0));
+    // Clouds move with the wind, a little faster in gusts (never a timelapse).
+    this.skyTime = (this.skyTime || 0) + dt * (0.5 + (wind ? wind.uniforms.uWindStrength.value * 0.6 : 0.5));
     this.focusHeight = focus.y;
 
     // Inside a realm, its palette takes over; the moonlit realm is always night.
