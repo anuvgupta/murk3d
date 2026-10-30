@@ -204,9 +204,7 @@ export const SPECIES = {
 };
 
 // ---------------------------------------------------------------------------
-// Leaf cluster cards: a dense mass of overlapping leaves fading out toward the
-// card's edge, so clusters read as foliage rather than squares. Each leaf is
-// shaded darker toward its stalk and lighter toward its tip.
+// Leaf shapes, shared by the sprig and clump textures.
 
 function leafPath(ctx, kind, len, wid) {
   ctx.beginPath();
@@ -251,117 +249,6 @@ function shadeHex(color, k) {
   const g = Math.min(255, ((n >> 8) & 255) * k);
   const b = Math.min(255, (n & 255) * k);
   return `rgb(${r | 0},${g | 0},${b | 0})`;
-}
-
-export function paintLeafTexture(spec, seed = 1) {
-  const size = 256;
-  const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = size;
-  const ctx = canvas.getContext('2d');
-  let s = seed * 9301 + 49297;
-  const rnd = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
-  const { kind, colors } = spec.leaf;
-  const c = size / 2;
-  const pick = () => colors[Math.floor(rnd() * colors.length)];
-  // Leaves crowd the middle and thin toward the edge.
-  const spot = () => {
-    const a = rnd() * Math.PI * 2;
-    const r = Math.pow(rnd(), 0.7) * size * 0.46;
-    return [c + Math.cos(a) * r, c + Math.sin(a) * r, r / (size * 0.46)];
-  };
-
-  if (kind === 'needle' || kind === 'scale') {
-    for (let t = 0; t < 16; t++) {
-      const [x0, y0] = spot();
-      const dir = rnd() * Math.PI * 2;
-      const len = size * (0.16 + rnd() * 0.16);
-      ctx.strokeStyle = shadeHex(pick(), 0.55);
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x0, y0);
-      ctx.lineTo(x0 + Math.cos(dir) * len, y0 + Math.sin(dir) * len);
-      ctx.stroke();
-      const n = kind === 'needle' ? 30 : 16;
-      for (let i = 0; i < n; i++) {
-        const f = i / n;
-        const px = x0 + Math.cos(dir) * len * f;
-        const py = y0 + Math.sin(dir) * len * f;
-        ctx.strokeStyle = shadeHex(pick(), 0.75 + rnd() * 0.5);
-        ctx.lineWidth = kind === 'needle' ? 1.5 : 3.5;
-        for (const side of [-1, 1]) {
-          const na = dir + side * (0.6 + rnd() * 0.35);
-          const nl = size * (kind === 'needle' ? 0.075 : 0.035) * (1 - f * 0.35);
-          ctx.beginPath();
-          ctx.moveTo(px, py);
-          ctx.lineTo(px + Math.cos(na) * nl, py + Math.sin(na) * nl);
-          ctx.stroke();
-        }
-      }
-    }
-  } else if (kind === 'willow') {
-    for (let t = 0; t < 8; t++) {
-      const x = size * (0.15 + rnd() * 0.7);
-      ctx.strokeStyle = shadeHex(pick(), 0.5);
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.quadraticCurveTo(x + (rnd() - 0.5) * 20, size * 0.5, x + (rnd() - 0.5) * 30, size);
-      ctx.stroke();
-      for (let i = 0; i < 22; i++) {
-        const y = (i / 22) * size;
-        ctx.save();
-        ctx.translate(x + (rnd() - 0.5) * 10, y);
-        ctx.rotate(Math.PI + (rnd() - 0.5) * 1.1);
-        ctx.fillStyle = shadeHex(pick(), 0.8 + rnd() * 0.35);
-        leafPath(ctx, 'willow', 14, 3.5);
-        ctx.fill();
-        ctx.restore();
-      }
-    }
-  } else {
-    const count = { small: 110, blossom: 90, broad: 70, maple: 60, silver: 80 }[kind] || 70;
-    const len = { broad: 19, small: 12, maple: 15, blossom: 12, silver: 20 }[kind] || 17;
-    const wid = { broad: 9, small: 7, silver: 5 }[kind] || 9;
-    for (let i = 0; i < count; i++) {
-      const [x, y, rf] = spot();
-      ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(rnd() * Math.PI * 2);
-      const sc = 0.75 + rnd() * 0.5;
-      const color = kind === 'blossom' && rnd() < 0.2 ? '#6f9440' : pick();
-      // Darker toward the heart of the cluster, lit toward its edge.
-      const k = 0.65 + 0.5 * rf + (rnd() - 0.5) * 0.25;
-      const grad = ctx.createLinearGradient(0, len * sc * 0.5, 0, -len * sc);
-      grad.addColorStop(0, shadeHex(color, k * 0.7));
-      grad.addColorStop(1, shadeHex(color, k * 1.1));
-      ctx.fillStyle = grad;
-      leafPath(ctx, kind, len * sc, wid * sc);
-      ctx.fill();
-      if (kind !== 'blossom') {
-        ctx.strokeStyle = shadeHex(color, k * 0.6);
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.moveTo(0, len * sc * 0.5);
-        ctx.lineTo(0, -len * sc * 0.9);
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = '#fff0a0';
-        ctx.beginPath();
-        ctx.arc(0, 0, 2.2, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      ctx.restore();
-    }
-  }
-  // Soft circular mask so the card's square never shows.
-  ctx.globalCompositeOperation = 'destination-in';
-  const mask = ctx.createRadialGradient(c, c, size * 0.3, c, c, size * 0.5);
-  mask.addColorStop(0, 'rgba(0,0,0,1)');
-  mask.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = mask;
-  ctx.fillRect(0, 0, size, size);
-  ctx.globalCompositeOperation = 'source-over';
-  return canvas;
 }
 
 // ---------------------------------------------------------------------------
@@ -504,5 +391,59 @@ export function paintSprigTexture(spec, seed = 1) {
       }
     }
   }
+  return canvas;
+}
+
+// ---------------------------------------------------------------------------
+// Clump impostors for mid and far detail: a ball of the near sprigs painted
+// flat (the same twig, rayed round a centre, lit from above), so a tree seen
+// from further off is the same clumps of the same leaves, just simpler.
+
+export function paintClumpTexture(spec, sprig, seed = 1) {
+  const size = 256;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  let s = seed * 4801 + 11;
+  const rnd = () => ((s = (s * 9301 + 49297) % 233280) / 233280);
+  const c = size / 2;
+  // R is the clump's reach (the card's half-size less a margin). Sprigs are
+  // drawn at their true size against it: about 0.8 R long, 0.55 R wide,
+  // based on a ball of radius ~0.5 R, as buildSprigs lays them out.
+  const R = size * 0.46;
+  const round = spec.leaves?.round ?? 0;
+  const n = (spec.leaves?.sprigs ?? 7) + 12;
+  const list = [];
+  for (let i = 0; i < n; i++) {
+    // A point on the ball, seen from the front.
+    const z = rnd() * 2 - 1;
+    const a = rnd() * Math.PI * 2;
+    const ball = R * (round ? 0.35 + rnd() * 0.25 : 0.15 + rnd() * 0.3);
+    const rho = ball * Math.sqrt(1 - z * z);
+    // Round clumps: sprigs lie across the ball; others point outward.
+    const dir = round ? rnd() * Math.PI * 2 : a + (rnd() - 0.5) * 1.2;
+    // Foreshortened by how steeply it points toward or away from us.
+    const len = R * (0.65 + rnd() * 0.3) * (0.7 + 0.3 * Math.sqrt(1 - z * z));
+    list.push({ x: c + Math.cos(a) * rho, y: c + Math.sin(a) * rho, z, dir, len });
+  }
+  // Back to front, so the near side of the clump overlaps the far side.
+  list.sort((p, q) => p.z - q.z);
+  for (const { x, y, z, dir, len } of list) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(dir + Math.PI / 2);
+    ctx.filter = `brightness(${(0.9 + 0.2 * (z * 0.5 + 0.5)).toFixed(2)})`;
+    ctx.drawImage(sprig, -R * 0.28, -len, R * 0.56, len);
+    ctx.restore();
+  }
+  ctx.filter = 'none';
+  // Light from above, shade below, as the near clumps' sprigs catch it.
+  ctx.globalCompositeOperation = 'source-atop';
+  const g = ctx.createLinearGradient(0, c - R, 0, c + R);
+  g.addColorStop(0, 'rgba(255,255,240,0.1)');
+  g.addColorStop(0.55, 'rgba(0,0,0,0)');
+  g.addColorStop(1, 'rgba(0,0,0,0.12)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
   return canvas;
 }

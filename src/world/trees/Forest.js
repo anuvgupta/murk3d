@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SPECIES, paintLeafTexture, paintSprigTexture } from './species.js';
+import { SPECIES, paintClumpTexture, paintSprigTexture } from './species.js';
 import { generateTree } from './TreeGen.js';
 import { bark as barkTexture, birchBark } from '../../buildings/textures.js';
 import { WIND_GLSL } from '../Wind.js';
@@ -71,10 +71,64 @@ function riverWillows(random) {
 
 // Material plumbing: sway the whole tree with the wind (more toward the top)
 // and flutter the leaves. Applied to both the visible and shadow materials.
-function addWind(material, uniforms, scale, leaf = false) {
+// A leaf texture from its canvas, with the transparent pixels given the
+// colour of the leaves next to them. A canvas keeps them black, and
+// mipmapping blends that black into the edges, so distant crowns (whose alpha
+// is boosted) wore a dark outline. (Uploaded as data: a canvas can't hold
+// colour in fully transparent pixels.)
+function leafTexture(canvas) {
+  const { width: w, height: h } = canvas;
+  const d = canvas.getContext('2d').getImageData(0, 0, w, h).data;
+  const done = new Uint8Array(w * h);
+  let sr = 0, sg = 0, sb = 0, n = 0;
+  for (let i = 0; i < w * h; i++) {
+    if (d[i * 4 + 3] > 24) {
+      done[i] = 1;
+      sr += d[i * 4]; sg += d[i * 4 + 1]; sb += d[i * 4 + 2]; n++;
+    }
+  }
+  let edge = [];
+  for (let i = 0; i < w * h; i++) if (!done[i]) edge.push(i);
+  for (let pass = 0; pass < 12 && edge.length && n; pass++) {
+    const filled = [];
+    const rest = [];
+    for (const i of edge) {
+      const x = i % w, y = (i / w) | 0;
+      let r = 0, g = 0, b = 0, k = 0;
+      for (const j of [x > 0 ? i - 1 : -1, x < w - 1 ? i + 1 : -1, y > 0 ? i - w : -1, y < h - 1 ? i + w : -1]) {
+        if (j >= 0 && done[j]) { r += d[j * 4]; g += d[j * 4 + 1]; b += d[j * 4 + 2]; k++; }
+      }
+      if (k) filled.push(i, r / k, g / k, b / k);
+      else rest.push(i);
+    }
+    for (let f = 0; f < filled.length; f += 4) {
+      const i = filled[f];
+      d[i * 4] = filled[f + 1]; d[i * 4 + 1] = filled[f + 2]; d[i * 4 + 2] = filled[f + 3];
+      done[i] = 1;
+    }
+    edge = rest;
+  }
+  for (const i of edge) if (n) { d[i * 4] = sr / n; d[i * 4 + 1] = sg / n; d[i * 4 + 2] = sb / n; }
+  // Canvas rows run top-down; flip so the texture reads as the canvas did.
+  const data = new Uint8Array(w * h * 4);
+  for (let y = 0; y < h; y++) data.set(d.subarray((h - 1 - y) * w * 4, (h - y) * w * 4), y * w * 4);
+  const tex = new THREE.DataTexture(data, w, h, THREE.RGBAFormat);
+  tex.magFilter = THREE.LinearFilter;
+  tex.minFilter = THREE.LinearMipmapLinearFilter;
+  tex.generateMipmaps = true;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+// `fade` (a vec4 uniform: fade-in from x to y metres, fade-out from z to w)
+// dissolves a detail level in and out over a band either side of the
+// distance where trees change level, so the change isn't a pop.
+function addWind(material, uniforms, scale, leaf = false, fade = null) {
+  if (fade) material.defines = { ...material.defines, TREE_FADE: '' };
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     shader.uniforms.uWindScale = { value: scale };
+    if (fade) shader.uniforms.uFade = fade;
     shader.vertexShader = shader.vertexShader
       .replace(
         '#include <common>',
@@ -82,6 +136,12 @@ function addWind(material, uniforms, scale, leaf = false) {
         uniform sampler2D uNoise;
         uniform float uWindScale;
         attribute vec2 aSway;
+        #ifdef BILLBOARD
+          attribute vec2 aCorner;
+        #endif
+        #ifdef TREE_FADE
+          varying float vFadeDist;
+        #endif
         ${WIND_GLSL}`
       )
       .replace(
@@ -91,6 +151,9 @@ function addWind(material, uniforms, scale, leaf = false) {
         #ifdef USE_INSTANCING
           wpos = instanceMatrix * wpos;
           origin = instanceMatrix[ 3 ].xyz;
+        #endif
+        #ifdef TREE_FADE
+          vFadeDist = distance( origin.xz, cameraPosition.xz );
         #endif
         {
           // Three motions, slow to fast:
@@ -123,8 +186,38 @@ function addWind(material, uniforms, scale, leaf = false) {
           wpos.xyz += fdir * fl;
         }
         vec4 mvPosition = modelViewMatrix * wpos;
+        #ifdef BILLBOARD
+          // Clump impostors face the camera (or the sun, for their shadows:
+          // smaller there, as the sprig clumps they stand for are full of gaps
+          // that light gets through).
+          vec2 corner = aCorner;
+          #ifdef BILLBOARD_SHADOW
+            corner *= 0.6;
+          #endif
+          #ifdef USE_INSTANCING
+            corner *= length( instanceMatrix[ 0 ].xyz );
+          #endif
+          mvPosition.xy += corner;
+        #endif
         gl_Position = projectionMatrix * mvPosition;`
       );
+    if (fade) {
+      // Within a band the tree is drawn at both levels; a screen-space dither
+      // gives each pixel to one or the other in proportion, so one level
+      // dissolves into the next.
+      shader.fragmentShader = shader.fragmentShader
+        .replace('#include <common>', `#include <common>\nuniform vec4 uFade;\nvarying float vFadeDist;`)
+        .replace(
+          '#include <clipping_planes_fragment>',
+          `{
+            float fadeIn = smoothstep( uFade.x, uFade.y, vFadeDist );
+            float fadeOut = smoothstep( uFade.z, uFade.w, vFadeDist );
+            float dither = fract( 52.9829189 * fract( dot( gl_FragCoord.xy, vec2( 0.06711056, 0.00583715 ) ) ) );
+            if ( 1.0 - dither > fadeIn || dither > 1.0 - fadeOut ) discard;
+          }
+          #include <clipping_planes_fragment>`
+        );
+    }
     if (leaf) {
       // Leaves: light both faces alike, and let the sun through them. A
       // canopy takes most of its light from the sky, so leaf normals lean
@@ -310,34 +403,45 @@ export class Forest {
     return true;
   }
 
-  materialsFor(name, spec) {
+  // Materials for one species: per detail level (each with its own fade
+  // band uniform), sharing textures; shadow depth materials don't fade.
+  materialsFor(name, spec, fades) {
     const b = spec.bark;
     const bt = b.birch ? birchBark() : barkTexture(b.color, b.fissures, b.depth || 1);
-    const barkMat = new THREE.MeshStandardMaterial({ map: bt.map, bumpMap: bt.bump, bumpScale: b.smooth ? 1 : 4, roughness: 0.88 });
-    addWind(barkMat, this.uniforms, spec.wind);
+    const barkMats = fades.map((fade) => {
+      const mat = new THREE.MeshStandardMaterial({ map: bt.map, bumpMap: bt.bump, bumpScale: b.smooth ? 1 : 4, roughness: 0.88 });
+      addWind(mat, this.uniforms, spec.wind, false, fade);
+      return mat;
+    });
     const barkDepth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking });
     addWind(barkDepth, this.uniforms, spec.wind);
-    if (!spec.leaves) return { barkMat, barkDepth };
+    if (!spec.leaves) return { barkMats, barkDepth };
 
-    const leafMaterial = (canvas) => {
-      const tex = new THREE.CanvasTexture(canvas);
+    const leafMaterials = (canvas, billboard = false) => {
+      const tex = leafTexture(canvas);
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.anisotropy = 4;
-      const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.4, side: THREE.DoubleSide, vertexColors: true });
-      mat.userData.leaf = true;
-      if (spec.glow) {
-        mat.emissive = new THREE.Color(spec.leaf.colors[1]);
-        mat.emissiveMap = tex;
-        mat.emissiveIntensity = spec.glow;
-      }
-      addWind(mat, this.uniforms, spec.wind, true);
+      const mats = fades.map((fade) => {
+        const mat = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.4, side: THREE.DoubleSide, vertexColors: true });
+        mat.userData.leaf = true;
+        if (billboard) mat.defines = { BILLBOARD: '' };
+        if (spec.glow) {
+          mat.emissive = new THREE.Color(spec.leaf.colors[1]);
+          mat.emissiveMap = tex;
+          mat.emissiveIntensity = spec.glow;
+        }
+        addWind(mat, this.uniforms, spec.wind, true, fade);
+        return mat;
+      });
       const depth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: tex, alphaTest: 0.4 });
+      if (billboard) depth.defines = { BILLBOARD: '', BILLBOARD_SHADOW: '' };
       addWind(depth, this.uniforms, spec.wind);
-      return [mat, depth];
+      return [mats, depth];
     };
-    const [sprigMat, sprigDepth] = leafMaterial(paintSprigTexture(spec, name.length * 11));
-    const [cardMat, cardDepth] = leafMaterial(paintLeafTexture(spec, name.length * 13));
-    return { barkMat, barkDepth, sprigMat, sprigDepth, cardMat, cardDepth };
+    const sprig = paintSprigTexture(spec, name.length * 11);
+    const [sprigMats, sprigDepth] = leafMaterials(sprig);
+    const [clumpMats, clumpDepth] = leafMaterials(paintClumpTexture(spec, sprig, name.length * 13), true);
+    return { barkMats, barkDepth, sprigMats, sprigDepth, clumpMats, clumpDepth };
   }
 
   build() {
@@ -345,7 +449,8 @@ export class Forest {
     const dummy = new THREE.Object3D();
     this.counts = {};
     for (const [name, spec] of Object.entries(SPECIES)) {
-      const mats = this.materialsFor(name, spec);
+      const fades = [0, 1, 2].map(() => ({ value: new THREE.Vector4() }));
+      const mats = this.materialsFor(name, spec, fades);
       for (let v = 0; v < VARIANTS; v++) {
         const list = this.placed.filter((t) => t.species === name && t.variant === v);
         this.counts[name] = (this.counts[name] || 0) + list.length;
@@ -369,19 +474,24 @@ export class Forest {
           return mesh;
         };
         // Three levels of detail: near (full stems, sprig clumps), mid (main
-        // limbs, cluster cards), far (trunk, a few big cards).
+        // limbs, an impostor of every clump), far (trunk, fewer, bigger
+        // impostors).
         const tiers = [
-          [make(model.bark, mats.barkMat, mats.barkDepth, true)],
-          [make(model.barkMid, mats.barkMat, mats.barkDepth, true)],
-          [make(model.barkFar, mats.barkMat, mats.barkDepth, false)],
+          [make(model.bark, mats.barkMats[0], mats.barkDepth, true)],
+          [make(model.barkMid, mats.barkMats[1], mats.barkDepth, true)],
+          [make(model.barkFar, mats.barkMats[2], mats.barkDepth, false)],
         ];
         if (model.leavesNear) {
-          tiers[0].push(make(model.leavesNear, mats.sprigMat, mats.sprigDepth, true));
-          tiers[1].push(make(model.leavesMid, mats.cardMat, mats.cardDepth, true));
-          tiers[2].push(make(model.leavesFar, mats.cardMat, mats.cardDepth, false));
+          tiers[0].push(make(model.leavesNear, mats.sprigMats[0], mats.sprigDepth, true));
+          tiers[1].push(make(model.leavesMid, mats.clumpMats[1], mats.clumpDepth, true));
+          tiers[2].push(make(model.leavesFar, mats.clumpMats[2], mats.clumpDepth, false));
+        }
+        if (model.hangsMid) {
+          tiers[1].push(make(model.hangsMid, mats.sprigMats[1], mats.sprigDepth, true));
+          tiers[2].push(make(model.hangsFar, mats.sprigMats[2], mats.sprigDepth, false));
         }
         const big = name === 'giant';
-        this.sets.push({ list, tiers, dists: big ? [150, 420, 900] : [65, 230, 800] });
+        this.sets.push({ list, tiers, fades, dists: big ? [150, 420, 900] : [65, 230, 800], band: big ? 14 : 8 });
       }
     }
     this.lastUpdate = -Infinity;
@@ -395,13 +505,21 @@ export class Forest {
     this.lastUpdate = time;
     this.lastPos.copy(cam);
     for (const set of this.sets) {
+      // Each level is drawn out to its distance plus a band, and the next
+      // from its distance less the band; the shader dissolves across it.
+      const [d0, d1, d2] = set.dists;
+      const b = set.band;
+      set.fades[0].value.set(-2, -1, d0 - b, d0 + b);
+      set.fades[1].value.set(d0 - b, d0 + b, d1 - b, d1 + b);
+      set.fades[2].value.set(d1 - b, d1 + b, d2 - b, d2 + b);
       const counts = [0, 0, 0];
       for (const t of set.list) {
         const d = Math.hypot(t.x - cam.x, t.z - cam.z);
-        const tier = d < set.dists[0] ? 0 : d < set.dists[1] ? 1 : d < set.dists[2] ? 2 : -1;
-        if (tier < 0) continue;
-        for (const m of set.tiers[tier]) m.setMatrixAt(counts[tier], t.matrix);
-        counts[tier]++;
+        for (let tier = 0; tier < 3; tier++) {
+          if (d > set.dists[tier] + b || (tier > 0 && d < set.dists[tier - 1] - b)) continue;
+          for (const m of set.tiers[tier]) m.setMatrixAt(counts[tier], t.matrix);
+          counts[tier]++;
+        }
       }
       set.tiers.forEach((meshes, i) => {
         for (const m of meshes) {

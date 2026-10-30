@@ -20,8 +20,8 @@ import { mulberry32 } from '../../util/noise.js';
 // Leaves come in three levels of detail:
 //   near  clumps of individually curved sprig quads round each leaf spot
 //         (real volume: leaves at every angle, light and shadow inside)
-//   mid   one leaf-cluster card per spot
-//   far   a few big cluster cards
+//   mid   one camera-facing impostor of each clump
+//   far   fewer, larger clump impostors
 // Normals come from the crown's centre so the canopy shades as one soft mass;
 // vertex colour darkens toward its heart. Every vertex carries
 // aSway = (bend weight, flutter) for the wind shader.
@@ -196,8 +196,13 @@ export function generateTree(spec, seed) {
     barkMid: buildBark(spec, stems.filter((s) => s.level <= 1), height, mulberry32(seed + 1), 1),
     barkFar: buildBark(spec, stems.filter((s) => s.level === 0), height, mulberry32(seed + 1), 2),
     leavesNear: spec.leaves ? buildSprigs(ctx, spots, hangs, mulberry32(seed + 2)) : null,
-    leavesMid: spec.leaves ? buildCards(ctx, every(spots, 2), every(hangs, 2), mulberry32(seed + 3), 1.35) : null,
-    leavesFar: spec.leaves ? buildCards(ctx, every(spots, 6), every(hangs, 4), mulberry32(seed + 3), 2.4) : null,
+    // Mid and far: camera-facing impostors of the same clumps (all of them
+    // at mid, so the crown keeps its shape; fewer, larger ones far off),
+    // and the willows' strands as plain sprig strips.
+    leavesMid: spec.leaves ? buildClumps(ctx, spots, mulberry32(seed + 2), 1) : null,
+    leavesFar: spec.leaves ? buildClumps(ctx, every(spots, 6), mulberry32(seed + 2), 2.1) : null,
+    hangsMid: hangs.length ? buildSprigs(ctx, [], every(hangs, 2), mulberry32(seed + 3)) : null,
+    hangsFar: hangs.length ? buildSprigs(ctx, [], every(hangs, 4), mulberry32(seed + 3)) : null,
     height,
     trunkRadius: trunkR,
     crownRadius: Math.max(crownRadius, trunkR * 3),
@@ -415,8 +420,10 @@ function randomTangent(n, rng) {
   return r.normalize();
 }
 
-// Mid/far detail: one leaf-cluster card per spot.
-function buildCards(ctx, spots, hangs, rng, grow) {
+// Mid/far detail: one camera-facing card per clump, painted as a ball of the
+// near sprigs and sized to the clump (see paintClumpTexture). Every corner
+// sits at the clump's centre; aCorner spreads it out in view space.
+function buildClumps(ctx, spots, rng, grow) {
   const { spec, height } = ctx;
   const L = spec.leaves;
   const positions = [];
@@ -424,41 +431,33 @@ function buildCards(ctx, spots, hangs, rng, grow) {
   const uvs = [];
   const colors = [];
   const sway = [];
+  const corner = [];
   const indices = [];
   const shade = {};
-
-  const card = (center, axisU, axisV, w, h, anchorTop = false) => {
-    const base = positions.length / 3;
-    const corners = anchorTop ? [[-0.5, 0], [0.5, 0], [0.5, -1], [-0.5, -1]] : [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]];
-    const uvc = anchorTop ? [[0, 1], [1, 1], [1, 0], [0, 0]] : [[0, 1], [1, 1], [1, 0], [0, 0]];
-    corners.forEach(([cu, cv], k) => {
-      const p = center.clone().addScaledVector(axisU, cu * w).addScaledVector(axisV, cv * h);
-      positions.push(p.x, p.y, p.z);
-      leafShade(ctx, p, null, shade);
-      normals.push(shade.normal.x, shade.normal.y, shade.normal.z);
-      uvs.push(uvc[k][0], uvc[k][1]);
-      colors.push(shade.ao, shade.ao, shade.ao);
-      sway.push(swayWeight(p.y, height), anchorTop ? 1.6 * -cv : 1);
-    });
-    indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
-  };
-
+  const clumpR = L.spread * 0.45;
   for (const s of spots) {
-    const size = (L.size[0] + rng() * (L.size[1] - L.size[0])) * grow;
-    const out = s.p.clone().sub(ctx.crown).normalize();
-    const n = out.multiplyScalar(0.5).add(new THREE.Vector3(rng() - 0.5, rng() - 0.5, rng() - 0.5)).normalize();
-    if (L.flat) n.lerp(UP, 0.75).normalize();
-    const u = new THREE.Vector3().crossVectors(n, Math.abs(n.y) > 0.95 ? new THREE.Vector3(1, 0, 0) : UP).normalize();
-    u.applyAxisAngle(n, rng() * Math.PI * 2);
-    const v = new THREE.Vector3().crossVectors(n, u).normalize();
-    card(s.p, u, v, size, size);
+    const leaf = L.size[0] + rng() * (L.size[1] - L.size[0]);
+    const reach = L.round ? clumpR + leaf * 0.3 : clumpR * 0.5 + leaf * 0.55;
+    const size = (2 * reach * grow) / 0.92;
+    const h = 0.92 + rng() * 0.16;
+    const tint = [h, 0.96 + rng() * 0.08, h];
+    leafShade(ctx, s.p, null, shade);
+    const base = positions.length / 3;
+    for (const [cu, cv] of [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]) {
+      positions.push(s.p.x, s.p.y, s.p.z);
+      normals.push(shade.normal.x, shade.normal.y, shade.normal.z);
+      uvs.push(cu + 0.5, cv + 0.5);
+      colors.push(shade.ao * tint[0], shade.ao * tint[1], shade.ao * tint[2]);
+      sway.push(swayWeight(s.p.y, height), 1);
+      corner.push(cu * size, cv * size);
+    }
+    indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
   }
-  for (const h of hangs) {
-    const a = rng() * Math.PI * 2;
-    const u = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));
-    card(h.p, u, UP, 0.7, h.len, true);
-  }
-  return finish({ positions, normals, uvs, colors, sway, indices });
+  const g = finish({ positions, normals, uvs, colors, sway, indices });
+  g.setAttribute('aCorner', new THREE.Float32BufferAttribute(corner, 2));
+  // The corners spread past the stored points; pad the bounds to match.
+  g.boundingSphere.radius += 2;
+  return g;
 }
 
 function finish({ positions, normals, uvs, colors, sway, indices }) {
