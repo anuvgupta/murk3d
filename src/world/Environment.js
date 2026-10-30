@@ -286,7 +286,7 @@ export class Environment {
     a.sunVisible = this.sun.intensity > 0.05 && this.lightDir === this.lightDir ? smoothstep(-0.08, 0.02, elev) : 0;
     // Glow colour: white-gold high, apricot low.
     a.sunColor.setRGB(1.0, 0.93, 0.8).lerp(this._tmpColor.setRGB(1.0, 0.72, 0.45), low);
-    a.shaft = 0.1 + 0.35 * low;
+    a.shaft = 0.12 + 0.6 * low; // god rays: strongest at a low sun, where trees and roofs cut them
     a.glow = 0.35 + 0.9 * low;
     a.disc = 9.0;
     // Haze: pale blue-white by day, warm amber-rose at low sun, deep blue at night.

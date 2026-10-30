@@ -41,7 +41,7 @@ const occlusionShader = {
       vec2 off = ( vUv - uSunScreen ) * vec2( uAspect, 1.0 );
       float r = length( off );
       // A soft disc round the sun; only sky counts, so trees and hills cut shafts.
-      float disc = smoothstep( 0.22, 0.0, r );
+      float disc = smoothstep( 0.3, 0.0, r );
       gl_FragColor = vec4( vec3( disc * sky * uSunVisible ), 1.0 );
     }
   `,
@@ -209,9 +209,11 @@ const compositeShader = {
         for ( int i = 0; i < 40; i++ ) {
           p += stp;
           shaft += texture2D( tOcclusion, p ).r * illum;
-          illum *= 0.96;
+          illum *= 0.972;
         }
         shaft /= 40.0;
+        // Sharpen so the rays read as streaks between the leaves, not a general haze.
+        shaft = pow( shaft, 1.35 ) * 1.3;
         vec2 off = ( vUv - uSunScreen ) * vec2( uAspect, 1.0 );
         float r = length( off );
         // How much of the sun's neighbourhood is open sky (a mountain in front dims the halo).
