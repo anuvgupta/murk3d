@@ -166,12 +166,22 @@ export class Castle {
       // Machicolations and parapet over the gate.
       kit.box(m.white, half * 2 - 4.0, 1.3, 3.6, { y: height + 0.65 }, { metres: 3 });
       for (let i = -2; i <= 2; i++) kit.box(m.white, 0.9, 0.6, 0.4, { x: i * 1.3, y: height + 1.6, z: 1.6 }, { metres: 3 });
-      // Banners either side of the arch.
+      // Banners either side of the arch, lanterns below them and in the passage.
       for (const s of [-1, 1]) {
         kit.box(m.iron, 0.05, 2.6, 0.05, { x: s * 3.0, y: 7.2, z: 1.7 });
         kit.box(m.banner, 0.9, 2.2, 0.03, { x: s * 3.0, y: 6.2, z: 1.75 });
+        kit.box(m.iron, 0.05, 0.05, 0.5, { x: s * 3.0, y: 4.1, z: 1.85 });
+        lantern(kit, m, { x: s * 3.0, y: 3.8, z: 2.05 });
+        kit.box(m.iron, 0.4, 0.05, 0.05, { x: s * 2.0, y: 3.3, z: 0 });
+        lantern(kit, m, { x: s * 1.85, y: 3.0, z: 0 });
       }
     });
+    // The lanterns on the outer face light the approach (plateau-local positions).
+    for (const s of [-1, 1]) {
+      const lx = s * 3.0;
+      const lz = 2.3;
+      this.lamps.push(new THREE.Vector3(x + lx * Math.cos(ry) + lz * Math.sin(ry), baseY + 3.9, z - lx * Math.sin(ry) + lz * Math.cos(ry)));
+    }
     // The opening is walkable: no collider across it, but the piers either side.
     for (const s of [-1, 1]) {
       const px = x + Math.cos(angle + Math.PI / 2) * s * 2.9;
@@ -244,12 +254,7 @@ export class Castle {
       const sz = Math.sin(T.gateAngle) * (ringR + 2.2 + run / 2);
       // Stairs face inward (uphill toward the gate).
       this.stairs(kit, m, Math.cos(T.gateAngle) * (ringR + 2.2 + run), Math.sin(T.gateAngle) * (ringR + 2.2 + run), T.gateAngle + Math.PI, prev.h, rise, run, 5.0);
-      // Lanterns either side of the gate.
-      for (const s of [-1, 1]) {
-        const lp = new THREE.Vector3(gx + Math.cos(T.gateAngle + Math.PI / 2) * s * 3.2, T.h + 3.0, gz + Math.sin(T.gateAngle + Math.PI / 2) * s * 3.2);
-        this.lamps.push(lp);
-        lantern(kit, m, lp);
-      }
+
     }
     // Buildings in the wards: a row of lean-to houses against the walls.
     this.wardBuildings(kit, m);
