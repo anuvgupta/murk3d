@@ -260,8 +260,8 @@ export class Water {
             vec3 n2 = texture( uWaterNormals, q * vec2( 0.21, 0.17 ) + vec2( 0.37, -t * spd * 0.19 ) ).xyz * 2.0 - 1.0;
             // Fast wind chop, strongest under gust fronts.
             float gust = windAt( vWPos.xz );
-            vec3 n3 = texture( uWaterNormals, vWPos.xz * 0.55 - uWindDir * t * 0.8 ).xyz * 2.0 - 1.0;
-            vec2 slope = n1.xy * 0.55 + n2.xy * 0.35 + n3.xy * ( 0.08 + 0.45 * gust );
+            vec3 n3 = texture( uWaterNormals, vWPos.xz * 0.4 - uWindDir * t * 0.35 ).xyz * 2.0 - 1.0;
+            vec2 slope = n1.xy * 0.55 + n2.xy * 0.35 + n3.xy * ( 0.05 + 0.2 * gust );
             // Lakes lie flatter than running water.
             slope *= isRiver ? 1.0 : 0.5 + 0.3 * uWindStrength;
             slope *= mix( 1.0, 0.25, waterFoam );
@@ -270,6 +270,16 @@ export class Water {
               + vec3( along.x, 0.0, along.y ) * slope.y );
             normal = normalize( ( viewMatrix * vec4( worldN, 0.0 ) ).xyz );
           }`
+        )
+        .replace(
+          '#include <lights_fragment_begin>',
+          `// The sun and moon see a rougher surface than the sky does, so their
+          // highlight spreads into a soft path of glints, not a spray of stars.
+          float waterSkyRoughness = material.roughness;
+          material.roughness = max( material.roughness, 0.2 );
+          #include <lights_fragment_begin>
+          material.roughness = waterSkyRoughness;
+          material.dfg = texture2D( dfgLUT, vec2( material.roughness, dotNVms ) ).rg;`
         )
         .replace(
           '#include <opaque_fragment>',
