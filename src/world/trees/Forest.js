@@ -4,7 +4,7 @@ import { generateTree } from './TreeGen.js';
 import { bark as barkTexture, birchBark } from '../../buildings/textures.js';
 import { WIND_GLSL } from '../Wind.js';
 import { mulberry32, createNoise2D } from '../../util/noise.js';
-import { HOUSES, PLAZA, RIVER, LAKE, LAKES, HILL, WELL, BRIDGE, CASTLES, RUINS, PITS, GLADE, nearestRoad } from '../plan.js';
+import { HOUSES, PLAZA, RIVER, LAKE, LAKES, HILL, WELL, BRIDGE, CASTLES, RUINS, PITS, GLADE, OVERLOOK, SPAWN, nearestRoad } from '../plan.js';
 import { REGIONS, regionWeight } from '../regions.js';
 
 const VARIANTS = 5;
@@ -214,6 +214,9 @@ export class Forest {
     if (nearestRoad(x, z, r + 1.5)) return false;
     if (Math.hypot(x - PLAZA.x, z - PLAZA.z) < PLAZA.radius + r + 1) return false;
     if (Math.hypot(x - WELL.x, z - WELL.z) < 4) return false;
+    // Viewpoints stay clear.
+    if (Math.hypot(x - OVERLOOK.x, z - OVERLOOK.z) < 8 + r) return false;
+    if (Math.hypot(x - SPAWN.x, z - SPAWN.z) < 6 + r) return false;
     if (Math.hypot(x - BRIDGE.x, z - BRIDGE.z) < BRIDGE.length / 2 + 4) return false;
     for (const C of CASTLES) {
       if (Math.hypot(x - C.plateau.x, z - C.plateau.z) < C.plateau.radius + 12) return false;

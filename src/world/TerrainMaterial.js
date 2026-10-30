@@ -64,7 +64,7 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         rockDetail = detail;
         rockHOut = rockHeight( vWPos, tw, detail );
         rockAmtOut = smoothstep( 0.42, 0.58, 1.0 - wnClass.y + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.1 );
-        ground = mix( ground, rockAlbedo( vWPos, wn, tw, rockHOut ), rockAmtOut );
+        ground = mix( ground, rockAlbedo( vWPos, wnClass, tw, rockHOut ), rockAmtOut );
         diffuseColor.rgb *= ground;`
       )
       .replace(

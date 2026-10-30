@@ -158,11 +158,12 @@ export class Terrain {
       const v = -dx * s + dz * c;
       const n = this.noiseDetail(x * 0.06 + p.x, z * 0.06 + p.z);
       const n2 = this.noiseDetail(x * 0.21 + p.z, z * 0.21);
-      const uHi = p.length / 2 + n * 2.5 + n2 * 0.8;
-      const vEdge = p.width / 2 + n * 3.5 + n2 * 0.6;
+      const n3 = this.noiseDetail(x * 0.45 + p.z, z * 0.45 + p.x);
+      const uHi = p.length / 2 + n * 2.5 + n2 * 1.2 + n3 * 0.7;
+      const vEdge = p.width / 2 + n * 3.5 + n2 * 0.9 + n3 * 0.5;
       // Rising from ground level a little before the low edge.
       const ramp = Math.min(1, Math.max(0, (u + p.length / 2 + 8) / (p.length + 8)));
-      const face = 1 - smoothstep(uHi, uHi + 3.2, u);
+      const face = 1 - smoothstep(uHi, uHi + 2.2 + 2.5 * (n2 + 0.5), u);
       const side = 1 - smoothstep(vEdge - 2, vEdge + 5 + 6 * (1 - ramp), Math.abs(v));
       const strata = face > 0.05 && face < 0.95 ? 0.05 * Math.sin(u * 2.3 + n * 4) : 0;
       const ph = p.rise * (Math.pow(ramp, 1.15) * face * side + strata * side);

@@ -55,8 +55,8 @@ export const ROCK_GLSL = /* glsl */ `
     float lichen = smoothstep( 0.64, 0.8, tri( p, w, 0.08, 0 ) ) * 0.45;
     c = mix( c, ${lin(0x8b8a52)}, lichen );
     // Moss and grass only on near-level ledges.
-    float up = smoothstep( 0.78, 0.95, n.y + ( tri( p, w, 0.05, 3 ) - 0.5 ) * 0.3 );
-    c = mix( c, ${lin(0x4a6a22)} * ( 0.8 + 0.4 * tri( p, w, 0.3, 2 ) ), up * 0.8 );
+    float up = smoothstep( 0.82, 0.96, n.y + ( tri( p, w, 0.05, 3 ) - 0.5 ) * 0.2 );
+    c = mix( c, ${lin(0x3d5424)} * ( 0.8 + 0.4 * tri( p, w, 0.3, 2 ) ), up * 0.6 );
     return c;
   }
 
