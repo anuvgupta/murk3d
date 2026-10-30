@@ -239,6 +239,9 @@ export class Player {
   resolveCollisions() {
     const p = this.position;
     for (const b of this.colliders) {
+      // Something you can get on top of (a fallen log) stops blocking once
+      // your feet are up at its top.
+      if (b.top !== undefined && this.position.y >= b.top - 0.15) continue;
       const c = Math.cos(b.rot);
       const s = Math.sin(b.rot);
       const dx = p.x - b.cx;

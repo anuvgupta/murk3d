@@ -257,6 +257,34 @@ export class GroundMask {
   grassAt(x, z) {
     return this.sample(x, z, 0);
   }
+
+  // Clear the grass along segments laid after the mask was made (fallen
+  // logs): { x0, z0, x1, z1, r }, thinning over a short margin either side.
+  cutSegments(list) {
+    const d = this.data;
+    for (const s of list) {
+      const pad = s.r + 0.8;
+      const px0 = Math.max(0, Math.floor(toPx(Math.min(s.x0, s.x1) - pad)));
+      const px1 = Math.min(SIZE - 1, Math.ceil(toPx(Math.max(s.x0, s.x1) + pad)));
+      const pz0 = Math.max(0, Math.floor(toPx(Math.min(s.z0, s.z1) - pad)));
+      const pz1 = Math.min(SIZE - 1, Math.ceil(toPx(Math.max(s.z0, s.z1) + pad)));
+      const ex = s.x1 - s.x0;
+      const ez = s.z1 - s.z0;
+      const len2 = ex * ex + ez * ez || 1;
+      for (let pz = pz0; pz <= pz1; pz++) {
+        for (let px = px0; px <= px1; px++) {
+          const x = (px + 0.5) / PX - WORLD_HALF;
+          const z = (pz + 0.5) / PX - WORLD_HALF;
+          const t = Math.max(0, Math.min(1, ((x - s.x0) * ex + (z - s.z0) * ez) / len2));
+          const dist = Math.hypot(x - s.x0 - ex * t, z - s.z0 - ez * t);
+          const keep = Math.min(1, Math.max(0, (dist - s.r * 0.5) / 0.9));
+          const o = (pz * SIZE + px) * 4;
+          d[o] = Math.round(d[o] * keep);
+        }
+      }
+    }
+    this.texture.needsUpdate = true;
+  }
 }
 
 // Shader-side mapping from world xz to mask uv.

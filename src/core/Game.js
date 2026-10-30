@@ -24,6 +24,7 @@ import { Falls } from '../world/Falls.js';
 import { Arches } from '../world/Arches.js';
 import { Crystals } from '../world/Crystals.js';
 import { SkyIslands } from '../world/SkyIslands.js';
+import { FallenLogs } from '../world/FallenLogs.js';
 import { Mushrooms } from '../world/Mushrooms.js';
 import { REGIONS } from '../world/regions.js';
 import { RockField } from '../world/Rocks.js';
@@ -243,12 +244,15 @@ export class Game {
     this.forest = new Forest({ terrain: this.terrain, mask: this.groundMask, noise: this.noiseTexture, wind: this.wind, rocks: this.rocks, sun: this.sunInfo });
     scene.add(this.forest.group);
     this.wind.addShelter(this.forest.placed);
+    this.logs = new FallenLogs({ terrain: this.terrain, forest: this.forest, noise: this.noiseTexture });
+    scene.add(this.logs.group);
+    this.groundMask.cutSegments(this.logs.logs);
     await mark('trees');
 
     this.motes = new Motes({ wind: this.wind, sun: this.sunInfo });
     scene.add(this.motes.points);
 
-    const colliders = [...this.village.colliders, ...this.castles.flatMap((c) => c.worldColliders()), ...this.ruins.colliders, ...this.portals.colliders, ...this.crystals.colliders, ...this.arches.colliders, ...this.rocks.colliders, ...this.forest.colliders, ...this.mushrooms.colliders];
+    const colliders = [...this.village.colliders, ...this.castles.flatMap((c) => c.worldColliders()), ...this.ruins.colliders, ...this.portals.colliders, ...this.crystals.colliders, ...this.arches.colliders, ...this.rocks.colliders, ...this.forest.colliders, ...this.mushrooms.colliders, ...this.logs.colliders];
     this.player = new Player(this.camera, this.input, this.terrain, colliders);
     this.player.waterLevelAt = (x, z) => this.water.levelAt(x, z);
     this.player.surfaces.push((x, z) => this.village.surfaceAt(x, z));
@@ -257,6 +261,7 @@ export class Game {
     this.player.surfaces.push((x, z) => this.plates.surfaceAt(x, z));
     this.player.surfaces.push((x, z) => this.ruins.surfaceAt(x, z));
     this.player.surfaces.push((x, z) => this.mushrooms.surfaceAt(x, z));
+    this.player.surfaces.push((x, z) => this.logs.surfaceAt(x, z));
     this.player.bouncers.push((x, z) => this.mushrooms.bounceAt(x, z));
     this.player.spawn(SPAWN.x, SPAWN.z, SPAWN.yaw);
     // A shared view link wins; otherwise pick up where the last visit left off.
