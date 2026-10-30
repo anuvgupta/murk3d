@@ -165,7 +165,12 @@ export const GROUND_GLSL = /* glsl */ `
     // Where no grass grows (rock feet, under ruins, trodden ground) the soil
     // shows: earth with a thin scatter of green, not bare meadow colour.
     vec3 bare = mix( dirtColor( n ) * 0.95, meadowColor( p.xz, n ) * 0.8, 0.35 + 0.3 * n.w );
-    vec3 c = mix( bare, meadowColor( p.xz, n ) * vec3( 1.28, 1.26, 1.04 ), smoothstep( 0.0, 0.55, m.r ) * carpet );
+    // The ground seen between and beyond the blades: as bright as the lit
+    // carpet but pulled toward a warm olive, never a pure acid green.
+    vec3 under = meadowColor( p.xz, n ) * vec3( 1.22, 1.2, 1.0 );
+    float ul = dot( under, vec3( 0.3, 0.59, 0.11 ) );
+    under = mix( under, vec3( ul ) * vec3( 1.06, 1.0, 0.8 ), 0.4 );
+    vec3 c = mix( bare, under, smoothstep( 0.0, 0.55, m.r ) * carpet );
     c = mix( c, dirtColor( n ), smoothstep( 0.15, 0.85, m.g ) );
     c = mix( c, bedColor( n ), m.b );
     if ( m.a > 0.01 ) c = mix( c, cobbleColor( p.xz, n ), m.a );

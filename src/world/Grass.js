@@ -312,7 +312,9 @@ export class Grass {
           vec3 rootCol = base * 0.38;
           vec3 col = mix( rootCol, tip * tuftTone, smoothstep( 0.0, 0.9, hy ) );
           col = mix( col, mix( vec3( 0.25, 0.2, 0.08 ), vec3( 0.62, 0.52, 0.28 ), hy ), dry );
-          vColor.rgb = col * ( 0.96 + 0.08 * br ) * realmGrassTint( root );`
+          vColor.rgb = col * ( 0.96 + 0.08 * br ) * realmGrassTint( root );
+          // Olive rather than lime: ease the saturation toward a warm grey.
+          { float gl = dot( vColor.rgb, vec3( 0.3, 0.59, 0.11 ) ); vColor.rgb = mix( vColor.rgb, vec3( gl ) * vec3( 1.06, 1.0, 0.8 ), 0.15 ); }`
         );
 
       shader.fragmentShader = shader.fragmentShader
