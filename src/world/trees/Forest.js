@@ -50,6 +50,29 @@ const VILLAGE_TREES = [
 ];
 
 // Willows along the river through and below the village.
+// Each variant of a species gets its own character, so neighbours aren't
+// copies: taller or shorter, leaning more or less, a straighter or more
+// sinuous bole, more or fewer limbs, a thicker or thinner crown. Variant 0
+// is the species as written.
+function variantSpec(spec, v, name) {
+  if (v === 0) return spec;
+  const r = mulberry32(v * 7919 + name.length * 131);
+  const k = (lo, hi) => lo + r() * (hi - lo);
+  const scale = (a, f) => (Array.isArray(a) ? a.map((x) => x * f) : a * f);
+  const straight = spec.shape && spec.shape(0) - spec.shape(1) > 0.6; // conifers keep their spire
+  const trunk = {
+    ...spec.trunk,
+    len: scale(spec.trunk.len, k(0.85, 1.18)),
+    lean: (spec.trunk.lean || 0) * k(0.6, 1.9),
+    curveV: (spec.trunk.curveV || 0) * k(0.9, 1.5),
+    sinuous: straight ? spec.trunk.sinuous : (spec.trunk.sinuous || 0) * k(0.7, 1.5) + k(0, 10),
+    start: Math.min(0.75, Math.max(0.15, (spec.trunk.start ?? 0.5) + k(-0.08, 0.08))),
+  };
+  const levels_ = spec.levels_.map((L, i) => (i === 0 ? { ...L, n: scale(L.n, k(0.75, 1.25)).map(Math.round), lenRatio: L.lenRatio * k(0.88, 1.12) } : L));
+  const leaves = spec.leaves && { ...spec.leaves, per: Math.max(2, Math.round(spec.leaves.per + k(-1.5, 1.5))) };
+  return { ...spec, trunk, levels_, leaves };
+}
+
 function riverWillows(random) {
   const out = [];
   const p = RIVER.path;
@@ -270,7 +293,7 @@ export class Forest {
     this.models = {};
     for (const [name, spec] of Object.entries(SPECIES)) {
       this.models[name] = [];
-      for (let v = 0; v < VARIANTS; v++) this.models[name].push(generateTree(spec, 1000 + v * 37 + name.length * 7));
+      for (let v = 0; v < VARIANTS; v++) this.models[name].push(generateTree(variantSpec(spec, v, name), 1000 + v * 37 + name.length * 7));
     }
 
     // Place trees.
@@ -392,7 +415,7 @@ export class Forest {
     }
     if (!this.isClear(x, z, force ? 1 : 2)) return false;
     const variant = Math.floor(this.random() * VARIANTS);
-    const t = { species, variant, x, z, spacing, y: 0, ry: this.random() * Math.PI * 2, s: 0.85 + this.random() * 0.3 };
+    const t = { species, variant, x, z, spacing, y: 0, ry: this.random() * Math.PI * 2, s: species === 'giant' ? 0.72 + this.random() * 0.6 : 0.85 + this.random() * 0.3 };
     const model = this.models[species][variant];
     // Stand the trunk on the lowest ground under its (flared) foot: on a
     // slope, a base set at the centre's height left the downhill side of a

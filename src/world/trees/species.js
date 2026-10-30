@@ -40,11 +40,14 @@ export const SPECIES = {
   giant: {
     label: 'Elder giantwood',
     levels: 3,
-    trunk: { len: [28, 40], radius: [1.6, 2.3], lean: 0.05, taper: 0.22, curveV: 14, wander: 8, segs: 16, start: 0.4, flare: 0.8 },
+    // Ancient columns that have grown toward the light for centuries: each
+    // leans and bends in a long, slow S, with burls, and its limbs snake.
+    trunk: { len: [26, 42], radius: [1.6, 2.3], lean: 0.18, taper: 0.22, curveV: 30, wander: 16, segs: 18, start: 0.4, flare: 0.8, sinuous: 26, waves: 0.9 },
     levels_: [
-      { n: [26, 34], downAngle: 84, downAngleV: 12, lenRatio: 0.3, lenV: 0.25, taper: 0.35, curve: -32, curveBack: 48, curveV: 20, wander: 18, tropism: 0.12, segs: 9 },
+      { n: [22, 34], downAngle: 84, downAngleV: 14, lenRatio: 0.32, lenV: 0.3, taper: 0.35, curve: -32, curveBack: 48, curveV: 24, wander: 22, tropism: 0.12, segs: 9, sinuous: 22, waves: 1.2 },
       { n: [5, 7], downAngle: 50, downAngleV: 15, lenRatio: 0.5, lenV: 0.2, taper: 0.3, curveV: 30, wander: 20, tropism: 0.05, segs: 5, start: 0.2 },
     ],
+    gnarl: 0.5,
     shape: (t) => 1 - 0.5 * t,
     leaves: { per: 6, tipFill: 3, size: [3.0, 4.4], spread: 1.9, sprigs: 7 },
     bark: { color: [0.52, 0.4, 0.3], fissures: 5, depth: 1.6 },
