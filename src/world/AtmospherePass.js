@@ -176,6 +176,21 @@ const compositeShader = {
           mist = uGroundMist * clamp( mist / 3.0, 0.0, 1.0 );
         }
         fog = clamp( fog + mist, 0.0, 0.97 );
+        // The cloud sea (the Floating Isles): everything below its rolling top
+        // is fog by path length, so from an island it is a white floor and
+        // from below a ceiling, however the sampling above happened to fall.
+        if ( uMistFill > 0.001 ) {
+          vec2 seaUv = ( uCameraPos.xz + dir.xz * min( dist, 120.0 ) ) * 0.004;
+          float top = uFogHeight + 9.0 + ( texture2D( uNoise, seaUv + vec2( uTime * 0.0015, 0.0 ) ).r - 0.5 ) * 10.0;
+          float y0 = uCameraPos.y;
+          float y1 = wp.y;
+          float below;
+          if ( y0 <= top && y1 <= top ) below = dist;
+          else if ( y0 > top && y1 > top ) below = 0.0;
+          else below = dist * ( y0 > top ? ( 1.0 - ( y0 - top ) / ( y0 - y1 ) ) : ( ( top - y0 ) / ( y1 - y0 ) ) );
+          float sea = 1.0 - exp( -below * 0.07 );
+          fog = max( fog, uMistFill * sea * 0.98 );
+        }
         // Haze takes the sun's colour when looking toward it.
         float toward = pow( max( dot( dir, uSunDir ), 0.0 ), 6.0 );
         vec3 fogCol = mix( uFogColor, uFogSunColor, toward * 0.85 );

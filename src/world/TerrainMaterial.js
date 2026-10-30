@@ -72,7 +72,8 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
           float sn;
           vec4 rl = realmAt( vWPos.xz, sn );
           vec3 rockC = rockAlbedo( vWPos, wnClass, tw, rockHOut ) * mix( vec3( 1.0 ), rl.rgb, 0.75 );
-          rockC = mix( rockC, vec3( 0.88, 0.91, 0.97 ), clamp( sn, 0.0, 1.0 ) * smoothstep( 0.3, 0.7, wnClass.y + rockHOut * 0.3 ) );
+          // Snow on rock keeps the rock's relief: brighter on the ridges, grey in the hollows.
+          rockC = mix( rockC, vec3( 0.88, 0.91, 0.97 ) * ( 0.78 + 0.36 * rockHOut ), clamp( sn, 0.0, 1.0 ) * 0.9 * smoothstep( 0.25, 0.7, wnClass.y + rockHOut * 0.3 ) );
           ground = mix( ground, rockC, rockAmtOut );
         }
         diffuseColor.rgb *= ground;`
