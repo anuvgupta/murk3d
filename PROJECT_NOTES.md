@@ -999,3 +999,10 @@ screenshot-checked.
   bedding 0.9+0.2·band; `far = 1 − 0.55·detail` so near rock changes
   little (aef47bb + cleanup). Verify EB1–EB5 (alpine dusk + noon, citadel
   wall, canyon arch, Vale spires at noon — the Vale must not go stripy).
+- DZ (corrected free cams, all above ground): karst spires over the lake,
+  citadel crag castle, alpine lake with pines under granite, river-city
+  moat with jetty, canyon red rock — all keepers on feedback/verify. Cliff
+  ruins (into the cliff), jungle (inside canopy) and sky (bowl floor) were
+  bad placements, not render problems; sky needs a shot from an island
+  top. Remaining realm weakness: rim walls still soft at 60 m+ (EB will
+  show the flute/macro shading), grass on the realm floors is sparse.
