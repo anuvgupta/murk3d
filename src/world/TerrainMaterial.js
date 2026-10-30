@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import { regionUniforms, GROUND_GLSL } from './groundShading.js';
+import { TERRAIN_GRID } from './Terrain.js';
+const SINH_K = Math.sinh(TERRAIN_GRID.warp);
+const WORLD_HALF = TERRAIN_GRID.half;
 import { ROCK_GLSL } from './rockShading.js';
 import { TERRAIN_HEIGHT_GLSL } from './Terrain.js';
 
@@ -26,6 +29,21 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         `#include <project_vertex>
         vWPos = ( modelMatrix * vec4( transformed, 1.0 ) ).xyz;
         vWNormal = normalize( mat3( modelMatrix ) * objectNormal );`
+      )
+      .replace(
+        '#include <shadowmap_vertex>',
+        `#ifdef USE_SHADOWMAP
+        {
+          // Shadow terminator: the grid's cells grow toward the edge of the
+          // world (1.5 m in the Vale, 5 m in the realms), and a smooth-shaded
+          // face on a coarse mesh shadows itself in triangle-shaped patches.
+          // Push the shadow lookup off the surface in proportion to the cell.
+          float m = max( abs( vWPos.x ), abs( vWPos.z ) ) * ${SINH_K.toFixed(5)} / ${WORLD_HALF.toFixed(1)};
+          float cell = 1.54 * sqrt( 1.0 + m * m );
+          worldPosition.xyz += vWNormal * cell * 0.07;
+        }
+        #endif
+        #include <shadowmap_vertex>`
       );
 
     shader.fragmentShader = shader.fragmentShader

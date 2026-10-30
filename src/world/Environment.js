@@ -310,7 +310,7 @@ export class Environment {
       a.sunDir.copy(this.lightDir);
       a.sunVisible = smoothstep(-0.05, -0.16, elev);
       a.sunColor.setRGB(0.8, 0.86, 0.98);
-      a.disc = 3.5;
+      a.disc = 1.4; // bright enough to read, not so bright the craters burn out
       a.moon = 1;
       a.glow = 0.18;
       a.shaft = 0.03;
@@ -393,7 +393,7 @@ function createStars() {
   const star = new Float32Array(count * 3);
   for (let i = 0; i < count; i++) {
     const r = random();
-    star[i * 3] = r < 0.06 ? 3.2 + random() * 1.4 : r < 0.3 ? 2.4 + random() * 0.6 : 1.9 + random() * 0.4;
+    star[i * 3] = r < 0.05 ? 2.6 + random() * 0.9 : r < 0.25 ? 1.9 + random() * 0.4 : 1.4 + random() * 0.3;
     star[i * 3 + 1] = random() * 6.2832;
     star[i * 3 + 2] = 0.15 + random() * 0.35; // radians per second: a wink takes seconds, not frames
   }
@@ -425,7 +425,7 @@ function createStars() {
         '#include <opaque_fragment>',
         `{
           float rr = length( gl_PointCoord - 0.5 ) * 2.0;
-          diffuseColor.a *= exp( -rr * rr * 3.2 ) * smoothstep( 0.02, 0.35, vElev ) * ( 0.75 + 0.6 * vTwinkle );
+          diffuseColor.a *= exp( -rr * rr * 3.2 ) * smoothstep( 0.02, 0.35, vElev ) * ( 0.5 + 0.6 * vTwinkle );
         }
         #include <opaque_fragment>`
       );

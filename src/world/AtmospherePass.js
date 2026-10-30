@@ -229,7 +229,7 @@ const compositeShader = {
           // The moon: a crisp, slightly irregular limb, dark maria, a few
           // craters with bright rims, and a soft terminator a little short
           // of full so it is never a perfect disc.
-          vec2 m = off / uSunRadius;
+          vec2 m = off / ( uSunRadius * 2.0 ); // the moon is drawn twice the sun's size, as games do
           float wob = ( texture2D( uNoise, m * 0.9 + 0.37 ).g - 0.5 ) * 0.05;
           float limb = 1.0 - smoothstep( 0.93 + wob, 1.0 + wob, length( m ) );
           float maria = smoothstep( 0.35, 0.75, texture2D( uNoise, m * 0.42 + vec2( 0.21, 0.63 ) ).r );
