@@ -1146,3 +1146,9 @@ screenshot-checked.
   removed. Verify EX1–EX7 (alpine lit + tdebug 9, citadel, karst, Vale
   spires, bank close, canyon) — strengths 9–17 unchanged, may need
   retuning if the walls now look too smooth or too tilted.
+- EW verified: river town centre is cobbled (keeper), castle ward floors
+  paved, plaza at 08:49 with the fairy strings a keeper, river-city
+  postcard a keeper. The town's cobble edge frayed onto flat lawn (the
+  cleared ring) → towns now get a road disc r+3 and a fringe halo like
+  the plaza's, so setts fray into trodden earth. Verify EY1/EY2; EY3 is
+  the shelves plate close-up (brown lump in EU5).
