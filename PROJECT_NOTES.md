@@ -1035,3 +1035,12 @@ screenshot-checked.
   island's inside; retry EI with cam y 40 and a pos shot on the main top.
   Jungle at 18:00 (EF4) is a keeper; the temple is not in view from the
   approach though — find its site for a postcard.
+- EG: mesa flank still brown after three tweaks → the flank's middle is
+  ~55–60° (an S-profile over gentleWidth), so `carpet` and the blades die
+  there while `rockAmt` (0.36–0.52) hasn't started: a band of bare
+  dirtColor between grass and rock. Fix: rock takes over wherever the
+  carpet has died on a slope (rockAmt = max(rockAmt, (1−carpet)·0.75·
+  smoothstep(0.22,0.38,slope)) in groundColor and rockAmtOut) — steep =
+  stone with grass in the ledges, never mud (commit after EG). Verify
+  EJ1–EJ5. Road at 18:17 with the agaric, windmill and castle (EG4) is a
+  keeper.
