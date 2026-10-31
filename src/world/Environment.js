@@ -317,8 +317,8 @@ export class Environment {
     a.sunVisible = smoothstep(-0.03, 0.02, elev);
     // Glow colour: white-gold high, apricot low.
     a.sunColor.setRGB(1.0, 0.93, 0.8).lerp(this._tmpColor.setRGB(1.0, 0.72, 0.45), low);
-    a.shaft = 0.12 + 0.6 * low; // god rays: strongest at a low sun, where trees and roofs cut them
-    a.glow = 0.35 + 0.9 * low;
+    a.shaft = 0.25 + 0.85 * low; // god rays: strongest at a low sun, where trees and roofs cut them
+    a.glow = 0.5 + 1.1 * low;
     a.disc = 9.0;
     // Haze: pale blue-white by day, warm amber-rose at low sun, deep blue at night.
     // The haze darkens faster than the light does, so at twilight the far hills

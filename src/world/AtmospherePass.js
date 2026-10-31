@@ -41,7 +41,7 @@ const occlusionShader = {
       vec2 off = ( vUv - uSunScreen ) * vec2( uAspect, 1.0 );
       float r = length( off );
       // A soft disc round the sun; only sky counts, so trees and hills cut shafts.
-      float disc = smoothstep( 0.3, 0.0, r );
+      float disc = smoothstep( 0.42, 0.0, r );
       gl_FragColor = vec4( vec3( disc * sky * uSunVisible ), 1.0 );
     }
   `,
@@ -213,7 +213,7 @@ const compositeShader = {
         }
         shaft /= 40.0;
         // Sharpen so the rays read as streaks between the leaves, not a general haze.
-        shaft = pow( shaft, 1.35 ) * 1.3;
+        shaft = pow( shaft, 1.35 ) * 1.6;
         vec2 off = ( vUv - uSunScreen ) * vec2( uAspect, 1.0 );
         float r = length( off );
         // How much of the sun's neighbourhood is open sky (a mountain in front dims the halo).
@@ -249,24 +249,31 @@ const compositeShader = {
         // Corona: a bright inner halo and a wide soft skirt.
         float corona = exp( -r * r / ( uSunRadius * uSunRadius * 12.0 ) ) * 0.55 + exp( -r / ( uSunRadius * 14.0 ) ) * 0.45;
         float headroom = 1.0 - smoothstep( 0.6, 1.6, dot( color, vec3( 0.33 ) ) );
+        // A sun just behind a ridge or a crown still floods over the edge.
+        float openG = max( open, 0.3 );
         color += uSunColor * disc * uDiscStrength;
-        color += uSunColor * corona * uGlowStrength * ( 0.35 + 0.65 * open ) * ( 0.5 + 0.5 * headroom );
-        color += uSunColor * shaft * uShaftStrength * ( 0.4 + 0.6 * headroom );
+        color += uSunColor * corona * uGlowStrength * ( 0.5 + 0.5 * openG ) * ( 0.7 + 0.3 * headroom );
+        color += uSunColor * shaft * uShaftStrength * ( 0.7 + 0.3 * headroom );
         // Lens glare: looking near the sun, a few faint ghosts along the line
         // through the frame's centre and a thin horizontal streak. Subtle.
         if ( uMoon < 0.5 ) {
           vec2 c = ( uSunScreen - 0.5 ) * vec2( uAspect, 1.0 );
           vec2 pv = ( vUv - 0.5 ) * vec2( uAspect, 1.0 );
-          float facing = 1.0 - smoothstep( 0.1, 0.55, length( c ) );
+          float facing = 1.0 - smoothstep( 0.2, 0.8, length( c ) );
           float ghosts = 0.0;
-          for ( int i = 0; i < 4; i++ ) {
-            float k = float( i ) * 0.55 - 0.75; // positions along the sun->centre axis
-            float gr = 0.03 + 0.025 * float( i );
+          for ( int i = 0; i < 5; i++ ) {
+            float k = float( i ) * 0.5 - 0.9; // positions along the sun->centre axis
+            float gr = 0.035 + 0.03 * float( i );
             float gd = length( pv - c * k ) / gr;
-            ghosts += ( 1.0 - smoothstep( 0.6, 1.0, gd ) ) * ( 0.5 + 0.5 * smoothstep( 0.0, 0.8, gd ) ) * 0.06;
+            // Hollow rings with a bright rim, warm near the sun and cooler past the centre.
+            ghosts += ( 1.0 - smoothstep( 0.7, 1.0, gd ) ) * ( 0.35 + 0.65 * smoothstep( 0.2, 0.85, gd ) ) * 0.16;
           }
-          float streak = exp( -abs( pv.y - c.y ) * 140.0 ) * exp( -abs( pv.x - c.x ) * 2.2 ) * 0.12;
-          color += uSunColor * ( ghosts + streak ) * facing * open * uSunVisible * ( 0.3 + 0.7 * headroom );
+          // Anamorphic streak: a thin horizontal line through the sun, long and soft.
+          float streak = exp( -abs( pv.y - c.y ) * 90.0 ) * exp( -abs( pv.x - c.x ) * 1.6 ) * 0.34;
+          // A six-point star of thin spokes right around the disc.
+          float ang = atan( pv.y - c.y, pv.x - c.x );
+          float spokes = pow( abs( cos( ang * 3.0 ) ), 24.0 ) * exp( -length( pv - c ) * 9.0 ) * 0.5;
+          color += uSunColor * ( ghosts + streak + spokes ) * facing * openG * uSunVisible * ( 0.6 + 0.4 * headroom );
         }
       }
 
