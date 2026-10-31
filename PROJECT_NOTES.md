@@ -1196,3 +1196,10 @@ screenshot-checked.
   river noon + morning keepers on verify. Next survey FC: castle ward
   (now paved) from the corridor and wide, crypt inside/door, glade at
   19:12, citadel town street.
+- FC: glade 19:12 and crypt door keepers (verify). Crypt interior is
+  acceptable now (mossy patches, chest lit). Castle ward corridor still
+  blank ashlar → wallRun now hangs lanterns (every ~7 m, x = −thick/2
+  side, assumed inner) and banners between on the ward side; rock
+  overhang undersides tinted cool (n.y < 0) for the shelves plate. The
+  wall-side assumption needs checking in the FD renders (if the lanterns
+  landed on the outer face, flip the sign). FC2/FC6 were bad spots.
