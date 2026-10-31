@@ -32,6 +32,7 @@ export class Village {
     this.decks = [];
     this.landmarks = [];
     this.lanterns = []; // world positions of the lantern flames
+    this.worn = []; // ground trodden bare under worked spots: { x0, z0, x1, z1, r, dirt }
     this.animated = []; // { group, axis, speed }
     const kit = new Kit();
     const chimneys = [];
@@ -143,6 +144,13 @@ export class Village {
       });
       for (const c of info.colliders || [{ cx: 0, cz: 0, hx: info.hx, hz: info.hz }]) this.colliders.push(worldBox({ ...c, rot: 0 }, x, z, ry));
       this.landmarks.push({ name, x, z, r: Math.max(info.hx, info.hz) + 0.5 });
+      // The ground under and around it is trodden bare (a segment along its long axis).
+      const long = Math.max(info.hx, info.hz);
+      const short = Math.min(info.hx, info.hz);
+      const along = info.hx >= info.hz ? ry + Math.PI / 2 : ry;
+      const ax = Math.sin(along) * (long - short);
+      const az = Math.cos(along) * (long - short);
+      this.worn.push({ x0: x - ax, z0: z - az, x1: x + ax, z1: z + az, r: short + 0.4, dirt: true });
     };
     place(PLAZA.x + PLAZA.radius - 2.6, PLAZA.z + 2.4, -Math.PI / 2, (k) => alchemyStall(k, m, im, fm), 'alchemist');
     place(PLAZA.x + PLAZA.radius - 1.2, PLAZA.z - 3.4, -Math.PI / 2, (k) => armoury(k, m, im, fm), 'armoury');

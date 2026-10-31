@@ -281,6 +281,7 @@ export class GroundMask {
   cutSegments(list) {
     const d = this.data;
     for (const s of list) {
+      if (s.dirt) this.tread(s);
       const pad = s.r + 0.8;
       const px0 = Math.max(0, Math.floor(toPx(Math.min(s.x0, s.x1) - pad)));
       const px1 = Math.min(SIZE - 1, Math.ceil(toPx(Math.max(s.x0, s.x1) + pad)));
@@ -306,4 +307,28 @@ export class GroundMask {
 }
 
 // Shader-side mapping from world xz to mask uv.
+GroundMask.prototype.tread = function (s) {
+  // Ground trodden bare around a worked spot (a smithy, a tavern's tables):
+  // the road channel comes up so the earth shows, fading out over a metre.
+  const d = this.data;
+  const r = s.r + 0.6;
+  const px0 = Math.max(0, Math.floor(toPx(Math.min(s.x0, s.x1) - r - 1)));
+  const px1 = Math.min(SIZE - 1, Math.ceil(toPx(Math.max(s.x0, s.x1) + r + 1)));
+  const pz0 = Math.max(0, Math.floor(toPx(Math.min(s.z0, s.z1) - r - 1)));
+  const pz1 = Math.min(SIZE - 1, Math.ceil(toPx(Math.max(s.z0, s.z1) + r + 1)));
+  const ex = s.x1 - s.x0;
+  const ez = s.z1 - s.z0;
+  const len2 = ex * ex + ez * ez || 1;
+  for (let pz = pz0; pz <= pz1; pz++) {
+    for (let px = px0; px <= px1; px++) {
+      const x = (px + 0.5) / PX - WORLD_HALF;
+      const z = (pz + 0.5) / PX - WORLD_HALF;
+      const t = Math.max(0, Math.min(1, ((x - s.x0) * ex + (z - s.z0) * ez) / len2));
+      const dist = Math.hypot(x - s.x0 - ex * t, z - s.z0 - ez * t);
+      const worn = 1 - Math.min(1, Math.max(0, (dist - r) / 1.2));
+      const o = (pz * SIZE + px) * 4;
+      d[o + 1] = Math.max(d[o + 1], Math.round(255 * worn * 0.85));
+    }
+  }
+};
 export const MASK_UV_GLSL = `( ( p.xz + ${WORLD_HALF.toFixed(1)} ) / ${WORLD_SIZE.toFixed(1)} )`;

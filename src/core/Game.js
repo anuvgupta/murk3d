@@ -250,7 +250,7 @@ export class Game {
     this.wind.addShelter(this.forest.placed);
     this.logs = new FallenLogs({ terrain: this.terrain, forest: this.forest, noise: this.noiseTexture });
     scene.add(this.logs.group);
-    this.groundMask.cutSegments(this.logs.logs);
+    this.groundMask.cutSegments([...this.logs.logs, ...this.village.worn]);
     await mark('trees');
 
     this.motes = new Motes({ wind: this.wind, sun: this.sunInfo });
