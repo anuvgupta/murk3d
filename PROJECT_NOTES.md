@@ -1079,3 +1079,11 @@ screenshot-checked.
   stats identical → it is time-of-day (11:00, 14:00 white; 16:00, 18:12
   clear) from cam (445,40,345); EO (first-shot test) and EP (flat grey /
   noShadow / y 70 / Vale control at 11:00) queued.
+- Sky white-out solved: EO1 (11:00, first shot) white, EO3 (same params,
+  third shot) and EO4 (13:00) clear → a harness artefact: a free-cam
+  shot's first frame in a batch carries stale atmosphere state. view2
+  now warms cam shots 3 frames by default. EP diagnostics cancelled.
+  Floating isles at 13:00 is a keeper (verify). Wall-normal diagnostics
+  EN: vertex normal, flat grey and baked slope are all smooth → the
+  noise is made in the fragment normal; ER (tdebug 8 bump-only / 9
+  macro-only) will say which.
