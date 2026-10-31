@@ -1152,3 +1152,11 @@ screenshot-checked.
   cleared ring) → towns now get a road disc r+3 and a fringe halo like
   the plaza's, so setts fray into trodden earth. Verify EY1/EY2; EY3 is
   the shelves plate close-up (brown lump in EU5).
+- EX verified: the analytic macro relief works — alpine walls now show
+  buttresses and gullies with smooth shading (EX1 keeper), macro view
+  (tdebug 9) is clean, karst/canyon/Vale spires/bank unchanged and good.
+  Residual fine streaking on the citadel wall at dusk is the albedo
+  gully/meso texture terms, not the normal — acceptable, could fade
+  with detail later. Next: water survey (river close/bridge, lake jetty
+  noon, alpine lake shore, cliff-ruins falls) — water has not been
+  reviewed this session.
