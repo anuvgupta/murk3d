@@ -59,7 +59,7 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         float rockHOut;
         uniform int uDebug;
         const float CELL0 = 1.1488; // grid cell at the world's centre, metres
-        vec3 dbgGround; float dbgCarpet;
+        vec3 dbgGround; float dbgCarpet; vec3 dbgBump = vec3( 0.0 ); vec3 dbgMacro = vec3( 0.0 );
         float rockDetail;
         uniform sampler2D uHeightMap;
         ${TERRAIN_HEIGHT_GLSL}
@@ -147,6 +147,8 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         if ( uDebug == 5 ) { gl_FragColor = vec4( 0.5, 0.5, 0.5, 1.0 ); return; }
         if ( uDebug == 6 ) { gl_FragColor = vec4( vec3( terrainSlope( vWPos.xz ) ), 1.0 ); return; }
         if ( uDebug == 7 ) { gl_FragColor = vec4( vec3( wnClass.y ), 1.0 ); return; }
+        if ( uDebug == 8 ) { gl_FragColor = vec4( dbgBump * 0.5 + 0.5, 1.0 ); return; }
+        if ( uDebug == 9 ) { gl_FragColor = vec4( dbgMacro * 0.5 + 0.5, 1.0 ); return; }
         #if NUM_HEMI_LIGHTS > 0
         {
           // Snow in shadow is lit by the whole sky: bright blue-white, never grey.
@@ -172,8 +174,10 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         // a pixel and it turns a cliff into grey felt. Distant relief comes
         // from the analytic macro normal instead, which stays smooth.
         normal = bumpNormal( -vViewPosition, normal, rockHOut, ( 3.4 * rockAmtOut + 0.6 * bankAmt ) * rockDetail * rockDetail * rockDetail );
+        dbgBump = normal;
         if ( rockAmtOut > 0.01 ) {
           vec3 wn2 = macroNormal( vWPos, normalize( vWNormal ), ( 9.0 + 8.0 * ( 1.0 - rockDetail ) ) * rockAmtOut );
+          dbgMacro = wn2;
           vec3 vn2 = normalize( ( viewMatrix * vec4( wn2, 0.0 ) ).xyz );
           normal = normalize( mix( normal, vn2, 0.75 ) );
         }`
