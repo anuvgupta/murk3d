@@ -1044,3 +1044,10 @@ screenshot-checked.
   stone with grass in the ledges, never mud (commit after EG). Verify
   EJ1–EJ5. Road at 18:17 with the agaric, windmill and castle (EG4) is a
   keeper.
+- EH diagnostics settled it: unlit albedo (tdebug 3) on the alpine wall is
+  smooth, no-shadow render still fuzzy, and the shading normal (tdebug 4)
+  is pure high-frequency noise → the felt is the derivative bump at
+  10–60 m. Detail ramp now 6→42 m (was 12→70) on terrain and boulders,
+  bump weight detail³ (zero beyond ~42 m); macro normal carries the
+  distance. Verify EK1–EK6 incl. normal view, Vale spires/bank/karst/
+  citadel (watch for the Vale's near cliffs going smooth at 20–40 m).
