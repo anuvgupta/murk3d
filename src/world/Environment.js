@@ -65,7 +65,7 @@ const PALETTE = {
   fogDay: C(0xb9cde4),
   fogGolden: C(0xe2a383),
   fogNight: C(0x0b0f19),
-  hemiSkyDay: C(0xd3d8d6),
+  hemiSkyDay: C(0xc4d2e4), // the open sky is blue: shade under a noon sun is cool, not grey-brown
   hemiSkyGolden: C(0xf0b08a),
   hemiSkyNight: C(0x5a6fa8),
   hemiGround: C(0x7e8660), // bounce off a meadow is olive-green, not brown: shaded slopes stay grass
