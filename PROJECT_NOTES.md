@@ -1173,3 +1173,9 @@ screenshot-checked.
   plate in shade, forest shade, village noon, overlook, castle gate,
   bank). If grass in shade goes too cyan, pull toward 0xcad4df. All
   feedback issues are closed except #1 (vision).
+- Water survey EZ: river at noon and 18:30, lake from the jetty at noon
+  and 23:00 (moonlit, keeper), alpine lake under granite, cliff-ruins
+  falls — all read well; keepers on verify. Weak spot: the river's shore
+  is a hard, even white band along both banks (reads as a painted
+  outline at 10 m+); candidate: break the foam line with noise along
+  the bank and fade it with distance.
