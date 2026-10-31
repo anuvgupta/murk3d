@@ -1217,3 +1217,13 @@ screenshot-checked.
   terrace riser. Castle at 22:00 from the road (FE4) is a keeper. FF:
   top-down night/day over the plateau (lantern glows show which face
   they landed on) and a true outer-ward corridor spot [165,−223].
+- FF: the ward lanterns and banners are on the ward side (FF3, outer
+  ward corridor at [165,−223] yaw −0.858) and the top-down day shot
+  (FF2) is a keeper. At night the corridor was black: wall lanterns had
+  no point lights. New: Game.lanternPool — 8 PointLights (0xffb060,
+  d 15, decay 1.6) assigned each frame to the nearest lantern posts
+  within 60 m (village porch lanterns via Village.lanterns, every castle
+  lantern via Castle.lanterns/worldLamps), fading 35→58 m, flicker.
+  Replaces the fixed 4-per-castle lights; the well light stays. view2:
+  `top` shots now warm 3 frames and spawn the player under the camera
+  (FF1 was the first-shot artefact again). Verify FG1–FG6.
