@@ -50,7 +50,24 @@ Do them one at a time, oldest first, unless the owner says otherwise.
 
 ## 4. Pending work in flight
 
-- **#58 (black line down the sky):** being finished by this session as the handoff is written. If it's still open when you start, it is shipped or nearly shipped. See the closing comment.
+- **#58 (black line down the sky): fixed but NOT shipped. This is your first job.** The fix is commit `e4bcd73` on branch `claude/vigilant-euler-pdmwx2`, one file (`src/world/Environment.js`), not yet on `main`. To finish:
+  1. Cherry-pick it onto `main` (or rebase the branch onto `origin/main`).
+  2. Build and verify (three passes):
+     - Old vs new at `?at=-113.46,18.96,-1.344,0.262,17.57` at 1836×1054, with the strict-GPU shader patch below applied to both. The old build should show a navy line straight up from the karst summit about 810 m out, at bearing −14.6°; the new build should show none.
+     - A dusk view facing the sun (~19.8 h), showing the afterglow unchanged.
+     - A slow turn across the anti-sun direction.
+  3. Push to `main`, attach the images to #58 and close it with the explanation below.
+
+  The patch for the old build (it is a no-op on the new one):
+
+  ```js
+  const m = game.environment.sky.material;
+  m.fragmentShader = m.fragmentShader.replace(
+    'pow( toward, 3.0 )',
+    '( toward < 0.0 ? intBitsToFloat( 0x7fc00000 ) : pow( toward, 3.0 ) )'
+  );
+  m.needsUpdate = true;
+  ```
 
   **Root cause:** the sky's afterglow term did `pow(toward, 3.0)` where `toward = 0.5 + 0.5*dot(sunH, dirH)`. Straight away from the sun, the dot product rounds a hair below −1, so `toward` is slightly negative. `pow` of a negative is NaN on real GPUs, and `below * NaN` stays NaN even by day. `clamp()` then turns NaN into 0, the navy night floor shows through, and the NaN guard after the clamp never fires. The result is a dashed navy line down the anti-sun meridian.
 
