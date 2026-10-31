@@ -1130,3 +1130,10 @@ screenshot-checked.
   channels headlessly (maskprobe.cjs) to see whether the cobble channel
   reaches the island. Shelves plate (EU5) close-up is a brown lump —
   revisit the plate rock after the wall-noise work.
+- River-town paving bug found by the mask probe: cobble channel 0 across
+  the island (plaza 1). GroundMask painted the town/ward cobble discs
+  BEFORE the "cobbled plaza" block's black fillRect, which wiped them.
+  Black ground now laid right after the layer is made (12bd491). The
+  castle wards were affected the same way (so the "plain ward corridor"
+  floor was never cobbled). Verify EW1–EW5 (river street + centre, castle
+  ward, plaza control, river-city postcard).
