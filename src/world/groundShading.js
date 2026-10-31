@@ -340,7 +340,12 @@ export const GROUND_GLSL = /* glsl */ `
     // ground is rock, not a field of bare mud: a 50° hillside is stone with
     // grass in its ledges, never brown earth.
     rockAmt = max( rockAmt, ( 1.0 - carpet ) * 0.75 * smoothstep( 0.22, 0.38, slope ) );
-    c = mix( c, tintRock( rockColor( p, nrm ), rr ), rockAmt );
+    {
+      // Turf and moss veil the rock on moderate slopes where the meadow grows (see TerrainMaterial).
+      float veil = smoothstep( 0.5, 0.78, nrm.y ) * smoothstep( 0.3, 0.8, m.r ) * ( 0.45 + 0.55 * texture( uNoise, p.xz * 0.09 + 0.4 ).g );
+      vec3 rockC = mix( tintRock( rockColor( p, nrm ), rr ), meadowColor( p.xz, n ) * vec3( 0.9, 1.0, 0.8 ) * 0.85, veil * 0.85 );
+      c = mix( c, rockC, rockAmt );
+    }
 
     float snowLine = 150.0 + ( n.x - 0.5 ) * 50.0;
     // Steep faces keep a dusting, so a far peak reads as one snowy mass

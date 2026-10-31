@@ -123,6 +123,15 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
           vec4 rl = realmAt( vWPos.xz, sn );
           vec3 rockC = tintRock( rockAlbedo( vWPos, wnClass, tw, rockHOut ), rr );
           // Snow on rock keeps the rock's relief: brighter on the ridges, grey in the hollows.
+          // A veil of turf and moss over rock on moderate slopes (45–60°) where
+          // the meadow grows around it: the hillsides read green with stone
+          // showing through, not as bare brown rock from foot to crest.
+          {
+            float veil = smoothstep( 0.5, 0.78, wn.y + ( rockHOut - 0.5 ) * 0.25 ) * smoothstep( 0.3, 0.8, texture( uMask, maskUv( vWPos.xz ) ).r )
+                       * ( 0.45 + 0.55 * texture( uNoise, vWPos.xz * 0.09 + 0.4 ).g );
+            vec3 veilC = meadowColor( vWPos.xz, groundNoise( vWPos.xz ) ) * vec3( 0.9, 1.0, 0.8 ) * ( 0.75 + 0.3 * rockHOut );
+            rockC = mix( rockC, veilC, veil * 0.85 );
+          }
           rockC = mix( rockC, vec3( 0.88, 0.91, 0.97 ) * ( 0.78 + 0.36 * rockHOut ), clamp( sn, 0.0, 1.0 ) * 0.9 * smoothstep( 0.25, 0.7, wn.y + rockHOut * 0.3 ) );
           ground = mix( ground, rockC, rockAmtOut );
         }
