@@ -1179,3 +1179,7 @@ screenshot-checked.
   is a hard, even white band along both banks (reads as a painted
   outline at 10 m+); candidate: break the foam line with noise along
   the bank and fade it with distance.
+- Shore foam: the `shore*0.45` bias made the band solid everywhere →
+  gated by a 0.07-scale bank noise (0.35–1.0 weight), thresholds 0.5–0.8,
+  and faded 25→70 m by vViewPosition (Water.js). Verify FB1–FB5 (river
+  noon/golden/morning, jetty, bank from above).
