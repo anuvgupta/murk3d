@@ -214,7 +214,7 @@ export class Game {
     // (a point light per lantern would cost every fragment in the scene).
     this.lanternPosts = [...this.village.lanterns, ...this.castles.flatMap((c) => c.worldLamps())];
     this.lanternPool = [];
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 10; i++) {
       const light = new THREE.PointLight(0xffb060, 0, 15, 1.6);
       light.visible = false;
       scene.add(light);
@@ -230,6 +230,8 @@ export class Game {
     scene.add(this.crystals.group);
     this.mushrooms = new Mushrooms({ terrain: this.terrain, noise: this.noiseTexture });
     scene.add(this.mushrooms.group);
+    // The giant mushrooms light their surroundings at night from the same pool.
+    this.lanternPosts.push(...this.mushrooms.lights);
     await mark('mushrooms');
     this.falls = new Falls({ terrain: this.terrain, noise: this.noiseTexture });
     scene.add(this.falls.group);
@@ -697,7 +699,7 @@ export class Game {
     this.motes.update(dt, this.player.position, this.terrain, env.nightFactor, env.lightLevel);
     if (!this.active) this.portals.update(dt, { x: 1e9, y: 0, z: 1e9 });
     this.falls.update(dt);
-    this.mushrooms.update(env.nightFactor);
+    this.mushrooms.update(env.nightFactor, env.exposure);
     if (this.castleLights) {
       const lf = 0.9 + 0.1 * Math.sin(this.elapsed * 11.3);
       for (const l of this.castleLights) l.intensity = env.nightFactor * 9 * lf;
@@ -732,7 +734,9 @@ export class Game {
       const fade = 1 - THREE.MathUtils.smoothstep(d, 35, 58);
       const flicker = 0.88 + 0.12 * Math.sin(this.elapsed * (9.7 + (i % 3) * 2.3) + n.q.x);
       l.position.copy(n.q);
-      l.intensity = night * 7 * fade * flicker;
+      l.color.set(n.q.color ?? 0xffb060);
+      l.distance = n.q.distance ?? 15;
+      l.intensity = night * (n.q.intensity ?? 7) * fade * flicker;
       l.visible = l.intensity > 0.01;
     }
   }

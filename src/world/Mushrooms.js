@@ -9,13 +9,19 @@ import { mulberry32 } from '../util/noise.js';
 // and bounce you when you land on their caps, and clumps of small white,
 // violet and brown ones along the road verges and the forest floor. Every
 // kind is one merged geometry (stem, cap, warts) with baked vertex colours
-// and a per-vertex glow weight, instanced once per kind.
+// and a per-vertex glow weight and glow colour, instanced once per kind.
+//
+// At night a mushroom keeps its own colours and gives off light: the cap and
+// the upper stem glow the cap's red, the lower stem a yellow-white, as if the
+// cap lit the stem under it and the foot lit the ground. The glow colours
+// are saturated and the glow kept well under the tone mapper's shoulder, so
+// a lit mushroom reads as red and cream rather than bleaching to white.
 
 const KINDS = {
-  agaric: { cap: [0.78, 0.15, 0.1], capRim: [0.95, 0.42, 0.22], stem: [0.9, 0.87, 0.78], warts: true, glow: [1.0, 0.25], squat: 0 },
-  white: { cap: [0.9, 0.88, 0.8], capRim: [0.82, 0.78, 0.68], stem: [0.86, 0.83, 0.74], warts: false, glow: [0.6, 0.25], squat: 0.2 },
-  violet: { cap: [0.46, 0.3, 0.62], capRim: [0.62, 0.45, 0.78], stem: [0.78, 0.74, 0.8], warts: false, glow: [1.2, 0.4], squat: 0.1 },
-  brown: { cap: [0.48, 0.36, 0.24], capRim: [0.62, 0.5, 0.34], stem: [0.76, 0.7, 0.58], warts: false, glow: [0.0, 0.0], squat: 0.45 },
+  agaric: { cap: [0.78, 0.15, 0.1], capRim: [0.95, 0.42, 0.22], stem: [0.9, 0.87, 0.78], warts: true, glow: [1.0, 0.55], squat: 0, emit: [[1.0, 0.1, 0.03], [1.0, 0.8, 0.45]] },
+  white: { cap: [0.9, 0.88, 0.8], capRim: [0.82, 0.78, 0.68], stem: [0.86, 0.83, 0.74], warts: false, glow: [0.6, 0.35], squat: 0.2, emit: [[1.0, 0.92, 0.7], [1.0, 0.9, 0.65]] },
+  violet: { cap: [0.46, 0.3, 0.62], capRim: [0.62, 0.45, 0.78], stem: [0.78, 0.74, 0.8], warts: false, glow: [1.2, 0.5], squat: 0.1, emit: [[0.6, 0.3, 1.0], [0.85, 0.7, 1.0]] },
+  brown: { cap: [0.48, 0.36, 0.24], capRim: [0.62, 0.5, 0.34], stem: [0.76, 0.7, 0.58], warts: false, glow: [0.0, 0.0], squat: 0.45, emit: [[0, 0, 0], [0, 0, 0]] },
 };
 
 // Proportions for a 1-unit mushroom: a squat, gnarled stem on a thick foot,
@@ -33,19 +39,27 @@ function capPoint(t, squat) {
 }
 
 // part: 0 stem, 1 cap (and its warts), 2 the cap's underside; the shader
-// gives each its own surface.
-function paint(g, rgb, glow, part = 0) {
+// gives each its own surface. emit is the glow colour, a constant or a
+// function of the vertex's rest height.
+function paint(g, rgb, glow, part = 0, emit = [0, 0, 0]) {
   const n = g.attributes.position.count;
   const c = new Float32Array(n * 3);
   const w = new Float32Array(n);
+  const e = new Float32Array(n * 3);
+  const rest = g.attributes.rest || g.attributes.position;
   for (let i = 0; i < n; i++) {
     c[i * 3] = rgb[0];
     c[i * 3 + 1] = rgb[1];
     c[i * 3 + 2] = rgb[2];
     w[i] = glow;
+    const ec = typeof emit === 'function' ? emit(rest.getY(i)) : emit;
+    e[i * 3] = ec[0];
+    e[i * 3 + 1] = ec[1];
+    e[i * 3 + 2] = ec[2];
   }
   g.setAttribute('color', new THREE.BufferAttribute(c, 3));
   g.setAttribute('glow', new THREE.BufferAttribute(w, 1));
+  g.setAttribute('emit', new THREE.BufferAttribute(e, 3));
   g.setAttribute('part', new THREE.BufferAttribute(new Float32Array(n).fill(part), 1));
   if (!g.attributes.rest) g.setAttribute('rest', g.attributes.position.clone());
   g.deleteAttribute('uv');
@@ -188,7 +202,12 @@ function mushroomGeometry(kind, seed) {
       n.setXYZ(b, v.x, v.y, v.z);
     }
   }
-  parts.push(paint(stem, K.stem, K.glow[1]));
+  // Red where the cap's light falls on the upper stem, yellow-white below.
+  const mixEmit = (y) => {
+    const t = THREE.MathUtils.smoothstep(y / STEM_H, 0.3, 0.6);
+    return K.emit[1].map((v, k) => v + (K.emit[0][k] - v) * t);
+  };
+  parts.push(paint(stem, K.stem, K.glow[1], 0, mixEmit));
 
   // Cap: a dome, a rolled rim and a dished underside with the gills' hint.
   const prof = [];
@@ -207,6 +226,7 @@ function mushroomGeometry(kind, seed) {
     const c = new Float32Array(n * 3);
     const w = new Float32Array(n);
     const part = new Float32Array(n);
+    const e = new Float32Array(n * 3);
     const top = capPoint(0, K.squat).y;
     for (let i = 0; i < n; i++) {
       const y = cp.getY(i);
@@ -216,9 +236,13 @@ function mushroomGeometry(kind, seed) {
       c[i * 3] = col[0];
       c[i * 3 + 1] = col[1];
       c[i * 3 + 2] = col[2];
-      w[i] = under ? K.glow[1] * 0.6 : K.glow[0] * (1 - 0.5 * t);
+      w[i] = under ? K.glow[1] * 0.8 : K.glow[0] * (1 - 0.35 * t);
       part[i] = under ? 2 : 1;
+      e[i * 3] = K.emit[0][0];
+      e[i * 3 + 1] = K.emit[0][1];
+      e[i * 3 + 2] = K.emit[0][2];
     }
+    cap.setAttribute('emit', new THREE.BufferAttribute(e, 3));
     cap.setAttribute('color', new THREE.BufferAttribute(c, 3));
     cap.setAttribute('glow', new THREE.BufferAttribute(w, 1));
     cap.setAttribute('part', new THREE.BufferAttribute(part, 1));
@@ -240,7 +264,7 @@ function mushroomGeometry(kind, seed) {
       const m = new THREE.Matrix4().makeRotationY(-a).multiply(new THREE.Matrix4().makeRotationZ(-slope * 0.9));
       g.applyMatrix4(m);
       g.translate(Math.cos(a) * p.r, p.y - s * 0.06, Math.sin(a) * p.r);
-      capParts.push(paint(g, [0.96, 0.94, 0.86], 0.5, 1));
+      capParts.push(paint(g, [0.96, 0.94, 0.86], 0.35, 1, [1.0, 0.8, 0.55]));
     }
   }
   // Seat the cap on the bent stem's top, tipped the way the stem leans.
@@ -271,6 +295,7 @@ export class Mushrooms {
     this.colliders = [];
     this._p = new THREE.Vector3();
     this.giants = []; // { x, z, y, s, top, r, grid, matrix, inverse }
+    this.lights = []; // point lights for the lantern pool: { x, y, z, color, intensity, distance }
     const rng = mulberry32(4242);
     this.rng = rng;
     this.instances = { agaric: [], white: [], violet: [], brown: [] };
@@ -289,10 +314,10 @@ export class Mushrooms {
       shader.uniforms.uNoise = { value: noise };
       this.shader = shader;
       shader.vertexShader = shader.vertexShader
-        .replace('#include <common>', '#include <common>\nattribute float glow;\nattribute float part;\nattribute vec3 rest;\nvarying float vGlow;\nvarying float vPart;\nvarying vec3 vLocal;\nvarying vec3 vMNormal;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = glow;\nvPart = part;\nvLocal = rest;\nvMNormal = objectNormal;');
+        .replace('#include <common>', '#include <common>\nattribute float glow;\nattribute float part;\nattribute vec3 rest;\nattribute vec3 emit;\nvarying float vGlow;\nvarying float vPart;\nvarying vec3 vLocal;\nvarying vec3 vMNormal;\nvarying vec3 vEmit;')
+        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGlow = glow;\nvPart = part;\nvLocal = rest;\nvMNormal = objectNormal;\nvEmit = emit;');
       shader.fragmentShader = shader.fragmentShader
-        .replace('#include <common>', '#include <common>\nuniform float uGlow;\nuniform sampler2D uNoise;\nvarying float vGlow;\nvarying float vPart;\nvarying vec3 vLocal;\nvarying vec3 vMNormal;\nfloat mushH;')
+        .replace('#include <common>', '#include <common>\nuniform float uGlow;\nuniform sampler2D uNoise;\nvarying float vGlow;\nvarying float vPart;\nvarying vec3 vLocal;\nvarying vec3 vMNormal;\nvarying vec3 vEmit;\nfloat mushH;')
         .replace(
           '#include <color_fragment>',
           `#include <color_fragment>
@@ -338,7 +363,9 @@ export class Mushrooms {
         .replace(
           '#include <emissivemap_fragment>',
           `#include <emissivemap_fragment>
-          totalEmissiveRadiance += vColor.rgb * vGlow * uGlow;`
+          // The glow colour, not the surface colour: the surface keeps its
+          // own look (mottle, fibres, gills) and the light is added over it.
+          totalEmissiveRadiance += vEmit * vGlow * uGlow;`
         );
     };
     const dummy = new THREE.Object3D();
@@ -378,6 +405,12 @@ export class Mushrooms {
         new THREE.Vector3(x, y, z),
         new THREE.Quaternion().setFromEuler(new THREE.Euler(m.rx, m.ry, m.rz)),
         new THREE.Vector3(s, s, s)
+      );
+      // Two pooled lights per giant: the cap's red under the cap, and the
+      // foot's yellow-white on the ground around it.
+      this.lights.push(
+        { x, y: y + (STEM_H + 0.1) * s, z, color: 0xff4010, intensity: 1.8 * s, distance: 9 * s },
+        { x, y: y + 0.3 * s, z, color: 0xffcc80, intensity: 0.9 * s, distance: 5 * s }
       );
       this.giants.push({ x: x + (cap.cx * c + cap.cz * sn) * s, z: z + (-cap.cx * sn + cap.cz * c) * s, y, s, top: cap.top, r: cap.r, grid: cap.grid, matrix, inverse: matrix.clone().invert() });
       // The stem leans: a rounded collider from the foot to under the cap,
@@ -510,8 +543,11 @@ export class Mushrooms {
     return false;
   }
 
-  // Glow: faint by day, bright by night.
-  update(nightFactor) {
-    if (this.shader) this.shader.uniforms.uGlow.value = 0.15 + 1.8 * nightFactor;
+  // Glow: faint by day, bright by night. Set after exposure so the glow
+  // lands at a fixed brightness on screen (about 0.45 at night): the eye
+  // opens up 2.6x after dark, and left alone that pushed the red into the
+  // tone mapper's shoulder, where it bleaches to peach and white.
+  update(nightFactor, exposure = 1) {
+    if (this.shader) this.shader.uniforms.uGlow.value = (0.05 + 0.4 * nightFactor) / exposure;
   }
 }
