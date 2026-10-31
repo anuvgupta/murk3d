@@ -1020,3 +1020,10 @@ screenshot-checked.
   rocks 3.2·d²) and macroNormal strength grows at distance (9+8·(1−d))
   — 6e6334c. Canyon 15:00 and Vale spires at noon unchanged (keepers).
   Verify EE1–EE5 (alpine dusk/noon, citadel wall, karst, bank close).
+- ED: overlook noon, village golden (fairy strings read by day too) and
+  forest shade are keepers; the mesa flank stayed brown after the hemi
+  change, so the brown is the bank/rock mix at slope ≈0.3–0.4 (a 45°+
+  hillside), not the lighting → bank thresholds shift +0.1 where the
+  grass mask is high (`sward`), so a sward stays green past 45° (d3ed266).
+  Verify EG1–EG4. Sky/jungle postcards (EF) re-placed: island-top cam
+  [450,24,340]→[521,14,338], jungle pos [-430,345] yaw 1.0.
