@@ -234,7 +234,11 @@ export class Water {
           float fn2 = texture( uNoise, vWPos.xz * 0.9 - fdir * uTime * fspeed * 0.6 ).b;
           float shore = 1.0 - smoothstep( 0.0, 0.45, depth );
           float rapids = smoothstep( 1.6, 3.2, vFlow.z );
-          waterFoam = clamp( smoothstep( 0.45, 0.75, fn * 0.6 + fn2 * 0.5 + shore * 0.45 ) * ( shore + rapids ), 0.0, 1.0 );
+          // The shore froths in stretches, not as one even white outline: a slow
+          // noise along the bank gates it, and from afar the band thins away.
+          float gate = smoothstep( 0.3, 0.7, texture( uNoise, vWPos.xz * 0.07 + 0.3 ).g );
+          float farW = 1.0 - smoothstep( 25.0, 70.0, length( vViewPosition ) );
+          waterFoam = clamp( smoothstep( 0.5, 0.8, fn * 0.6 + fn2 * 0.5 + shore * 0.3 * gate ) * ( shore * ( 0.35 + 0.65 * gate ) * farW + rapids ), 0.0, 1.0 );
 
           diffuseColor.rgb = mix( waterCol, vec3( 0.82, 0.86, 0.85 ), waterFoam );
           // Clear in the shallows, opaque in the deep; fade out at the very edge.
