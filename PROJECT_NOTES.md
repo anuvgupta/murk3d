@@ -1240,3 +1240,9 @@ screenshot-checked.
   tavern / chest shots mis-aimed (yaw sign: yaw = −atan2(dx, −dz) from
   camera to target). Re-aimed FI batch: smithy, tavern tables (74,−30),
   the three chests.
+- FI: smithy and tavern tables stood in waist-high grass (placed after
+  the mask bake, no footprint). Village.place now records a `worn`
+  segment per placed piece; GroundMask.cutSegments clears the grass and,
+  for `dirt` segments, `tread()` raises the road channel (0.85) around
+  it, fading over 1.2 m — so the ground reads as packed earth. Chests
+  on the plaza edge and the overlook are fine (verify). Re-check FJ1–FJ4.
