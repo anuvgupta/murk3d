@@ -1160,3 +1160,10 @@ screenshot-checked.
   with detail later. Next: water survey (river close/bridge, lake jetty
   noon, alpine lake shore, cliff-ruins falls) — water has not been
   reviewed this session.
+- EY verified: town paving frays into dirt (EY1), moat edge at 09:00 with
+  blossom is a keeper (EY2). Shelves plate from below (EY3): the plate's
+  steep face in shadow reads as a smooth dark-brown overhang — the Vale
+  rock albedo's warm brown in full shade; the strata/joints are there on
+  the lit lower face. Candidate: cooler shadow tint on rock (sky-lit
+  blue-grey) so shaded cliff faces don't go mud-brown. Water survey EZ
+  rendering.
