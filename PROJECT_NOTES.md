@@ -1027,3 +1027,11 @@ screenshot-checked.
   grass mask is high (`sward`), so a sward stays green past 45° (d3ed266).
   Verify EG1–EG4. Sky/jungle postcards (EF) re-placed: island-top cam
   [450,24,340]→[521,14,338], jungle pos [-430,345] yaw 1.0.
+- EE: the distant-bump fade made no visible difference on the alpine
+  walls (EB vs EE identical to the eye) → the felt is not the bump.
+  Diagnostic EH1–EH3 queued (noShadow / tdebug 3 unlit / tdebug 4 normal)
+  to tell shadow speckle from albedo from normal noise. Sky realm: cam at
+  y 24 sat inside the main island (top ≈ 28, gate y 28) → EF2 showed the
+  island's inside; retry EI with cam y 40 and a pos shot on the main top.
+  Jungle at 18:00 (EF4) is a keeper; the temple is not in view from the
+  approach though — find its site for a postcard.
