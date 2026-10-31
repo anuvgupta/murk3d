@@ -1137,3 +1137,12 @@ screenshot-checked.
   castle wards were affected the same way (so the "plain ward corridor"
   floor was never cobbled). Verify EW1–EW5 (river street + centre, castle
   ward, plaza control, river-city postcard).
+- EV1 (tdebug 10): the mip-sampled macroHeight field is smooth, so the
+  remaining grain was the finite-difference gradient of a bilinear mip
+  (piecewise-constant derivative → facets every texel). macroHeight /
+  macroNormal are now analytic: `noised3()` (3D value noise, quintic
+  fade, exact gradient) in 3 octaves (0.022 with y×0.35, 0.055, 0.13);
+  `macroField()` returns grad+value; no texture, no triplanar. triLod
+  removed. Verify EX1–EX7 (alpine lit + tdebug 9, citadel, karst, Vale
+  spires, bank close, canyon) — strengths 9–17 unchanged, may need
+  retuning if the walls now look too smooth or too tilted.
