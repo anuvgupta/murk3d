@@ -31,6 +31,7 @@ export class Village {
     this.colliders = [];
     this.decks = [];
     this.landmarks = [];
+    this.lanterns = []; // world positions of the lantern flames
     this.animated = []; // { group, axis, speed }
     const kit = new Kit();
     const chimneys = [];
@@ -225,6 +226,7 @@ export class Village {
   }
 
   lantern(kit, m, p) {
+    this.lanterns.push(new THREE.Vector3(p.x, p.y, p.z).applyMatrix4(kit.current));
     kit.frame({ x: p.x, y: p.y, z: p.z }, () => {
       kit.box(m.iron, 0.04, 0.04, 0.32, { y: 0.25, z: -0.15 });
       kit.box(m.iron, 0.22, 0.03, 0.22, { y: -0.15 });

@@ -14,7 +14,9 @@ function pane(geometry) {
 }
 
 // A hanging iron lantern, lit at night (shares the village lamp glass).
-function lantern(kit, m, p) {
+function lantern(kit, m, p, out) {
+  // World position of the flame, for the night lights.
+  if (out) out.push(new THREE.Vector3(p.x, p.y, p.z).applyMatrix4(kit.current));
   kit.frame({ x: p.x, y: p.y, z: p.z }, () => {
     kit.box(m.iron, 0.04, 0.04, 0.32, { y: 0.25, z: -0.15 });
     kit.box(m.iron, 0.22, 0.03, 0.22, { y: -0.15 });
@@ -62,6 +64,7 @@ export class Castle {
     this.colliders = [];
     this.decks = [];
     this.lamps = [];
+    this.lanterns = []; // world positions of every lantern flame
     this.rng = mulberry32(2024);
 
     const kit = new Kit();
@@ -106,7 +109,7 @@ export class Castle {
       for (let i = 0; i < bays; i++) {
         const z = -len / 2 + (i + 0.5) * (len / bays);
         kit.box(m.iron, 0.5, 0.05, 0.05, { x: -thick / 2 - 0.25, y: floor + 3.3, z });
-        lantern(kit, m, { x: -thick / 2 - 0.45, y: floor + 3.0, z });
+        lantern(kit, m, { x: -thick / 2 - 0.45, y: floor + 3.0, z }, this.lanterns);
         if (i + 1 < bays && height - floor > 6) {
           const zb = z + len / bays / 2;
           const yb = Math.min(height - 1.0, floor + 7.0);
@@ -188,9 +191,9 @@ export class Castle {
         kit.box(m.iron, 0.05, 2.6, 0.05, { x: s * 3.0, y: 7.2, z: 1.7 });
         kit.box(m.banner, 0.9, 2.2, 0.03, { x: s * 3.0, y: 6.2, z: 1.75 });
         kit.box(m.iron, 0.05, 0.05, 0.5, { x: s * 3.0, y: 4.1, z: 1.85 });
-        lantern(kit, m, { x: s * 3.0, y: 3.8, z: 2.05 });
+        lantern(kit, m, { x: s * 3.0, y: 3.8, z: 2.05 }, this.lanterns);
         kit.box(m.iron, 0.4, 0.05, 0.05, { x: s * 2.0, y: 3.3, z: 0 });
-        lantern(kit, m, { x: s * 1.85, y: 3.0, z: 0 });
+        lantern(kit, m, { x: s * 1.85, y: 3.0, z: 0 }, this.lanterns);
       }
     });
     // The lanterns on the outer face light the approach (plateau-local positions).
@@ -345,7 +348,7 @@ export class Castle {
       const a = this.cfg.gateDir + Math.PI / 2;
       const lp = new THREE.Vector3(Math.cos(this.cfg.gateDir) * 8.5 + Math.cos(a) * s * 2.4, y + 2.6, Math.sin(this.cfg.gateDir) * 8.5 + Math.sin(a) * s * 2.4);
       this.lamps.push(lp);
-      lantern(kit, m, lp);
+      lantern(kit, m, lp, this.lanterns);
     }
   }
 
@@ -451,6 +454,6 @@ export class Castle {
   }
 
   worldLamps() {
-    return this.lamps.map((l) => l.clone().add(new THREE.Vector3(this.plateau.x, this.baseY, this.plateau.z)));
+    return this.lanterns;
   }
 }

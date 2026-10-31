@@ -209,12 +209,16 @@ export class Game {
       scene.add(light);
       this.castleLights.push(light);
     }
-    // Real lights only at the outer gate and the keep door; the other lanterns glow on their own.
-    for (const c of this.castles) for (const p of [...c.worldLamps().slice(0, 2), ...c.worldLamps().slice(-2)]) {
-      const light = new THREE.PointLight(0xffb060, 0, 16, 1.6);
-      light.position.copy(p);
+    // Every lantern in the world lights the ground around it at night, from
+    // a small pool of point lights that follow the player to the nearest few
+    // (a point light per lantern would cost every fragment in the scene).
+    this.lanternPosts = [...this.village.lanterns, ...this.castles.flatMap((c) => c.worldLamps())];
+    this.lanternPool = [];
+    for (let i = 0; i < 8; i++) {
+      const light = new THREE.PointLight(0xffb060, 0, 15, 1.6);
+      light.visible = false;
       scene.add(light);
-      this.castleLights.push(light);
+      this.lanternPool.push(light);
     }
     await mark('castle');
     this.islands = new SkyIslands({ noise: this.noiseTexture, materials: this.buildingMaterials });
@@ -696,6 +700,39 @@ export class Game {
     if (this.castleLights) {
       const lf = 0.9 + 0.1 * Math.sin(this.elapsed * 11.3);
       for (const l of this.castleLights) l.intensity = env.nightFactor * 9 * lf;
+    }
+    this.updateLanterns(env.nightFactor);
+  }
+
+  // Hand the pooled point lights to the lanterns nearest the player, fading
+  // each with distance so a light never pops on or off.
+  updateLanterns(night) {
+    if (!this.lanternPool) return;
+    const p = this.player.position;
+    if (night < 0.01) {
+      for (const l of this.lanternPool) l.visible = false;
+      return;
+    }
+    const near = [];
+    for (const q of this.lanternPosts) {
+      const d2 = (q.x - p.x) ** 2 + (q.z - p.z) ** 2;
+      if (d2 > 60 * 60) continue;
+      near.push({ q, d2 });
+    }
+    near.sort((a, b) => a.d2 - b.d2);
+    for (let i = 0; i < this.lanternPool.length; i++) {
+      const l = this.lanternPool[i];
+      const n = near[i];
+      if (!n) {
+        l.visible = false;
+        continue;
+      }
+      const d = Math.sqrt(n.d2);
+      const fade = 1 - THREE.MathUtils.smoothstep(d, 35, 58);
+      const flicker = 0.88 + 0.12 * Math.sin(this.elapsed * (9.7 + (i % 3) * 2.3) + n.q.x);
+      l.position.copy(n.q);
+      l.intensity = night * 7 * fade * flicker;
+      l.visible = l.intensity > 0.01;
     }
   }
 
