@@ -1183,3 +1183,12 @@ screenshot-checked.
   gated by a 0.07-scale bank noise (0.35–1.0 weight), thresholds 0.5–0.8,
   and faded 25→70 m by vViewPosition (Water.js). Verify FB1–FB5 (river
   noon/golden/morning, jetty, bank from above).
+- FA verified: sky-lit shade reads right — cliff foot in shadow is cool
+  blue-grey against sunlit grass (FA6 keeper), overlook noon and castle
+  gate keepers, forest-shade grass green not brown. The shelves plate's
+  underside (FA1) stays warm brown: it faces down so the hemi gives it
+  ground bounce; would need a rock-albedo cool tint for downward faces —
+  low priority (only seen under overhangs). FA3 village noon was inside
+  a blossom crown (bad spot). Next: FB foam check, then revisit the castle
+  ward corridor now the wards are paved, and the crypt interior with
+  hanging roots / a light shaft.
