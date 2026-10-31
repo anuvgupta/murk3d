@@ -5,9 +5,15 @@ Read the original build handoff too: `HANDOFF.md` on the `notes` branch (how the
 
 ## 1. The goal you are inheriting
 
-The owner (anuvgupta) set this standing goal, verbatim:
+The owner (anuvgupta) ran this exact `/goal` for the issue session. It is paused now; the next agent should take it up as its own goal:
 
-> your job is, every time an issue is opened, you work on it, only one at a a time, then when its finished you verify via screenshots or videos that its fixed. thats all.
+`````
+/goal your job is, every time an issue is opened, you work on it, only one at a a time, then when its finished you verify via screenshots or videos that its fixed. thats all. additional context: ``` context from previous agent. please prep urself on the same information in the repo. are oyu able to view and create github issues? ok ur job is to improve a new web game im creating. its called murk, the repo is in the current folder. you have full unrestricted access to push to main which will deploy it to the github pages website. i basically want you to apply some fixes and imrpovements to the graphics and gameplay. before we start, heres the handoff from the agent that made this initial version of the game: https://github.com/anuvgupta/murk3d/blob/notes/HANDOFF.md Ran 4 commands, read bdxa7tvg5.txt (1 failed) I’ve read the handoff, pulled main to 05754f1, and I’m ready to start. Where the game stands What’s built: the Vale and all ten realms, built entirely in code. The previous agent did about 25 rounds of visual tuning. Feedback: no notes left with the in-game F tool are waiting. The only open issue is the original vision issue. Visual problems the handoff says are still open: Crypt and castle ward walls still look like bathroom tile up close. Rock looks flat when you’re within about 10 m. The sky near the horizon is pale at noon. The floating-island cones are too smooth. The cloud sea in the sky-isle realm is faint. The jungle floor is all one colour. Distant trees are drawn as simple flat cards. Gameplay that hasn’t been started: a third-person camera and character, NPCs and dialogue, quests, combat, inventory and saving, audio, and the storyline. How I’ll work: each change goes through a production build and a headless load that checks for page and shader errors. Only then do I push to main, which deploys to the live site in about a minute. Send me your list of fixes and improvements. If you’d rather, I can start with the open visual problems above. ```
+`````
+
+The "additional context" block is the first exchange from an earlier session, which the owner kept for background; the instruction itself is the first sentence.
+
+How this session kept watch for new issues: a background check every ~60 s (`gh api "repos/anuvgupta/murk3d/issues?state=open&per_page=50"`, excluding #1 and pull requests) that also reports when GitHub lookups fail, plus a 7-minute scheduled re-check as a backup. Background tasks stop after their time limit, so restart them when they end.
 
 Earlier wording of the same goal that still applies:
 
