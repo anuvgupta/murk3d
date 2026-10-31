@@ -1260,3 +1260,12 @@ screenshot-checked.
   puffs 800→1300 (dc2307a). Verify FM1–FM4. New issues 58–62 are the
   other agent's (58 claimed); #61 (no visible sun glare/god rays) is
   lighting — consider claiming after #63 if still open.
+- #61 glare half (6170f07): the corona/shaft/glare terms were scaled by
+  `open` (fraction of sky round the sun) and `headroom` (1 − scene
+  brightness), which both went to ~0 with the sun behind a ridge against
+  a bright sky — exactly the reported view. Now openG = max(open,0.3),
+  headroom weight 0.3, occlusion disc 0.42, shaft ×1.6, a.shaft 0.25+0.85
+  ·low, a.glow 0.5+1.1·low, ghosts as hollow rings, longer anamorphic
+  streak, six-point star. FN verified: glow floods over the ridge at the
+  issue spot, star through the Elder Wood trunks, ghosts at 08:30 over
+  the mill. Juniper "freaking out" half left to the issue agent.
