@@ -1167,3 +1167,9 @@ screenshot-checked.
   the lit lower face. Candidate: cooler shadow tint on rock (sky-lit
   blue-grey) so shaded cliff faces don't go mud-brown. Water survey EZ
   rendering.
+- Shade colour pass: hemiSkyDay was a neutral grey (0xd3d8d6), so every
+  shadow by day was grey-brown; now a pale sky blue 0xc4d2e4 (cool
+  shade, warm sun — the Oblivion/BotW look). Verify FA1–FA6 (shelves
+  plate in shade, forest shade, village noon, overlook, castle gate,
+  bank). If grass in shade goes too cyan, pull toward 0xcad4df. All
+  feedback issues are closed except #1 (vision).
