@@ -278,7 +278,9 @@ export const GROUND_GLSL = /* glsl */ `
     // distance, so it matches the lit blades' average, not their shaded roots.
     // Where no grass grows (rock feet, under ruins, trodden ground) the soil
     // shows: earth with a thin scatter of green, not bare meadow colour.
-    vec3 bare = mix( dirtColor( n ) * 0.95, meadowColor( p.xz, n ) * 0.8, 0.35 + 0.3 * n.w );
+    // Ground gentle enough for blades (carpet) but with the mask thinned (a
+    // steep hillside, a rock's foot) is turf, not a mudslide: lean to meadow.
+    vec3 bare = mix( dirtColor( n ) * 0.95, meadowColor( p.xz, n ) * 0.8, 0.3 + 0.25 * n.w + 0.35 * carpet );
     // The ground seen between and beyond the blades: as bright as the lit
     // carpet but pulled toward a warm olive, never a pure acid green.
     vec3 under = meadowColor( p.xz, n ) * vec3( 1.22, 1.2, 1.0 );
@@ -303,7 +305,7 @@ export const GROUND_GLSL = /* glsl */ `
     float sward = smoothstep( 0.3, 0.8, m.r ) * 0.1;
     float bank = smoothstep( 0.3 - 0.05 * rimW + sward, 0.46 - 0.05 * rimW + sward, slope + ( n.z - 0.5 ) * 0.1 );
     // A grassy bank keeps more of its green; a bare one goes to earth.
-    c = mix( c, dirtColor( n ) * 0.9, bank * mix( 0.6, 0.38, smoothstep( 0.3, 0.8, m.r ) ) );
+    c = mix( c, dirtColor( n ) * 0.9, bank * mix( 0.6, 0.28, max( smoothstep( 0.3, 0.8, m.r ), carpet * 0.8 ) ) );
     if ( bank > 0.01 ) {
       // Steep hillsides are not one smooth mound: ledges of bare rock follow
       // the contours a few metres apart, with turf and earth between them.
