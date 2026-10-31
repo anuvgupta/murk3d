@@ -1122,3 +1122,11 @@ screenshot-checked.
   scales with strength = saturation of normalize(n − grad·17)). EV1–EV3
   queued after the EU survey. Note the Vale spires at noon and the karst
   lake are unaffected and remain keepers.
+- EU survey: tundra 23:00, portal glade 17:00, crevasse 10:00 keepers
+  (verify). Stone circle at dusk fine. Lakeside 07:00 and alpine falls
+  11:00 were inside tree crowns (bad spots). River-town street (EU4, and
+  the old CY3): the town ground is a flat dark-green plane — no cobbles
+  although GroundMask paints cobble r 22 for R.town; probing the mask
+  channels headlessly (maskprobe.cjs) to see whether the cobble channel
+  reaches the island. Shelves plate (EU5) close-up is a brown lump —
+  revisit the plate rock after the wall-noise work.
