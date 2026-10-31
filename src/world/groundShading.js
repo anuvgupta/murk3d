@@ -298,7 +298,10 @@ export const GROUND_GLSL = /* glsl */ `
     float rimW;
     vec4 rr = realmRock( p.xz, rimW );
     // Banks: worn earth on moderate slopes, bare rock where it steepens or climbs.
-    float bank = smoothstep( 0.3 - 0.05 * rimW, 0.46 - 0.05 * rimW, slope + ( n.z - 0.5 ) * 0.1 );
+    // Where the meadow grows (mask r) a hillside stays grass well past 45°;
+    // only where the grass has already thinned does the earth show.
+    float sward = smoothstep( 0.3, 0.8, m.r ) * 0.1;
+    float bank = smoothstep( 0.3 - 0.05 * rimW + sward, 0.46 - 0.05 * rimW + sward, slope + ( n.z - 0.5 ) * 0.1 );
     // A grassy bank keeps more of its green; a bare one goes to earth.
     c = mix( c, dirtColor( n ) * 0.9, bank * mix( 0.6, 0.38, smoothstep( 0.3, 0.8, m.r ) ) );
     if ( bank > 0.01 ) {
