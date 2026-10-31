@@ -1051,3 +1051,11 @@ screenshot-checked.
   bump weight detail³ (zero beyond ~42 m); macro normal carries the
   distance. Verify EK1–EK6 incl. normal view, Vale spires/bank/karst/
   citadel (watch for the Vale's near cliffs going smooth at 20–40 m).
+- EJ: mesa flank unchanged again (pixel diff EG1→EJ1 only 2.8%); it was
+  never bare dirt — it is already rock (rockAmt ≈ 1), coloured by
+  rockAlbedo's warm browns. The real fix is artistic: on 45–60° slopes
+  where the meadow mask is high, turf and moss veil the rock (`veil` in
+  TerrainMaterial's rockC and in groundColor's far rock, 0.85 weight,
+  patchy by a 0.09-scale noise) — d57eb4c. Verify EM1–EM5 (EM5 is tdebug
+  2: red = rock amount, green = carpet, to confirm the classification).
+  Overlook 18:30 and citadel crag (EJ4/EJ5) are keepers on verify.
