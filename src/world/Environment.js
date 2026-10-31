@@ -41,17 +41,21 @@ function finishSkyFragment(fragment) {
       float below = smoothstep( 0.03, -0.05, vSunDirection.y ) * ( 1.0 - smoothstep( -0.14, -0.3, vSunDirection.y ) );
       vec2 sunH = normalize( vSunDirection.xz + vec2( 1e-5, 0.0 ) );
       vec2 dirH = normalize( direction.xz + vec2( 1e-5, 0.0 ) );
-      float toward = 0.5 + 0.5 * dot( sunH, dirH );
+      // Clamped: straight away from the sun the dot rounds a hair below -1,
+      // and pow() of a negative is NaN on GPUs (a dark seam down the sky).
+      float toward = clamp( 0.5 + 0.5 * dot( sunH, dirH ), 0.0, 1.0 );
       float band = exp( -max( direction.y, 0.0 ) * ( 5.0 + 9.0 * ( 1.0 - toward ) ) ) * smoothstep( -0.06, 0.01, direction.y );
       float hgt = clamp( direction.y * 6.0, 0.0, 1.0 );
       vec3 glowC = mix( vec3( 1.0, 0.52, 0.22 ), vec3( 0.62, 0.32, 0.55 ), hgt );
-      float strength = below * band * ( 0.1 + 0.9 * pow( toward, 3.0 ) );
+      float strength = below * band * ( 0.1 + 0.9 * toward * toward * toward );
       texColor += glowC * strength * 0.55;
     }
+    // Catch a NaN before the clamp: clamp() turns it into 0 on most GPUs and
+    // it would come out as night-navy instead of being caught here.
+    if ( any( isnan( texColor ) ) || any( isinf( texColor ) ) ) texColor = vec3( 0.5, 0.6, 0.7 );
     texColor = clamp( texColor, vec3( 0.0 ), vec3( 1.6 ) );
     // Night sky is deep navy, never pure black.
     texColor = max( texColor, vec3( 0.006, 0.009, 0.02 ) );
-    if ( any( isnan( texColor ) ) || any( isinf( texColor ) ) ) texColor = vec3( 0.5, 0.6, 0.7 );
     gl_FragColor = vec4( texColor, 1.0 );`
   );
 }
