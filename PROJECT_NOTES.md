@@ -1246,3 +1246,7 @@ screenshot-checked.
   for `dirt` segments, `tread()` raises the road channel (0.85) around
   it, fading over 1.2 m — so the ground reads as packed earth. Chests
   on the plaza edge and the overlook are fine (verify). Re-check FJ1–FJ4.
+- FJ verified: smithy and tavern tables now sit on packed earth
+  (keepers). Not yet reviewed this session: clouds across the day,
+  pixelation modes, the Vale's mountain ring from the valley floor —
+  next survey.
