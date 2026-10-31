@@ -159,6 +159,7 @@ function addWind(material, uniforms, scale, leaf = false, fade = null) {
         uniform sampler2D uNoise;
         uniform float uWindScale;
         attribute vec2 aSway;
+        attribute float aLeaf;
         #ifdef BILLBOARD
           attribute vec2 aCorner;
         #endif
@@ -199,13 +200,14 @@ function addWind(material, uniforms, scale, leaf = false, fade = null) {
           vec2 across = vec2( -uWindDir.y, uWindDir.x );
           wpos.xz += ( uWindDir * 0.6 + across * 0.4 ) * limb * ( 0.04 + 0.1 * wl ) * aSway.x * uWindScale;
           wpos.y += limb * ( 0.015 + 0.035 * wl ) * aSway.x * uWindScale;
-          // 3. Leaves: each shivers on its own, in its own direction and at
-          //    its own phase (they used to share one direction, so whole
-          //    patches of crown swelled and shrank together).
-          vec3 lq = wpos.xyz * 3.7;
-          vec3 fdir = normalize( vec3( sin( lq.y + lq.z * 1.3 ), 0.6 * sin( lq.z * 0.9 + lq.x ), cos( lq.x * 1.1 + lq.y ) ) + 1e-4 );
-          float fph = dot( lq, vec3( 1.7, 2.3, 1.9 ) );
-          float fl = sin( uTime * ( 5.5 + 2.0 * w ) + fph ) * ( 0.012 + 0.035 * w ) * aSway.y;
+          // 3. Leaves: each sprig shivers on its own, in its own direction and
+          //    at its own phase (they used to share one direction, so whole
+          //    patches of crown swelled and shrank together), but as one
+          //    piece: direction and phase come from the sprig's seed, not the
+          //    vertex, so a card's corners move together instead of shearing.
+          float ls = aLeaf + ph * 2.0;
+          vec3 fdir = normalize( vec3( sin( ls * 1.7 ), 0.6 * sin( ls * 2.3 + 1.0 ), cos( ls * 1.9 ) ) + 1e-4 );
+          float fl = sin( uTime * ( 5.5 + 2.0 * w ) + ls * 3.0 ) * ( 0.012 + 0.035 * w ) * aSway.y;
           wpos.xyz += fdir * fl;
         }
         vec4 mvPosition = modelViewMatrix * wpos;

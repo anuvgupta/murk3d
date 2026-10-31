@@ -24,7 +24,10 @@ import { mulberry32 } from '../../util/noise.js';
 //   far   fewer, larger clump impostors
 // Normals come from the crown's centre so the canopy shades as one soft mass;
 // vertex colour darkens toward its heart. Every vertex carries
-// aSway = (bend weight, flutter) for the wind shader.
+// aSway = (bend weight, flutter) for the wind shader, and leaf vertices carry
+// aLeaf, one seed per sprig, so a sprig shivers as one piece: when each
+// vertex had its own phase a big leaf card sheared and twisted at several
+// hertz, which on the junipers' metre-long fronds looked like a fit.
 
 const UP = new THREE.Vector3(0, 1, 0);
 const GOLDEN = 2.39996;
@@ -361,6 +364,7 @@ function buildSprigs(ctx, spots, hangs, rng) {
   const uvs = [];
   const colors = [];
   const sway = [];
+  const leafSeed = [];
   const indices = [];
   const shade = {};
   const clumpR = L.spread * 0.45;
@@ -374,6 +378,7 @@ function buildSprigs(ctx, spots, hangs, rng) {
     // Three rows (base, middle, tip); the middle and tip curl toward faceN.
     const base = positions.length / 3;
     const curl = (0.1 + rng() * 0.2) * len;
+    const seed = rng() * 6.2832;
     for (let row = 0; row < 3; row++) {
       const v = row / 2;
       const along = basePoint.clone().addScaledVector(outDir, v * len).addScaledVector(faceN, -curl * v * v);
@@ -386,6 +391,7 @@ function buildSprigs(ctx, spots, hangs, rng) {
         uvs.push(s < 0 ? 0 : 1, v);
         colors.push(shade.ao * tint[0], shade.ao * tint[1], shade.ao * tint[2]);
         sway.push(swayWeight(p.y, height), 0.6 + v);
+        leafSeed.push(seed);
       }
     }
     for (let row = 0; row < 2; row++) {
@@ -423,6 +429,7 @@ function buildSprigs(ctx, spots, hangs, rng) {
   for (const hg of hangs) {
     const a = rng() * Math.PI * 2;
     const dirDown = new THREE.Vector3(0, -1, 0);
+    const seed = rng() * 6.2832;
     for (const roll of [0]) {
       const w = new THREE.Vector3(Math.cos(a + roll), 0, Math.sin(a + roll));
       const base = positions.length / 3;
@@ -437,6 +444,7 @@ function buildSprigs(ctx, spots, hangs, rng) {
           uvs.push(sgn < 0 ? 0 : 1, 1 - v);
           colors.push(shade.ao, shade.ao, shade.ao);
           sway.push(swayWeight(p.y, height), 0.5 + 1.5 * v);
+          leafSeed.push(seed);
         }
       }
       for (let row = 0; row < 2; row++) {
@@ -445,7 +453,7 @@ function buildSprigs(ctx, spots, hangs, rng) {
       }
     }
   }
-  return finish({ positions, normals, uvs, colors, sway, indices });
+  return finish({ positions, normals, uvs, colors, sway, leafSeed, indices });
 }
 
 function randomTangent(n, rng) {
@@ -466,6 +474,7 @@ function buildClumps(ctx, spots, rng, grow) {
   const uvs = [];
   const colors = [];
   const sway = [];
+  const leafSeed = [];
   const corner = [];
   const indices = [];
   const shade = {};
@@ -477,6 +486,7 @@ function buildClumps(ctx, spots, rng, grow) {
     const h = 0.92 + rng() * 0.16;
     const tint = [h, 0.96 + rng() * 0.08, h];
     leafShade(ctx, s.p, null, shade);
+    const seed = rng() * 6.2832;
     const base = positions.length / 3;
     for (const [cu, cv] of [[-0.5, -0.5], [0.5, -0.5], [0.5, 0.5], [-0.5, 0.5]]) {
       positions.push(s.p.x, s.p.y, s.p.z);
@@ -484,24 +494,26 @@ function buildClumps(ctx, spots, rng, grow) {
       uvs.push(cu + 0.5, cv + 0.5);
       colors.push(shade.ao * tint[0], shade.ao * tint[1], shade.ao * tint[2]);
       sway.push(swayWeight(s.p.y, height), 1);
+      leafSeed.push(seed);
       corner.push(cu * size, cv * size);
     }
     indices.push(base, base + 1, base + 2, base, base + 2, base + 3);
   }
-  const g = finish({ positions, normals, uvs, colors, sway, indices });
+  const g = finish({ positions, normals, uvs, colors, sway, leafSeed, indices });
   g.setAttribute('aCorner', new THREE.Float32BufferAttribute(corner, 2));
   // The corners spread past the stored points; pad the bounds to match.
   g.boundingSphere.radius += 2;
   return g;
 }
 
-function finish({ positions, normals, uvs, colors, sway, indices }) {
+function finish({ positions, normals, uvs, colors, sway, leafSeed, indices }) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
   g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
   if (colors) g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
   g.setAttribute('aSway', new THREE.Float32BufferAttribute(sway, 2));
+  g.setAttribute('aLeaf', new THREE.Float32BufferAttribute(leafSeed || new Float32Array(positions.length / 3), 1));
   g.setIndex(indices);
   g.computeBoundingSphere();
   return g;
