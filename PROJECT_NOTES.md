@@ -1096,3 +1096,11 @@ screenshot-checked.
   queued: tdebug 1/3 at that cam, a high cam (y 95), and the same view
   in pos mode lit + tdebug 2. Vale frames (overlook, bank, village dusk)
   all unaffected by the turf change — keepers.
+- FOUND the cliff felt (ER): tdebug 8 (bump only) is noisy only on the
+  near wall; tdebug 9 (macroNormal) is noisy on the FAR wall → macroNormal
+  was the culprit: finite differences (d = 2.5 m) of tri() whose Perlin
+  channels carry octaves down to ~0.7 m → aliasing → random tilt per
+  pixel, amplified by the 9+8·(1−detail) strength at distance. Fix:
+  `triLod()` samples uNoise with textureLod at lod 4 (0.022 term) / 5
+  (0.06 term) in macroHeight, so only octaves ≥ ~2.8 m survive. Verify
+  ET1–ET6 (alpine noon/dusk + tdebug 9, citadel wall, karst, Vale spires).
