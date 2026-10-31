@@ -1192,3 +1192,7 @@ screenshot-checked.
   a blossom crown (bad spot). Next: FB foam check, then revisit the castle
   ward corridor now the wards are paved, and the crypt interior with
   hanging roots / a light shaft.
+- FB verified: shore foam froths in stretches, no more painted outline;
+  river noon + morning keepers on verify. Next survey FC: castle ward
+  (now paved) from the corridor and wide, crypt inside/door, glade at
+  19:12, citadel town street.
