@@ -1104,3 +1104,13 @@ screenshot-checked.
   `triLod()` samples uNoise with textureLod at lod 4 (0.022 term) / 5
   (0.06 term) in macroHeight, so only octaves ≥ ~2.8 m survive. Verify
   ET1–ET6 (alpine noon/dusk + tdebug 9, citadel wall, karst, Vale spires).
+- Mesa flank closed: the "brown mound" frame was the free cam clamped to
+  3 m above a steep hillside (th 41.6 at [221,−500]) — the left "cliff"
+  was the ground right in front of the lens, hence uniform debug values.
+  From the player's eye (ES4/ES5) the flank is rock-classified with turf
+  in the hollows and reads fine. ES3 (cam y 95) is a keeper: mesa top
+  with oaks, the ruin and the falls. Lesson: check cam/th in the stats
+  before chasing a frame. Next survey EU1–EU8: stone circle 18:00,
+  crevasse arcade 10:00, lakeside ruins 07:00, rivercity street 18:00,
+  shelves 18:18, tundra crystals 23:00, portal glade 17:00, alpine falls
+  11:00 (pos mode; yaw = −atan2(dx, −dz)).
