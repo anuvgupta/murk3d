@@ -1059,3 +1059,12 @@ screenshot-checked.
   patchy by a 0.09-scale noise) — d57eb4c. Verify EM1–EM5 (EM5 is tdebug
   2: red = rock amount, green = carpet, to confirm the classification).
   Overlook 18:30 and citadel crag (EJ4/EJ5) are keepers on verify.
+- EK: the bump fade changed <5% of pixels in both the lit and the normal
+  view → the alpine wall's normal noise is NOT bumpNormal either. The
+  alpine height fn is smooth (pow wall + 3·n(0.03) + 1.2·n(0.12)), so
+  the suspects are the vertex normal itself (realm cells 3.25 m) or
+  macroNormal. EN1 (tdebug 1 = vWNormal), EN2 (tdebug 5 flat grey) and
+  EN3 (tdebug 6 baked slope) queued to isolate. Vale spires/bank/karst
+  close-up all fine after the ramp change (EK3–EK5 keepers). Sky realm:
+  EI3 pos spawn at island 2 ended in the Vale's portal glade (the harness
+  spawn fell through to the home gate) — use cam mode only there.
