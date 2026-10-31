@@ -161,6 +161,13 @@ export class GroundMask {
     road.strokeStyle = road.fillStyle = '#fff';
     for (const r of ROADS) strokePath(road, r.path, (s) => r.width * roadWobble(s));
     for (const h of HOUSES) fillRotRect(road, h.x, h.z, h.footprint.hx + 0.6, h.footprint.hz + 0.6, h.rotationY);
+    // Trodden earth around a town's paving, so the setts fray into dirt, not lawn.
+    for (const R of REGIONS) {
+      if (!R.town) continue;
+      road.beginPath();
+      road.arc(toPx(R.x), toPx(R.z), (R.town.r + 3) * PX, 0, Math.PI * 2);
+      road.fill();
+    }
 
     // Water beds.
     water.fillStyle = '#000';
@@ -183,6 +190,16 @@ export class GroundMask {
     halo.addColorStop(1, '#000');
     fringe.fillStyle = halo;
     fringe.fillRect(0, 0, SIZE, SIZE);
+    for (const R of REGIONS) {
+      if (!R.town) continue;
+      const th = fringe.createRadialGradient(toPx(R.x), toPx(R.z), (R.town.r - 0.5) * PX, toPx(R.x), toPx(R.z), (R.town.r + 4) * PX);
+      th.addColorStop(0, '#fff');
+      th.addColorStop(1, '#000');
+      fringe.fillStyle = th;
+      fringe.beginPath();
+      fringe.arc(toPx(R.x), toPx(R.z), (R.town.r + 4) * PX, 0, Math.PI * 2);
+      fringe.fill();
+    }
 
     const g = grass.getImageData(0, 0, SIZE, SIZE).data;
     const r = road.getImageData(0, 0, SIZE, SIZE).data;
