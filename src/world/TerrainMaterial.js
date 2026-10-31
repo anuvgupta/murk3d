@@ -113,6 +113,8 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         float rimW;
         vec4 rr = realmRock( vWPos.xz, rimW );
         rockAmtOut = smoothstep( 0.42 - 0.1 * rimW, 0.58 - 0.1 * rimW, 1.0 - min( wn.y, mix( 1.0, faceN.y, steepK ) ) + ( texture( uNoise, vWPos.xz * 0.05 ).b - 0.5 ) * 0.14 + ( texture( uNoise, vWPos.xz * 0.31 + 0.5 ).a - 0.5 ) * 0.1 );
+        // Too steep for the blades means stone, not bare mud (see groundColor).
+        rockAmtOut = max( rockAmtOut, ( 1.0 - carpet ) * 0.75 * smoothstep( 0.22, 0.38, 1.0 - wn.y ) );
         {
           // Realm-coloured rock (red canyon, pale karst), snowed over on the tundra.
           float sn;

@@ -336,6 +336,10 @@ export const GROUND_GLSL = /* glsl */ `
       smoothstep( 0.36 - 0.1 * rimW, 0.52 - 0.1 * rimW, slope + ( n.z - 0.5 ) * 0.06 ),
       smoothstep( 95.0, 150.0, p.y + n.x * 40.0 ) * 0.9
     );
+    // Where the slope is too steep for the blades (the carpet has died) the
+    // ground is rock, not a field of bare mud: a 50° hillside is stone with
+    // grass in its ledges, never brown earth.
+    rockAmt = max( rockAmt, ( 1.0 - carpet ) * 0.75 * smoothstep( 0.22, 0.38, slope ) );
     c = mix( c, tintRock( rockColor( p, nrm ), rr ), rockAmt );
 
     float snowLine = 150.0 + ( n.x - 0.5 ) * 50.0;
