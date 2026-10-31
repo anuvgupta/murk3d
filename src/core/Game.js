@@ -266,7 +266,8 @@ export class Game {
     this.player.surfaces.push((x, z) => this.ruins.surfaceAt(x, z));
     this.player.surfaces.push((x, z) => this.mushrooms.surfaceAt(x, z));
     this.player.surfaces.push((x, z) => this.logs.surfaceAt(x, z));
-    this.player.bouncers.push((x, z) => this.mushrooms.bounceAt(x, z));
+    this.player.bouncers.push((x, z, y) => this.mushrooms.bounceAt(x, z, y));
+    this.player.overhangs.push((x, z) => this.mushrooms.spanAt(x, z));
     this.player.spawn(SPAWN.x, SPAWN.z, SPAWN.yaw);
     // A shared view link wins; otherwise pick up where the last visit left off.
     if (!this.applyViewLink()) this.restoreSave();

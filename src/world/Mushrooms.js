@@ -52,6 +52,92 @@ function paint(g, rgb, glow, part = 0) {
   return g;
 }
 
+// The cap's top and underside as height grids in the mushroom's own frame,
+// read off the seated mesh by casting down and up onto it, so you stand on
+// the dome you see (tilt, lumps and spots included) rather than on an
+// idealised one, and walk into the gills rather than through them.
+const GRID_N = 48;
+const GRID_HALF = 1.25;
+function capGrid(geometry) {
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
+  const ray = new THREE.Raycaster();
+  const down = new THREE.Vector3(0, -1, 0);
+  const up = new THREE.Vector3(0, 1, 0);
+  const from = new THREE.Vector3();
+  const top = new Float32Array((GRID_N + 1) * (GRID_N + 1)).fill(NaN);
+  const under = top.slice();
+  for (let j = 0; j <= GRID_N; j++) {
+    for (let i = 0; i <= GRID_N; i++) {
+      const x = -GRID_HALF + (2 * GRID_HALF * i) / GRID_N;
+      const z = -GRID_HALF + (2 * GRID_HALF * j) / GRID_N;
+      ray.set(from.set(x, 5, z), down);
+      const hit = ray.intersectObject(mesh, false)[0];
+      if (!hit) continue;
+      top[j * (GRID_N + 1) + i] = hit.point.y;
+      ray.set(from.set(x, -5, z), up);
+      under[j * (GRID_N + 1) + i] = ray.intersectObject(mesh, false)[0].point.y;
+    }
+  }
+  geometry.dispose();
+  return { top, under };
+}
+
+// Bilinear height from a cap grid, or null off the cap's edge. Cells that
+// straddle the rim blend whichever corners are on the cap, so the outermost
+// fringe still holds you up.
+function sampleGrid(h, x, z) {
+  const u = ((x + GRID_HALF) / (2 * GRID_HALF)) * GRID_N;
+  const v = ((z + GRID_HALF) / (2 * GRID_HALF)) * GRID_N;
+  const i = Math.floor(u);
+  const j = Math.floor(v);
+  if (i < 0 || j < 0 || i >= GRID_N || j >= GRID_N) return null;
+  const k = j * (GRID_N + 1) + i;
+  const fu = u - i;
+  const fv = v - j;
+  const corners = [
+    [h[k], (1 - fu) * (1 - fv)],
+    [h[k + 1], fu * (1 - fv)],
+    [h[k + GRID_N + 1], (1 - fu) * fv],
+    [h[k + GRID_N + 2], fu * fv],
+  ];
+  let sum = 0;
+  let wsum = 0;
+  for (const [y, w] of corners) {
+    if (Number.isNaN(y)) continue;
+    sum += y * w;
+    wsum += w;
+  }
+  return wsum > 0.2 ? sum / wsum : null;
+}
+
+// Highest grid height around (x, z), or null off the cap: the lip reaches a
+// little past the last full cell, and for "is there a cap over me" a coarse
+// answer is fine.
+function highestNear(h, x, z) {
+  const i = Math.floor(((x + GRID_HALF) / (2 * GRID_HALF)) * GRID_N);
+  const j = Math.floor(((z + GRID_HALF) / (2 * GRID_HALF)) * GRID_N);
+  let high = null;
+  for (let jj = Math.max(0, j - 2); jj <= Math.min(GRID_N, j + 3); jj++) {
+    for (let ii = Math.max(0, i - 2); ii <= Math.min(GRID_N, i + 3); ii++) {
+      const y = h[jj * (GRID_N + 1) + ii];
+      if (!Number.isNaN(y) && (high === null || y > high)) high = y;
+    }
+  }
+  return high;
+}
+
+// The underside under (x, z): the lowest of a few blended samples around
+// the point, so it is conservative (the lip droops) yet changes smoothly as
+// you move. A jumpy answer would wall you in under a cap you walked beneath.
+function undersideAt(h, x, z) {
+  let low = null;
+  for (const [dx, dz] of [[0, 0], [0.08, 0], [-0.08, 0], [0, 0.08], [0, -0.08]]) {
+    const y = sampleGrid(h, x + dx, z + dz);
+    if (y !== null && (low === null || y < low)) low = y;
+  }
+  return low;
+}
+
 // One mushroom. Returns the geometry and where its cap sits: centre offset
 // (cx, cz) from the foot, apex height and radius, for walking and bouncing.
 function mushroomGeometry(kind, seed) {
@@ -139,7 +225,8 @@ function mushroomGeometry(kind, seed) {
     cap.deleteAttribute('uv');
   }
   const capParts = [cap];
-  // Warts: flattened flakes of veil scattered over the dome.
+  // Warts: thin flakes of veil pressed onto the dome, raised only a few
+  // millimetres per unit so they read as spots with a slight relief.
   if (K.warts) {
     const n = 13 + Math.floor(rng() * 8);
     for (let i = 0; i < n; i++) {
@@ -147,12 +234,12 @@ function mushroomGeometry(kind, seed) {
       const a = rng() * Math.PI * 2;
       const p = capPoint(t, K.squat);
       const s = 0.06 + rng() * 0.06;
-      const g = blob(s, s * 0.45, s * (0.8 + rng() * 0.4), { seed: i * 3 + seed, dent: 0.3, detail: 1 });
+      const g = blob(s, s * 0.14, s * (0.8 + rng() * 0.4), { seed: i * 3 + seed, dent: 0.3, detail: 1 });
       // Lie on the dome: tilt outward with the surface slope.
       const slope = Math.atan2(0.44 * 1.6 * Math.pow(Math.max(t, 0.01), 0.6) / CAP_R, 0.5 / Math.sqrt(Math.max(t, 0.01)));
       const m = new THREE.Matrix4().makeRotationY(-a).multiply(new THREE.Matrix4().makeRotationZ(-slope * 0.9));
       g.applyMatrix4(m);
-      g.translate(Math.cos(a) * p.r, p.y + 0.01, Math.sin(a) * p.r);
+      g.translate(Math.cos(a) * p.r, p.y - s * 0.06, Math.sin(a) * p.r);
       capParts.push(paint(g, [0.96, 0.94, 0.86], 0.5, 1));
     }
   }
@@ -173,7 +260,7 @@ function mushroomGeometry(kind, seed) {
   const apex = new THREE.Vector3(0, capPoint(0, K.squat).y, 0).applyMatrix4(seat);
   const merged = mergeGeometries(parts);
   merged.computeBoundingSphere();
-  return { geometry: merged, cap: { cx: apex.x, cz: apex.z, top: apex.y, r: CAP_R } };
+  return { geometry: merged, stemTop: [tx, tz], cap: { cx: apex.x, cz: apex.z, top: apex.y, r: CAP_R, grid: capGrid(mergeGeometries(capParts)) } };
 }
 
 export class Mushrooms {
@@ -182,7 +269,8 @@ export class Mushrooms {
     this.group.name = 'mushrooms';
     this.terrain = terrain;
     this.colliders = [];
-    this.giants = []; // { x, z, y, s }
+    this._p = new THREE.Vector3();
+    this.giants = []; // { x, z, y, s, top, r, grid, matrix, inverse }
     const rng = mulberry32(4242);
     this.rng = rng;
     this.instances = { agaric: [], white: [], violet: [], brown: [] };
@@ -286,8 +374,22 @@ export class Mushrooms {
       const cap = this.shapes[kind][m.v].cap;
       const c = Math.cos(m.ry);
       const sn = Math.sin(m.ry);
-      this.giants.push({ x: x + (cap.cx * c + cap.cz * sn) * s, z: z + (-cap.cx * sn + cap.cz * c) * s, y, s, top: cap.top, r: cap.r });
-      this.colliders.push({ cx: x, cz: z, hx: 0.24 * s, hz: 0.24 * s, rot: 0 });
+      const matrix = new THREE.Matrix4().compose(
+        new THREE.Vector3(x, y, z),
+        new THREE.Quaternion().setFromEuler(new THREE.Euler(m.rx, m.ry, m.rz)),
+        new THREE.Vector3(s, s, s)
+      );
+      this.giants.push({ x: x + (cap.cx * c + cap.cz * sn) * s, z: z + (-cap.cx * sn + cap.cz * c) * s, y, s, top: cap.top, r: cap.r, grid: cap.grid, matrix, inverse: matrix.clone().invert() });
+      // The stem leans: a rounded collider from the foot to under the cap,
+      // so you can't walk your head into its bent upper half. It stops
+      // blocking at the rim's height, so you can walk about on the cap.
+      const [tx, tz] = this.shapes[kind][m.v].stemTop;
+      const ox = (tx * c + tz * sn) * s;
+      const oz = (-tx * sn + tz * c) * s;
+      const len = Math.hypot(ox, oz);
+      const ux = len > 1e-4 ? ox / len : 1;
+      const uz = len > 1e-4 ? oz / len : 0;
+      this.colliders.push({ cx: x + ox / 2, cz: z + oz / 2, hx: len / 2 + 0.26 * s, hz: 0.26 * s, rot: Math.atan2(-uz, ux), round: true, top: y + (cap.top - 0.5) * s });
     }
   }
 
@@ -365,22 +467,46 @@ export class Mushrooms {
     }
   }
 
+  // Height of a giant's cap under (x, z), or null: carry the point into the
+  // mushroom's frame at the cap's height, read the grid, and carry it back.
+  capHeight(g, x, z, side = 'top') {
+    // The rolled rim and the lathe's ovalness reach past CAP_R.
+    if (Math.hypot(x - g.x, z - g.z) > g.r * g.s * 1.45) return null;
+    const p = this._p.set(x, g.y + g.top * g.s, z).applyMatrix4(g.inverse);
+    const h = side === 'top' ? sampleGrid(g.grid.top, p.x, p.z) : side === 'under' ? undersideAt(g.grid.under, p.x, p.z) : highestNear(g.grid.top, p.x, p.z);
+    if (h === null) return null;
+    return p.set(p.x, h, p.z).applyMatrix4(g.matrix).y;
+  }
+
+  // The solid span of a cap over (x, z), lip included, for walking into one
+  // from the side.
+  spanAt(x, z) {
+    for (const g of this.giants) {
+      const top = this.capHeight(g, x, z, 'crest');
+      // Right at the lip the underside sample runs out; the lip is about a
+      // tenth of the mushroom's size thick.
+      if (top !== null) return { bottom: this.capHeight(g, x, z, 'under') ?? top - 0.1 * g.s, top };
+    }
+    return null;
+  }
+
   // Walkable: the domes of the big caps.
   surfaceAt(x, z) {
     let best = null;
     for (const g of this.giants) {
-      const d = Math.hypot(x - g.x, z - g.z);
-      const R = g.r * g.s;
-      if (d > R) continue;
-      const top = g.y + (g.top - 0.44 * Math.pow(d / R, 1.6)) * g.s;
-      if (best === null || top > best) best = top;
+      const top = this.capHeight(g, x, z);
+      if (top !== null && (best === null || top > best)) best = top;
     }
     return best;
   }
 
-  // Landing on a big cap throws you back up.
-  bounceAt(x, z) {
-    for (const g of this.giants) if (Math.hypot(x - g.x, z - g.z) < g.r * g.s) return true;
+  // Landing on a big cap throws you back up; landing on the ground under one
+  // doesn't (that would throw you up through it).
+  bounceAt(x, z, y) {
+    for (const g of this.giants) {
+      const top = this.capHeight(g, x, z);
+      if (top !== null && Math.abs(top - y) < 0.15) return true;
+    }
     return false;
   }
 

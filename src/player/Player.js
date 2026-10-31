@@ -38,7 +38,8 @@ export class Player {
     this.colliders = colliders;
     // Functions (x, z) -> height | null for walkable things above the terrain.
     this.surfaces = [];
-    this.bouncers = []; // (x, z) => true where landing throws you back up
+    this.bouncers = []; // (x, z, y) => true where landing at height y throws you back up
+    this.overhangs = []; // (x, z) => { bottom, top } | null: things you'd walk into headfirst
     this.waterLevelAt = null; // set by the game: water surface height at (x, z), or -Infinity
     this.swimming = false;
 
@@ -185,14 +186,20 @@ export class Player {
     }
 
     this.resolveCollisions();
+    this.blockOverhangs(prevX, prevZ);
 
     const lim = WORLD_HALF - WORLD_MARGIN;
     this.position.x = THREE.MathUtils.clamp(this.position.x, -lim, lim);
     this.position.z = THREE.MathUtils.clamp(this.position.z, -lim, lim);
 
-    // Vertical: gravity, ground contact and sticking to downhill slopes.
+    // Vertical: gravity, ground contact and sticking to downhill slopes. A
+    // fast fall can drop further in one frame than the step-up reach, so a
+    // surface counts if it lay under the feet anywhere along this frame's
+    // drop, not only at its end; otherwise a low frame rate falls through
+    // mushroom caps and decks.
+    const startY = this.position.y;
     this.position.y += this.velocity.y * dt;
-    let ground = this.groundAt(this.position.x, this.position.z, this.position.y);
+    let ground = this.groundAt(this.position.x, this.position.z, Math.max(startY, this.position.y));
     // Deep water: float with the head above the surface instead of walking the bed.
     const water = this.waterLevelAt ? this.waterLevelAt(this.position.x, this.position.z) : -Infinity;
     this.swimming = water - ground > SWIM_DEPTH;
@@ -202,7 +209,7 @@ export class Player {
     }
     if (this.position.y <= ground) {
       this.position.y = ground;
-      if (this.velocity.y < -1.5 && this.bouncers.some((b) => b(this.position.x, this.position.z))) {
+      if (this.velocity.y < -1.5 && this.bouncers.some((b) => b(this.position.x, this.position.z, ground))) {
         // A mushroom cap: back up you go, a little higher the harder you hit.
         this.velocity.y = Math.max(BOUNCE_SPEED, -this.velocity.y * 0.85);
         this.onGround = false;
@@ -220,6 +227,34 @@ export class Player {
     }
 
     this.updateCamera(dt);
+  }
+
+  // An overhang (a mushroom cap) whose top is too high to step onto but
+  // whose underside hangs below your eyes: walking in under it would put
+  // the camera inside it, so it stops you like a wall. A step may never take
+  // the eyes deeper into one, but can always take them further out, so the
+  // ground rising into a cap on a slope can't wall you in.
+  blockOverhangs(prevX, prevZ) {
+    if (!this.overhangs.length) return;
+    // How far the overhang reaches below eye level here (negative if it's
+    // clear), with the feet where they'll be: on the ground there when
+    // walking, so heading downhill under a cap counts the drop.
+    const intrusion = (x, z) => {
+      const y = this.onGround ? this.groundAt(x, z, this.position.y) : this.position.y;
+      let worst = -Infinity;
+      for (const o of this.overhangs) {
+        const s = o(x, z);
+        if (s !== null && s.top > y + 0.6) worst = Math.max(worst, y + EYE_HEIGHT + 0.05 - s.bottom);
+      }
+      return worst;
+    };
+    const now = intrusion(this.position.x, this.position.z);
+    if (now > 0 && now > intrusion(prevX, prevZ) + 1e-3) {
+      this.position.x = prevX;
+      this.position.z = prevZ;
+      this.velocity.x = 0;
+      this.velocity.z = 0;
+    }
   }
 
   // Highest walkable height at (x, z) that the feet at y can step onto.
