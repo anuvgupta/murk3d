@@ -1006,3 +1006,11 @@ screenshot-checked.
   bad placements, not render problems; sky needs a shot from an island
   top. Remaining realm weakness: rim walls still soft at 60 m+ (EB will
   show the flute/macro shading), grass on the realm floors is sparse.
+- EA: the Vale survived the hillside ledges (overlook noon, cliff foot,
+  bridge 08:30 all keepers, on verify). The cliff-ruins mesa flank is
+  still a brown mound: it is a 45° grass slope facing away from the
+  afternoon sun, beyond blade distance, so only the `under` ground colour
+  shows, lit by the hemi light whose ground bounce was brown (0x8a7a62)
+  → hemiGround 0x7e8660 (meadow olive), `under` olive mix 0.4 → 0.3
+  (6da70b5). Verify ED1–ED5 (mesa flank, overlook, castle ward, village
+  golden, forest shade): shaded grass should read green, not brown.
