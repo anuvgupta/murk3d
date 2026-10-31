@@ -1068,3 +1068,14 @@ screenshot-checked.
   close-up all fine after the ramp change (EK3–EK5 keepers). Sky realm:
   EI3 pos spawn at island 2 ended in the Vale's portal glade (the harness
   spawn fell through to the home gate) — use cam mode only there.
+- EM5 (tdebug 2) on the mesa flank is uniform green: carpet = 1 and
+  rockAmtOut = 0 over the whole view, so none of the rock-side changes
+  (veil, rock-on-steep) could touch it. The brown is groundColor's `bank`
+  dirt (slope ≈ 0.32–0.4) plus `bare` (mask thinned by bakeTerrain's
+  slope cull) — i.e. the hillside is gentle enough for blades but drawn
+  as worn earth. `bare` now leans to meadow by carpet (+0.35) and the
+  bank dirt weight drops to 0.28 where carpet is high (commit after EM).
+  Verify EQ1–EQ5 (EQ2 = tdebug 6 baked slope). Sky white-out: EL1/EL2
+  stats identical → it is time-of-day (11:00, 14:00 white; 16:00, 18:12
+  clear) from cam (445,40,345); EO (first-shot test) and EP (flat grey /
+  noShadow / y 70 / Vale control at 11:00) queued.
