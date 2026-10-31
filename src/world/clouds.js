@@ -139,13 +139,16 @@ const STYLES = {
       vec3 skyAmb = Lin * 0.04 + vec3( 0.0, 0.0003, 0.00075 );
       float horizonFade = smoothstep( 0.0, 0.06, direction.y );
       float T = time * cloudSpeed * 600.0;
-      // A low deck, so the towers loom large overhead.
-      vec2 uv = direction.xz / ( max( direction.y, 0.02 ) * 0.4 ) * cloudScale * 1900.0;
+      // A middling deck: the towers read as distinct masses with blue sky
+      // between them, not one quilt filling the whole dome.
+      vec2 uv = direction.xz / ( max( direction.y, 0.02 ) * 0.7 ) * cloudScale * 3300.0;
       uv += vec2( 0.9, 0.35 ) * T * 1.6;
       // The masses churn and roll: lobes bulge, split and swallow each other.
       vec2 q = churn( uv, T * 1.3, 0.9 );
       float region = noise( q * 0.08 ) * 0.5 + 0.5;
-      float cov = clamp( cloudCoverage * 1.3 + ( region - 0.5 ) * 0.8, 0.0, 1.0 );
+      // Coverage pulled down and the regional swing widened: whole stretches
+      // of sky stay clear while the towers gather in a few places.
+      float cov = clamp( cloudCoverage * 0.95 + ( region - 0.5 ) * 1.0, 0.0, 1.0 );
       float th = 1.0 - cov;
       // Cauliflower: round lobes stacked big to small, each eroding the last.
       float body = fbm( q * 0.3, T * 0.5 ) * 0.5 + 0.5;
@@ -180,7 +183,7 @@ const STYLES = {
       texColor = mix( texColor, aerial, alpha );
       // Small fast puffs scudding under the towers.
       {
-        vec2 uvLo = direction.xz / ( max( direction.y, 0.02 ) * 0.9 ) * cloudScale * 800.0 + vec2( 0.9, 0.35 ) * T * 1.3 + 23.0;
+        vec2 uvLo = direction.xz / ( max( direction.y, 0.02 ) * 0.9 ) * cloudScale * 1300.0 + vec2( 0.9, 0.35 ) * T * 1.3 + 23.0;
         vec2 ql = churn( uvLo, T * 1.6, 0.9 );
         float puff = billow( ql * 1.8 + T * 0.5 ) * 0.6 + ( fbm( ql * 0.6, T * 0.4 ) * 0.5 + 0.5 ) * 0.5;
         float pd = smoothstep( 0.78, 0.86, puff ) * ( 1.0 - dens );
