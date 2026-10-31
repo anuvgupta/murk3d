@@ -1234,3 +1234,9 @@ screenshot-checked.
   afterglow. Night is done. Next survey: daytime interiors and props
   (tavern table, smithy, alchemist stall, market, chests) at 1–3 m,
   since item/furniture detail hasn't been reviewed this session.
+- FH props survey: market table (cloth, coins, chest, goblet), alchemist
+  stall with the cauldron, armoury rack — all keepers at 2–3 m; plaza
+  edge by day (cobbles fraying to dirt and grass) a keeper. Smithy /
+  tavern / chest shots mis-aimed (yaw sign: yaw = −atan2(dx, −dz) from
+  camera to target). Re-aimed FI batch: smithy, tavern tables (74,−30),
+  the three chests.
