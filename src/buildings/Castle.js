@@ -79,7 +79,9 @@ export class Castle {
   // A straight run of curtain wall between two local points, with a
   // crenellated parapet and a walkway. Runs overlap at the joints, so
   // neighbours are given different `lift`s to keep their tops out of one plane.
-  wallRun(kit, m, ax, az, bx, bz, baseY, height, thick = 1.6, lift = 0) {
+  // `floor` is the ward floor's height above the wall's base on the inner side
+  // (an inner ring's wall rises from the ward below it).
+  wallRun(kit, m, ax, az, bx, bz, baseY, height, thick = 1.6, lift = 0, floor = 0) {
     const len = Math.hypot(bx - ax, bz - az);
     const ry = Math.atan2(bx - ax, bz - az);
     kit.frame({ x: (ax + bx) / 2, y: baseY + lift, z: (az + bz) / 2, ry }, () => {
@@ -103,12 +105,13 @@ export class Castle {
       const bays = Math.max(1, Math.floor(len / 7));
       for (let i = 0; i < bays; i++) {
         const z = -len / 2 + (i + 0.5) * (len / bays);
-        kit.box(m.iron, 0.5, 0.05, 0.05, { x: -thick / 2 - 0.25, y: 3.3, z });
-        lantern(kit, m, { x: -thick / 2 - 0.45, y: 3.0, z });
-        if (i + 1 < bays && height > 6) {
+        kit.box(m.iron, 0.5, 0.05, 0.05, { x: -thick / 2 - 0.25, y: floor + 3.3, z });
+        lantern(kit, m, { x: -thick / 2 - 0.45, y: floor + 3.0, z });
+        if (i + 1 < bays && height - floor > 6) {
           const zb = z + len / bays / 2;
-          kit.box(m.iron, 0.05, 0.05, 1.1, { x: -thick / 2 - 0.3, y: Math.min(height - 1.0, 7.0), z: zb });
-          kit.box(m.banner, 0.03, 2.2, 0.9, { x: -thick / 2 - 0.32, y: Math.min(height - 1.0, 7.0) - 1.15, z: zb });
+          const yb = Math.min(height - 1.0, floor + 7.0);
+          kit.box(m.iron, 0.05, 0.05, 1.1, { x: -thick / 2 - 0.3, y: yb, z: zb });
+          kit.box(m.banner, 0.03, 2.2, 0.9, { x: -thick / 2 - 0.32, y: yb - 1.15, z: zb });
         }
       }
     });
@@ -255,7 +258,7 @@ export class Castle {
         let dGate = Math.abs(((mid - T.gateAngle + Math.PI * 3) % (Math.PI * 2)) - Math.PI);
         if (dGate < 0.33) continue;
         // Walls rise from the lower ward's floor so the terrace face is clad.
-        this.wallRun(kit, m, Math.cos(a0) * ringR, Math.sin(a0) * ringR, Math.cos(a1) * ringR, Math.sin(a1) * ringR, prev.h, T.h - prev.h + T.wall, 1.4, (i % 2) * 0.012);
+        this.wallRun(kit, m, Math.cos(a0) * ringR, Math.sin(a0) * ringR, Math.cos(a1) * ringR, Math.sin(a1) * ringR, prev.h, T.h - prev.h + T.wall, 1.4, (i % 2) * 0.012, T.h - prev.h);
         if (i % 3 === 0) this.tower(kit, m, Math.cos(a0) * ringR, Math.sin(a0) * ringR, prev.h, T.h - prev.h + T.wall + 3.5, 2.0);
       }
       // Gate in this ring, at the terrace floor level, and stairs up to it.
