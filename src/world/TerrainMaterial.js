@@ -155,9 +155,12 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         // Relief on rock, and a gentler relief on the bare earth of steep banks
         // (which otherwise read as smooth plaster up close).
         float bankAmt = smoothstep( 0.28, 0.5, 1.0 - wnClass.y ) * ( 1.0 - rockAmtOut );
-        normal = bumpNormal( -vViewPosition, normal, rockHOut, ( 3.4 * rockAmtOut + 0.6 * bankAmt ) * ( 0.3 + 0.7 * rockDetail ) );
+        // Derivative bump only up close: at 50 m its features are smaller than
+        // a pixel and it turns a cliff into grey felt. Distant relief comes
+        // from the analytic macro normal instead, which stays smooth.
+        normal = bumpNormal( -vViewPosition, normal, rockHOut, ( 3.4 * rockAmtOut + 0.6 * bankAmt ) * ( 0.06 + 0.94 * rockDetail * rockDetail ) );
         if ( rockAmtOut > 0.01 ) {
-          vec3 wn2 = macroNormal( vWPos, normalize( vWNormal ), 9.0 * rockAmtOut );
+          vec3 wn2 = macroNormal( vWPos, normalize( vWNormal ), ( 9.0 + 8.0 * ( 1.0 - rockDetail ) ) * rockAmtOut );
           vec3 vn2 = normalize( ( viewMatrix * vec4( wn2, 0.0 ) ).xyz );
           normal = normalize( mix( normal, vn2, 0.75 ) );
         }`
