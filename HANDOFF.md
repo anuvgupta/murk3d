@@ -1,3 +1,66 @@
+# Murk 3D — Handoff (second session, 31 Oct 2026)
+
+Written by Claude (session `session_013Z26xysAD7kCkmfwLxzzQg`) when the owner asked to stop and hand over. The first-session handoff from 30 Oct follows below this section unchanged; everything in it still holds unless this section says otherwise.
+
+## State at handoff
+
+- `main` is at `23bb48e` (another agent's #58 fix on top of my `d33b804`); every one of my commits is pushed and rebased, nothing is uncommitted. The live build at https://github.anuv.me/murk3d/ deploys from `main`.
+- `notes` branch: `PROJECT_NOTES.md` has a dated entry for every pass this session (search "DK verified" for where this session's log starts); `HANDOFF.md` is this file; `tools/` now holds the render scripts described below.
+- `feedback` branch: `verify/` holds ~90 keeper frames from this session (names `DL*`…`FN*`); the issue tool writes `feedback/`.
+- A second agent (the "issue session") works the `feedback` issues one at a time in parallel. Convention: comment "Taking this" on an issue before starting so the two sessions never collide; close an issue only after a verification frame is on `feedback/verify` and linked from the closing comment.
+- Rules the owner stated this session: always `git fetch && git rebase origin/main` before every push, straight to `main`, no PRs; push every change as it is finished; **do not touch the pixelation modes** (Off / Mild / Strong, `PixelatePass`, `TemporalPass`, the pixel ratio path in `Game.js`, `PIXEL_LEVELS`) — the owner tuned them by hand and called them perfect, and they are unchanged since commit `928261a`; keep `PROJECT_NOTES.md` current; never push a build that fails the shader smoke gate.
+
+## Open work, in priority order
+
+1. **Issue #63, Ghibli clouds too big** (mine, in progress). Two passes shipped (`dc2307a`, `d33b804`): the Ghibli deck in `src/world/clouds.js` went from divisor 0.4 / scale 1900 / coverage ×1.3 to divisor 0.85 / scale 5600 / coverage ×0.75 with a ±1.1 regional swing; puffs 800→1900. The first pass was verified as still too big (frames `FM1`/`FM4`, the issue's own spot: `?at=-61.63,-17.94,-9.311,0.449,8.04`); the second pass is **unverified** — its render was cancelled at handoff. Render that view again (`clouds: "ghibli"`, sky phases 300 and 900) and compare with the owner's screenshot on the issue; the owner wants the same shapes, smaller, with open sky between them. Close #63 with before/after frames when it reads right. Note: in one batch the second and later Ghibli shots came out painterly (`FM2`/`FM3`); `setCloudStyle` recompiles the sky shader, so pass `clouds` on every shot and check the frame really changed style before judging it.
+2. **Issue #61, juniper half**: "this tree is freaking out" at `?at=-112.66,-114.62,-4.339,0.379,18.47` (juniper at (−116.8, 27.9, −113)). The glare half is done and verified (`6170f07`, frames `FN1/FN5/FN6`, commented on the issue); the issue stays open for the tree. Likely the wind or the near/mid LOD swap on that species (`src/world/trees/Forest.js`, species `juniper` in `species.js`); the clip on the issue shows the motion.
+3. **Issues #59, #60, #62** are the issue session's (mushroom bounce/spots, mushroom night glow, road-edge imperfection density). #58 was fixed by that session (`23bb48e`).
+4. **Design loop candidates I had queued** (none started): far peaks of the Vale's mountain ring are soft at 300 m+ (frame `FL1`, add crisper strata/snow at the far LOD); the shelves plate's underside is now cool but still plain (rock overhang tint only); the alpine/citadel rim walls could take a little more buttress contrast; the crypt interior could use hanging roots and a dust shaft; `FA3`/`FH4`-type shots inside tree crowns mean the village spawn spots need checking against `plan.js` before use.
+
+## What this session changed, by area (all pushed, all verified by render unless noted)
+
+Night and twilight
+- Blue nights: blue shadow lift, moonlit ground bounce `hemiGroundNight`, moon 0x8fa8ea ×2.0, night saturation 0.98 (`596fb83`).
+- Castle windows glow per room via `windowGlass()` in `buildings/materials.js` (pane centre carried in the `aux` attribute by `pane()` in `Castle.js`); lanterns on every gatehouse (outer face + passage), the keep door and along the ward side of every curtain wall (`wallRun` gained a `floor` param so inner rings hang them at the ward floor, not under it).
+- **Lantern light pool** (`bb34fcb`): `Game.lanternPool` is 8 point lights handed each frame to the nearest lantern posts within 60 m (`Village.lanterns` + `Castle.worldLamps()`), fading 35→58 m, flickering. This replaced fixed per-castle lights. If the lantern count grows, raise the pool or the radius, not per-lantern lights.
+- Civil twilight (`adbd28f`, `a25b46f`, `82bc06c`, `c571f30`): afterglow band in `finishSkyFragment`; a rose rim light `duskI` from the sun's side with `lightDir.y` clamped to 0.1; moon ramps −0.1→−0.2 and its disc uses its own direction; `dayFog` separate from `day`; sun glow gated by `smoothstep(−0.03,0.02,elev)` so it never sits on the grass after sunset.
+- Sun glare (`6170f07`): `openG = max(open, 0.3)`, headroom weight 0.3, occlusion disc 0.42, shaft ×1.6, `a.shaft = 0.25+0.85·low`, `a.glow = 0.5+1.1·low`, ring ghosts, anamorphic streak, six-point star.
+
+Village
+- Fairy lights (#52, `531cbfd`, `172d48d`): `buildings/fairyLights.js` + `m.fairy` (aux-hashed colour/twinkle); poles along the main road, a plaza ring and a well ring with crossings; one warm point light over the well.
+- Ground under placed furniture is trodden (`55ca855`): `Village.place` records `worn` segments; `GroundMask.cutSegments` clears grass and `tread()` raises the road channel around them.
+- Town paving: the cobble layer's black fill was painted *after* the realm town and castle ward discs and wiped them (`12bd491`); towns now fray into dirt like the plaza (`18884f0`).
+
+Ground, rock, hills
+- Bare banks: wash streaks and gathered stones in the soil's tint (`c3f5c9d`, `7d5e5cf`); contour rock ledges on steep banks (`a4958af`); grassy slopes stay green past 45° (`d3ed266`, `d3e0a64`); slopes too steep for blades are stone (`b0eef9d`); turf veils rock on moderate meadow slopes (`d57eb4c`).
+- Per-realm stone (`31728a1`): `palette.rock = [r,g,b,grey]` in `regions.js` → `uRegionRock`, `realmRock()` / `tintRock()` in `REALM_GLSL`, used by terrain, far ground rock and `Rocks.js`; realm rims turn to rock sooner.
+- **Cliff "grey felt" root cause** (the longest hunt; see notes): not shadows, not albedo, not the derivative bump — it was `macroNormal` taking finite differences of texture noise with sub-metre octaves. `macroHeight`/`macroNormal` in `rockShading.js` are now analytic value noise with an exact gradient (`noised3`, `macroField`, `d69378d`). Bump mapping fades with `detail³` over 6→42 m (`aaaf55e`). Terrain debug views 1–11 exist (`g.terrainDebug = n`): 1 vertex normal, 2 carpet/rock, 3 unlit, 4 shading normal, 5 flat grey, 6 baked slope, 7 class normal, 8 bump-only normal, 9 macro normal, 10 macro height, 11 macro normal at low strength.
+- Daytime shade is sky-blue (`hemiSkyDay` 0xc4d2e4, `8c3057f`); meadow-olive ground bounce (`6da70b5`); overhang undersides cool (`8b8b49b`).
+- Sunken masonry (crypt, uphill house walls) goes damp and mossy in patches (`da676d9`, `56fbd41`).
+
+Water
+- Shore foam gated by a bank noise and faded 25→70 m (`e8fdf86`).
+
+Surveys verified as keepers this session (frames on `feedback/verify`): all nine realm postcards, floating isles at 13:00/16:00/golden, twilight at 19:15/19:45/05:15, every night view (ward corridor, plaza, porch, castle gate, plateau from above), water (river, jetty noon and night, alpine lake, falls), props (market, alchemist, armoury, smithy, tavern, chests), castle from above.
+
+## Render tooling (now in `notes:tools/`)
+
+- `view2.cjs` — Playwright + swiftshader screenshots against `vite preview` on :4173. Shots: `{name,time,pos:[x,z],yaw,pitch}` or `{cam:[x,y,z],look:[x,y,z]}` or `{top:[x,z,height]}`, plus optional `sky` (cloud phase), `noShadow`, `tdebug` (terrain debug view), `px` (pixel level, reset to 0 per shot), `clouds` (style), `warm` (frames to settle; cam/top shots default to 3 because a free camera's first frame carries stale atmosphere state — the floating-isles "white-out" was that). Free cams are clamped to ground + 3 m. Each shot's stats line logs `cam`, `th` (ground height) and `player` — **check these before chasing a frame**: three of this session's dead ends were cameras inside hills or tree crowns. Yaw for a pos shot toward a target is `−atan2(dx, −dz)`.
+- `smoke.cjs` — loads the build headlessly, prints build timings and any page/shader error. The push gate is: `npm run build`, `smoke.cjs` must print `no page errors`, then commit, `git fetch && git rebase origin/main`, push.
+- `maskprobe.cjs` — samples `GroundMask` channels and terrain height at listed points (found the paving bug).
+- Batches run as `batchNN.sh` with `nohup`, one Chromium at a time, chained with `.done` files; ~4 min per world load plus ~1–3 min per frame.
+- Compare frames by pixel fraction changed (the node snippet in notes, "changed fraction") before concluding a shader change did anything.
+
+## Known traps
+
+- GLSL reserved words have broken builds: `patch`, `cast`, and shadowing `step`. Backticks inside GLSL comments break the JS template literal.
+- `mergeGeometries` returns null if the `aux` attribute is on some parts of a material and not others; `Kit.build` drops `aux` where parts disagree.
+- The realm bowls' rim walls are tall: any free camera below `terrainHeight + 3` renders the inside of the mesh (white floor). The harness now clamps this.
+- `setCloudStyle` recompiles the sky shader; the light probe re-renders on the next frame.
+- The ward "corridor" spot `[185,−178]` is between ring 1's gatehouse towers; a real outer-ward corridor is `[165,−223]` yaw −0.858.
+
+---
+
 # Murk 3D — Handoff
 
 30 Oct 2026 · anuvgupta (written by Claude at the end of the first build session)
