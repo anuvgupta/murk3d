@@ -1203,3 +1203,11 @@ screenshot-checked.
   overhang undersides tinted cool (n.y < 0) for the shelves plate. The
   wall-side assumption needs checking in the FD renders (if the lanterns
   landed on the outer face, flip the sign). FC2/FC6 were bad spots.
+- FD: ward lanterns were invisible — on the inner rings the wall rises
+  from the ward below (base prev.h), so y 3 was under the corridor
+  floor; the far wall's banner at y 7 showed at floor level. wallRun got
+  a `floor` param (T.h − prev.h) and lanterns/banners hang relative to
+  it. Verify FE1–FE4 (ward day/night, looking back, castle at 22:00).
+  Shelves underside now cool olive-grey (FD5 ok), canyon arch keeper.
+  Castle at 20:00 (FD4) is already deep night — the sky is black at
+  20:00 while the afterglow pass only shows toward the west; acceptable.
