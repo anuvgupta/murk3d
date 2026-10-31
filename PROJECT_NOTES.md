@@ -1211,3 +1211,9 @@ screenshot-checked.
   Shelves underside now cool olive-grey (FD5 ok), canyon arch keeper.
   Castle at 20:00 (FD4) is already deep night — the sky is black at
   20:00 while the afterglow pass only shows toward the west; acceptable.
+- FE: the "ward corridor" spot [185,−178] is between ring 1's gatehouse
+  towers (plateau centre ≈ (185,−200), ring-1 gate at 1.9 rad), not a
+  corridor, so no wall lanterns are in view there; looking back is the
+  terrace riser. Castle at 22:00 from the road (FE4) is a keeper. FF:
+  top-down night/day over the plateau (lantern glows show which face
+  they landed on) and a true outer-ward corridor spot [165,−223].
