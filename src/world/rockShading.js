@@ -142,8 +142,19 @@ export const ROCK_GLSL = /* glsl */ `
 
   // Large-scale relief as a world-space normal perturbation: sample the macro
   // height a few metres either side and tilt the normal down the gradient.
+  // Sampled from a coarse mip, so the noise's fine octaves (under a metre)
+  // cannot alias against the 2.5 m difference step: that aliasing was the
+  // grey felt on every cliff wall seen from 20 m or more.
+  float triLod( vec3 p, vec3 w, float s, int ch, float lod ) {
+    vec4 a = textureLod( uNoise, p.zy * s, lod );
+    vec4 b = textureLod( uNoise, p.xz * s, lod );
+    vec4 c = textureLod( uNoise, p.xy * s, lod );
+    return ( ch == 0 ? a.r : ch == 1 ? a.g : ch == 2 ? a.b : a.a ) * w.x
+         + ( ch == 0 ? b.r : ch == 1 ? b.g : ch == 2 ? b.b : b.a ) * w.y
+         + ( ch == 0 ? c.r : ch == 1 ? c.g : ch == 2 ? c.b : c.a ) * w.z;
+  }
   float macroHeight( vec3 p, vec3 w ) {
-    return tri( vec3( p.x, p.y * 0.35, p.z ), w, 0.022, 0 ) * 0.7 + tri( p, w, 0.06, 1 ) * 0.3;
+    return triLod( vec3( p.x, p.y * 0.35, p.z ), w, 0.022, 0, 4.0 ) * 0.7 + triLod( p, w, 0.06, 1, 5.0 ) * 0.3;
   }
   vec3 macroNormal( vec3 p, vec3 n, float strength ) {
     vec3 w = triWeights( n );
