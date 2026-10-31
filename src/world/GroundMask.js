@@ -112,6 +112,8 @@ export class GroundMask {
     const road = layer();
     const water = layer();
     const cobble = layer();
+    cobble.fillStyle = '#000';
+    cobble.fillRect(0, 0, SIZE, SIZE);
 
     // Grass everywhere, then cut out everything that isn't meadow.
     grass.fillStyle = '#fff';
@@ -167,9 +169,8 @@ export class GroundMask {
     strokePath(water, RIVER.path, (s) => RIVER.widthAt(s) + 0.6);
     fillLake(water, 0.5);
 
-    // The cobbled plaza.
-    cobble.fillStyle = '#000';
-    cobble.fillRect(0, 0, SIZE, SIZE);
+    // The cobbled plaza. (The realm towns and castle wards were painted
+    // above; the black ground must not be laid over them.)
     cobble.fillStyle = '#fff';
     cobble.beginPath();
     cobble.arc(toPx(PLAZA.x), toPx(PLAZA.z), PLAZA.radius * PX, 0, Math.PI * 2);
