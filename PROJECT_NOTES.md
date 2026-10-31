@@ -1014,3 +1014,9 @@ screenshot-checked.
   → hemiGround 0x7e8660 (meadow olive), `under` olive mix 0.4 → 0.3
   (6da70b5). Verify ED1–ED5 (mesa flank, overlook, castle ward, village
   golden, forest shade): shaded grass should read green, not brown.
+- EB: the far-structure albedo block barely registered; the "grey felt" on
+  realm walls at 20–80 m is the derivative bump (features below a pixel →
+  per-pixel noise). Bump now fades with detail² (terrain 0.06+0.94·d²,
+  rocks 3.2·d²) and macroNormal strength grows at distance (9+8·(1−d))
+  — 6e6334c. Canyon 15:00 and Vale spires at noon unchanged (keepers).
+  Verify EE1–EE5 (alpine dusk/noon, citadel wall, karst, bank close).
