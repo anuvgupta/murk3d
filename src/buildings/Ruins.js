@@ -502,7 +502,7 @@ export class Ruins {
   stoneCircle(kit, m, site, y, ry, random) {
     const n = 7;
     const R = 6.5;
-    kit.frame({ x: site.x, z: site.z, ry }, () => {
+    kit.frame({ x: site.x, y, z: site.z, ry }, () => {
       for (let i = 0; i < n; i++) {
         const a = (i / n) * TAU;
         const x = Math.cos(a) * R;

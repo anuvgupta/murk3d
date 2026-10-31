@@ -126,18 +126,27 @@ export class Village {
     // The alchemist and the armourer on the plaza's east edge; the smith's
     // yard south-west of the village; the tavern's tables in its yard.
     const fm = (this.furnitureMaterials = createFurnitureMaterials(m, im));
+    // Lowest ground under a small (rotated) footprint, so a chest's corner
+    // doesn't float on a slope.
+    const footY = (x, z, ry, hx, hz) => {
+      const c = Math.cos(ry);
+      const s = Math.sin(ry);
+      let y = terrain.heightAt(x, z);
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) y = Math.min(y, terrain.heightAt(x + sx * hx * c + sz * hz * s, z - sx * hx * s + sz * hz * c));
+      return y;
+    };
     const place = (x, z, ry, build, name) => {
       let info;
       kit.frame({ x, y: terrain.heightAt(x, z), z, ry }, () => {
-        info = build();
+        info = build(kit);
       });
       for (const c of info.colliders || [{ cx: 0, cz: 0, hx: info.hx, hz: info.hz }]) this.colliders.push(worldBox({ ...c, rot: 0 }, x, z, ry));
       this.landmarks.push({ name, x, z, r: Math.max(info.hx, info.hz) + 0.5 });
     };
-    place(PLAZA.x + PLAZA.radius - 2.6, PLAZA.z + 2.4, -Math.PI / 2, () => alchemyStall(kit, m, im, fm), 'alchemist');
-    place(PLAZA.x + PLAZA.radius - 1.2, PLAZA.z - 3.4, -Math.PI / 2, () => armoury(kit, m, im, fm), 'armoury');
-    place(-40, 40, Math.atan2(PLAZA.x + 40, PLAZA.z - 40), () => smithy(kit, m, im, fm), 'smithy');
-    place(74, -30, 0.3, () => tavernTable(kit, m, im, fm), 'tavern tables');
+    place(PLAZA.x + PLAZA.radius - 2.6, PLAZA.z + 2.4, -Math.PI / 2, (k) => alchemyStall(k, m, im, fm), 'alchemist');
+    place(PLAZA.x + PLAZA.radius - 1.2, PLAZA.z - 3.4, -Math.PI / 2, (k) => armoury(k, m, im, fm), 'armoury');
+    place(-40, 40, Math.atan2(PLAZA.x + 40, PLAZA.z - 40), (k) => smithy(k, m, im, fm), 'smithy');
+    place(74, -30, 0.3, (k) => tavernTable(k, m, im, fm), 'tavern tables');
     const chestSpots = [
       { x: 4.5, z: 14.5, ry: 0.4, kind: 0 },    // south edge of the plaza
       { x: -86, z: -88, ry: 2.2, kind: 1 },    // the overlook
@@ -145,7 +154,8 @@ export class Village {
     ];
     for (const c of chestSpots) {
       let info;
-      kit.frame({ x: c.x, y: terrain.heightAt(c.x, c.z), z: c.z, ry: c.ry }, () => {
+      const size = CHESTS[c.kind](new Kit(), m, im);
+      kit.frame({ x: c.x, y: footY(c.x, c.z, c.ry, size.r, size.r * 0.7), z: c.z, ry: c.ry }, () => {
         info = CHESTS[c.kind](kit, m, im);
       });
       this.colliders.push({ cx: c.x, cz: c.z, hx: info.r, hz: info.r * 0.7, rot: c.ry });
