@@ -151,10 +151,28 @@ export const GROUND_GLSL = /* glsl */ `
   // Detail factor for the ground (0 far .. 1 near); set by the caller.
   float groundDetail = 0.0;
 
-  // Dirt roads: the mask's soft band made crooked and jagged at the metre and
-  // hand scale, with a short fade to the turf.
-  float roadAmount( vec2 p, float g ) {
-    float wob = ( texture( uNoise, p * 0.09 + 0.23 ).r - 0.5 ) * 0.4 + ( texture( uNoise, p * 0.22 + 0.47 ).g - 0.5 ) * 0.32 + ( texture( uNoise, p * 0.7 + 0.61 ).a - 0.5 ) * 0.18;
+  // The road's direction at p, read off the mask: the road band's gradient
+  // points across the road, so its perpendicular runs along it. (1, 0) away
+  // from any road, where it doesn't matter.
+  vec2 roadTangent( vec2 p ) {
+    float gx = texture( uMask, maskUv( p + vec2( 1.0, 0.0 ) ) ).g - texture( uMask, maskUv( p - vec2( 1.0, 0.0 ) ) ).g;
+    float gz = texture( uMask, maskUv( p + vec2( 0.0, 1.0 ) ) ).g - texture( uMask, maskUv( p - vec2( 0.0, 1.0 ) ) ).g;
+    float l = length( vec2( gx, gz ) );
+    return l > 1e-3 ? vec2( -gz, gx ) / l : vec2( 1.0, 0.0 );
+  }
+
+  // Dirt roads: the mask's soft band made crooked and jagged, with a short
+  // fade to the turf. The imperfections are drawn out along the road (four to
+  // six times longer than they are wide) so the edge wanders gently, and the
+  // fine jaggedness comes and goes in stretches of 50-100 m: some lengths of
+  // road are ragged, most are calmer. t is the road's tangent; the noise is
+  // read in the road's own frame, mirrored so the frame's sign doesn't matter.
+  float roadAmount( vec2 p, float g, vec2 t ) {
+    vec2 q = abs( vec2( dot( p, t ), dot( p, vec2( -t.y, t.x ) ) ) );
+    float dens = smoothstep( 0.35, 0.7, texture( uNoise, p * 0.011 + 0.9 ).r );
+    float wob = ( texture( uNoise, q * vec2( 0.022, 0.1 ) + 0.23 ).r - 0.5 ) * 0.4
+              + ( texture( uNoise, q * vec2( 0.05, 0.24 ) + 0.47 ).g - 0.5 ) * 0.3 * mix( 0.45, 1.0, dens )
+              + ( texture( uNoise, q * vec2( 0.17, 0.7 ) + 0.61 ).a - 0.5 ) * 0.18 * mix( 0.2, 1.0, dens );
     return smoothstep( 0.4, 0.6, g + wob );
   }
 
@@ -287,7 +305,7 @@ export const GROUND_GLSL = /* glsl */ `
     float ul = dot( under, vec3( 0.3, 0.59, 0.11 ) );
     under = mix( under, vec3( ul ) * vec3( 1.06, 1.0, 0.8 ), 0.3 );
     vec3 c = mix( bare, under, smoothstep( 0.0, 0.55, m.r ) * carpet );
-    c = mix( c, roadColor( p.xz, n, m.g, groundDetail ), roadAmount( p.xz, m.g ) );
+    c = mix( c, roadColor( p.xz, n, m.g, groundDetail ), roadAmount( p.xz, m.g, roadTangent( p.xz ) ) );
     c = mix( c, bedColor( n ), m.b );
     if ( m.a > 0.01 ) {
       vec4 sett = cobbleColor( p.xz, n, m.a );
