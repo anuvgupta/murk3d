@@ -1227,3 +1227,10 @@ screenshot-checked.
   Replaces the fixed 4-per-castle lights; the well light stays. view2:
   `top` shots now warm 3 frames and spawn the player under the camera
   (FF1 was the first-shot artefact again). Verify FG1–FG6.
+- FG verified, all six keepers: ward corridor at 22:00 lit by its
+  lantern, plaza with moon + fairy strings + lit well, timber house with
+  porch lanterns and windows, castle gate glowing, plateau from above
+  with the gate/keep pools of light, village at 19:51 under the
+  afterglow. Night is done. Next survey: daytime interiors and props
+  (tavern table, smithy, alchemist stall, market, chests) at 1–3 m,
+  since item/furniture detail hasn't been reviewed this session.
