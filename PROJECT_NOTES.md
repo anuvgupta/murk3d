@@ -1114,3 +1114,11 @@ screenshot-checked.
   crevasse arcade 10:00, lakeside ruins 07:00, rivercity street 18:00,
   shelves 18:18, tundra crystals 23:00, portal glade 17:00, alpine falls
   11:00 (pos mode; yaw = −atan2(dx, −dz)).
+- ET: the triLod change moved ~18% of pixels but the macro view (tdebug 9)
+  is still fine-grained on the far wall and the lit wall still fuzzy →
+  texture octaves were not (all of) it. Next split: tdebug 10 = the
+  macroHeight field as grey (grainy → sampling; smooth → the gradient /
+  strength maths), tdebug 11 = macroNormal at strength 2 (mottling that
+  scales with strength = saturation of normalize(n − grad·17)). EV1–EV3
+  queued after the EU survey. Note the Vale spires at noon and the karst
+  lake are unaffected and remain keepers.
