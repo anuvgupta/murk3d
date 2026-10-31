@@ -68,7 +68,7 @@ const PALETTE = {
   hemiSkyDay: C(0xd3d8d6),
   hemiSkyGolden: C(0xf0b08a),
   hemiSkyNight: C(0x5a6fa8),
-  hemiGround: C(0x8a7a62),
+  hemiGround: C(0x7e8660), // bounce off a meadow is olive-green, not brown: shaded slopes stay grass
   hemiGroundNight: C(0x2a3250),
 };
 
