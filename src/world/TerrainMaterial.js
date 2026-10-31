@@ -104,7 +104,9 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         vec3 ground = groundColor( vWPos, wnClass, carpet, wet );
         // Cliffs and steep ground get the detailed rock shading.
         vec3 tw = triWeights( wn );
-        float detail = 1.0 - smoothstep( 12.0, 70.0, length( vViewPosition ) );
+        // Fine relief lives in the first few tens of metres: beyond that its
+        // features are under a pixel and the derivative bump turns to noise.
+        float detail = 1.0 - smoothstep( 6.0, 42.0, length( vViewPosition ) );
         rockDetail = detail;
         rockDetailF = detail;
         rockHOut = rockHeight( vWPos, tw, detail );
@@ -160,7 +162,7 @@ export function createTerrainMaterial({ noise, mask, heightMap }) {
         // Derivative bump only up close: at 50 m its features are smaller than
         // a pixel and it turns a cliff into grey felt. Distant relief comes
         // from the analytic macro normal instead, which stays smooth.
-        normal = bumpNormal( -vViewPosition, normal, rockHOut, ( 3.4 * rockAmtOut + 0.6 * bankAmt ) * ( 0.06 + 0.94 * rockDetail * rockDetail ) );
+        normal = bumpNormal( -vViewPosition, normal, rockHOut, ( 3.4 * rockAmtOut + 0.6 * bankAmt ) * rockDetail * rockDetail * rockDetail );
         if ( rockAmtOut > 0.01 ) {
           vec3 wn2 = macroNormal( vWPos, normalize( vWNormal ), ( 9.0 + 8.0 * ( 1.0 - rockDetail ) ) * rockAmtOut );
           vec3 vn2 = normalize( ( viewMatrix * vec4( wn2, 0.0 ) ).xyz );

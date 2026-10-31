@@ -108,7 +108,7 @@ export function createRockMaterial(noise) {
         `#include <color_fragment>
         vec3 wn = normalize( vWNormal );
         vec3 tw = triWeights( wn );
-        float detail = 1.0 - smoothstep( 12.0, 70.0, length( vViewPosition ) );
+        float detail = 1.0 - smoothstep( 6.0, 42.0, length( vViewPosition ) );
         rockDetailF = detail;
         rockH = rockHeight( vWPos, tw, detail );
         diffuseColor.rgb *= rockAlbedo( vWPos, wn, tw, rockH );
@@ -130,7 +130,7 @@ export function createRockMaterial(noise) {
       .replace(
         '#include <normal_fragment_maps>',
         `#include <normal_fragment_maps>
-        normal = bumpNormal( -vViewPosition, normal, rockH, 3.2 * detail * detail );
+        normal = bumpNormal( -vViewPosition, normal, rockH, 3.2 * detail * detail * detail );
         {
           vec3 wn2 = macroNormal( vWPos, wn, 4.0 );
           vec3 vn2 = normalize( ( viewMatrix * vec4( wn2, 0.0 ) ).xyz );
