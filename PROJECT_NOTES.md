@@ -1087,3 +1087,12 @@ screenshot-checked.
   EN: vertex normal, flat grey and baked slope are all smooth → the
   noise is made in the fragment normal; ER (tdebug 8 bump-only / 9
   macro-only) will say which.
+- EQ: the mesa-flank frame is unchanged for the 6th time, and tdebug 6
+  (baked slope) at that cam is a UNIFORM grey across the whole frame
+  (tdebug 2 was uniform green): in debug the entire view is one surface
+  with constant values, which rolling hills cannot be. Suspect the free
+  cam at [221,40,-500] (clamped to th+3) sits somewhere odd (inside the
+  mesa shell? on the falls?). view2 stats now log cam/th/player; ES1–ES5
+  queued: tdebug 1/3 at that cam, a high cam (y 95), and the same view
+  in pos mode lit + tdebug 2. Vale frames (overlook, bank, village dusk)
+  all unaffected by the turf change — keepers.
