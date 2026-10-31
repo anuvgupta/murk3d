@@ -140,29 +140,55 @@ export const ROCK_GLSL = /* glsl */ `
     return c;
   }
 
-  // Large-scale relief as a world-space normal perturbation: sample the macro
-  // height a few metres either side and tilt the normal down the gradient.
-  // Sampled from a coarse mip, so the noise's fine octaves (under a metre)
-  // cannot alias against the 2.5 m difference step: that aliasing was the
-  // grey felt on every cliff wall seen from 20 m or more.
-  float triLod( vec3 p, vec3 w, float s, int ch, float lod ) {
-    vec4 a = textureLod( uNoise, p.zy * s, lod );
-    vec4 b = textureLod( uNoise, p.xz * s, lod );
-    vec4 c = textureLod( uNoise, p.xy * s, lod );
-    return ( ch == 0 ? a.r : ch == 1 ? a.g : ch == 2 ? a.b : a.a ) * w.x
-         + ( ch == 0 ? b.r : ch == 1 ? b.g : ch == 2 ? b.b : b.a ) * w.y
-         + ( ch == 0 ? c.r : ch == 1 ? c.g : ch == 2 ? c.b : c.a ) * w.z;
+  // Large-scale relief (buttresses and gullies tens of metres across) as a
+  // world-space normal perturbation. Analytic value noise with a quintic
+  // fade and its exact gradient: C2-smooth, no octave finer than ~8 m, so
+  // the normal stays smooth at any distance (finite differences of the
+  // texture noise aliased into grey felt on every far cliff).
+  float hash3( vec3 p ) {
+    return fract( sin( dot( p, vec3( 127.1, 311.7, 74.7 ) ) ) * 43758.5453 );
+  }
+  // xyz: gradient, w: value (0..1).
+  vec4 noised3( vec3 x ) {
+    vec3 i = floor( x );
+    vec3 f = fract( x );
+    vec3 u = f * f * f * ( f * ( f * 6.0 - 15.0 ) + 10.0 );
+    vec3 du = 30.0 * f * f * ( f * ( f - 2.0 ) + 1.0 );
+    float a = hash3( i + vec3( 0.0, 0.0, 0.0 ) );
+    float b = hash3( i + vec3( 1.0, 0.0, 0.0 ) );
+    float c = hash3( i + vec3( 0.0, 1.0, 0.0 ) );
+    float d = hash3( i + vec3( 1.0, 1.0, 0.0 ) );
+    float e = hash3( i + vec3( 0.0, 0.0, 1.0 ) );
+    float f1 = hash3( i + vec3( 1.0, 0.0, 1.0 ) );
+    float g = hash3( i + vec3( 0.0, 1.0, 1.0 ) );
+    float h = hash3( i + vec3( 1.0, 1.0, 1.0 ) );
+    float k0 = a;
+    float k1 = b - a;
+    float k2 = c - a;
+    float k3 = e - a;
+    float k4 = a - b - c + d;
+    float k5 = a - c - e + g;
+    float k6 = a - b - e + f1;
+    float k7 = -a + b + c - d + e - f1 - g + h;
+    float v = k0 + k1 * u.x + k2 * u.y + k3 * u.z + k4 * u.x * u.y + k5 * u.y * u.z + k6 * u.z * u.x + k7 * u.x * u.y * u.z;
+    vec3 gr = du * vec3( k1 + k4 * u.y + k6 * u.z + k7 * u.y * u.z,
+                         k2 + k5 * u.z + k4 * u.x + k7 * u.z * u.x,
+                         k3 + k6 * u.x + k5 * u.y + k7 * u.x * u.y );
+    return vec4( gr, v );
+  }
+  // Three octaves: tall buttresses (squashed in y), ribs, and 8 m lumps.
+  vec4 macroField( vec3 p ) {
+    vec3 s1 = vec3( 0.022, 0.0077, 0.022 );
+    vec4 n1 = noised3( p * s1 );
+    vec4 n2 = noised3( p * 0.055 + 11.3 );
+    vec4 n3 = noised3( p * 0.13 + 5.7 );
+    return vec4( n1.xyz * s1 * 0.6 + n2.xyz * 0.055 * 0.28 + n3.xyz * 0.13 * 0.12, n1.w * 0.6 + n2.w * 0.28 + n3.w * 0.12 );
   }
   float macroHeight( vec3 p, vec3 w ) {
-    return triLod( vec3( p.x, p.y * 0.35, p.z ), w, 0.022, 0, 4.0 ) * 0.7 + triLod( p, w, 0.06, 1, 5.0 ) * 0.3;
+    return macroField( p ).w;
   }
   vec3 macroNormal( vec3 p, vec3 n, float strength ) {
-    vec3 w = triWeights( n );
-    float d = 2.5;
-    float hx = macroHeight( p + vec3( d, 0.0, 0.0 ), w ) - macroHeight( p - vec3( d, 0.0, 0.0 ), w );
-    float hy = macroHeight( p + vec3( 0.0, d, 0.0 ), w ) - macroHeight( p - vec3( 0.0, d, 0.0 ), w );
-    float hz = macroHeight( p + vec3( 0.0, 0.0, d ), w ) - macroHeight( p - vec3( 0.0, 0.0, d ), w );
-    vec3 grad = vec3( hx, hy, hz ) / ( 2.0 * d );
+    vec3 grad = macroField( p ).xyz;
     // Remove the component along the normal; tilt within the surface.
     grad -= n * dot( grad, n );
     return normalize( n - grad * strength );
