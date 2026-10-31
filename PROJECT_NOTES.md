@@ -1250,3 +1250,13 @@ screenshot-checked.
   (keepers). Not yet reviewed this session: clouds across the day,
   pixelation modes, the Vale's mountain ring from the valley floor —
   next survey.
+- FK/FL: painterly clouds unchanged from the signed-off state (noon is a
+  thin-cirrus weather state at sky 40/600; golden hour at 900 a keeper).
+  Mountain ring from the valley floor at 15:00 reads as soft green hills
+  with grey peaks and a faint snow line — acceptable, could use crisper
+  far peaks. Pixelation: user says leave it; view2 now resets px per
+  shot (FK7/FK8 inherited Strong). Issue #63 (Ghibli too big) taken:
+  deck 0.4→0.7, scale 1900→3300, cov 1.3→0.95 with ±1.0 regional swing,
+  puffs 800→1300 (dc2307a). Verify FM1–FM4. New issues 58–62 are the
+  other agent's (58 claimed); #61 (no visible sun glare/god rays) is
+  lighting — consider claiming after #63 if still open.
