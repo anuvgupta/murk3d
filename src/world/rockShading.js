@@ -131,6 +131,8 @@ export const ROCK_GLSL = /* glsl */ `
     c *= ( 0.76 + 0.46 * meso ) * ( 1.0 - gullyK + gullyK * smoothstep( 0.35, 0.7, gully ) );
     // Bedding colour: alternating warm and cool beds on steep faces.
     c *= 1.0 + ( 1.0 - w.y ) * 0.1 * ( sin( p.y * 1.1 + broad * 11.0 + 1.3 ) );
+    // An overhang's underside sees no sky: it goes cool and dim, not warm mud.
+    c *= mix( vec3( 1.0 ), vec3( 0.62, 0.66, 0.74 ), smoothstep( 0.05, -0.45, n.y ) );
     // Lichen in patches.
     float lichen = smoothstep( 0.64, 0.8, tri( p, w, 0.08, 0 ) ) * 0.45;
     c = mix( c, ${lin(0x8b8a52)}, lichen );

@@ -97,6 +97,20 @@ export class Castle {
         const z = -len / 2 + (i + 0.5) * (len / n);
         kit.box(m.white, 0.42, 0.7, 1.0, { x: thick / 2 - 0.2, y: height + 1.65, z }, { metres: 3 });
       }
+      // The ward side of the wall is lived in: lanterns on brackets every few
+      // metres and the lord's banners between them, so the corridors between
+      // the rings are not blank stone.
+      const bays = Math.max(1, Math.floor(len / 7));
+      for (let i = 0; i < bays; i++) {
+        const z = -len / 2 + (i + 0.5) * (len / bays);
+        kit.box(m.iron, 0.5, 0.05, 0.05, { x: -thick / 2 - 0.25, y: 3.3, z });
+        lantern(kit, m, { x: -thick / 2 - 0.45, y: 3.0, z });
+        if (i + 1 < bays && height > 6) {
+          const zb = z + len / bays / 2;
+          kit.box(m.iron, 0.05, 0.05, 1.1, { x: -thick / 2 - 0.3, y: Math.min(height - 1.0, 7.0), z: zb });
+          kit.box(m.banner, 0.03, 2.2, 0.9, { x: -thick / 2 - 0.32, y: Math.min(height - 1.0, 7.0) - 1.15, z: zb });
+        }
+      }
     });
     this.colliders.push({ cx: (ax + bx) / 2, cz: (az + bz) / 2, hx: thick / 2, hz: len / 2, rot: ry, local: true });
   }
